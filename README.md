@@ -14,6 +14,7 @@ This project automates the extraction and summarization of content from company 
 * **LLM Engine:** Ollama (running Mistral model locally)
 * **Language:** TypeScript (following Clean Architecture principles)
 
+
 **Example Output (Loopio):**
 
 * **Website Summary:** Loopio is presented as an RFP automation platform simplifying response management with features like a secure content library and AI assistance. It emphasizes collaboration, consistency, integration capabilities (CRM, Slack, etc.), flexible pricing, and dedicated support. Its AI is user-controlled, focusing on data-driven insights, human review, and quality control.
