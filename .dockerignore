@@ -1,0 +1,12 @@
+node_modules
+npm-debug.log
+.git
+.gitignore
+.dockerignore
+Dockerfile
+.env.example
+*.md
+.vscode
+dist
+linkedin-cookies.json
+data/previous-rides-data.json
