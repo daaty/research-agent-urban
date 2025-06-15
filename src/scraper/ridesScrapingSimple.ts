@@ -1,4 +1,7 @@
 import { chromium } from 'playwright';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 export interface RideTableData {
   name: string;
@@ -11,10 +14,12 @@ export interface RideTableData {
 export async function scrapeAllRidesData(): Promise<{ success: boolean; data: RideTableData[]; message: string }> {
   let browser;
   
-  try {
-    console.log('Iniciando browser para scraping completo...');
+  try {    console.log('Iniciando browser para scraping completo...');
+    const isHeadless = process.env.HEADLESS_MODE === 'true';
+    console.log(`👀 Modo headless: ${isHeadless}`);
+    
     browser = await chromium.launch({
-      headless: true,
+      headless: isHeadless,
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
     });
     

@@ -4,7 +4,8 @@
     "description": "AI Agent creation tool - Pilot project",
     "main": "dist/app-monitoring.js",
     "scripts": {
-        "build": "tsc --skipLibCheck",
+        "build": "tsc -p tsconfig.prod.json",
+        "build:all": "tsc --skipLibCheck",
         "start": "node dist/app-monitoring.js",
         "start:simple": "node dist/app-simple.js",
         "dev": "ts-node-dev --respawn --transpile-only src/app-simple.ts",
