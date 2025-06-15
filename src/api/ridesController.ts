@@ -1,7 +1,7 @@
 import express from 'express';
 import { scrapeRidesDashboard } from '../scraper/ridesDashboardScraper';
 import { testBrowserSimple } from '../scraper/testBrowser';
-import { testRidesLogin, scrapeRidesData, previewRidesTables } from '../scraper/ridesScraperNew';
+import { testRidesLogin, previewRidesTables } from '../scraper/ridesScraperNew';
 import { N8nWebhookPayload } from '../types/common';
 import axios from 'axios';
 import { chromium } from 'playwright';
@@ -18,7 +18,12 @@ import { testSimpleEnterLogin } from '../scraper/ridesSimpleEnter';
 import { captureNetworkRequests } from '../scraper/ridesNetworkCapture';
 import { scrapeRidesData } from '../scraper/ridesFullScraper';
 import { testEnvironmentVariables } from '../scraper/testEnvVars';
-import { scrapeAllRidesData } from '../scraper/ridesScrapingSimple';
+import { scrapeRidesDataSimple } from '../scraper/ridesScrapingSimple';
+import { testCancelledRidesOnly } from '../scraper/testCancelledRides';
+import { testCancelledRidesAdvanced } from '../scraper/testCancelledRides2';
+import { investigateFilters } from '../scraper/investigateFilters';
+import { testRobustBrowser } from '../scraper/testRobustBrowser';
+import { testWithSearchButton } from '../scraper/testWithSearchButton';
 
 const router = express.Router();
 
@@ -448,6 +453,92 @@ router.post('/scrape-simple', async (req, res) => {
       success: false,
       data: [],
       message: `Erro durante scraping simples: ${error.message}`,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Endpoint para DEBUG específico da aba CANCELADOS
+router.post('/test-cancelled-only', async (req, res) => {
+  try {
+    console.log('🧪 Iniciando teste específico da aba CANCELADOS...');
+    const result = await testCancelledRidesOnly();
+    res.json(result);
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: `Erro durante teste: ${error.message}`,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Endpoint para DEBUG avançado da aba CANCELADOS
+router.post('/test-cancelled-advanced', async (req, res) => {
+  try {
+    console.log('🧪 Iniciando teste AVANÇADO da aba CANCELADOS...');
+    const result = await testCancelledRidesAdvanced();
+    res.json(result);
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: `Erro durante teste avançado: ${error.message}`,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Endpoint para INVESTIGAR FILTROS da aba CANCELADOS
+router.post('/investigate-filters', async (req, res) => {
+  try {
+    console.log('🔍 Iniciando investigação de FILTROS...');
+    const result = await investigateFilters();
+    res.json(result);
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: `Erro durante investigação: ${error.message}`,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// TESTE COM BROWSER ROBUSTO
+router.post('/test-robust-browser', async (req, res) => {
+  try {
+    console.log('🧪 Iniciando teste com browser robusto...');
+    const result = await testRobustBrowser();
+    
+    res.json({
+      success: true,
+      data: result,
+      message: 'Teste com browser robusto concluído',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Novo endpoint para testar com botão de busca
+router.post('/test-with-search-button', async (req, res) => {
+  try {
+    console.log('🎯 Iniciando teste com botão de busca...');
+    const result = await testWithSearchButton();
+    res.json({
+      success: true,
+      data: result,
+      message: 'Teste com botão de busca concluído',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
       timestamp: new Date().toISOString()
     });
   }
