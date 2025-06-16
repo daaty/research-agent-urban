@@ -65,6 +65,29 @@ Thumbs.db
 # Browser data
 linkedin-cookies.json
 data/previous-rides-data.json
+browser-data/
+session-data.json
+cache-data.json
 
 # PM2
 .pm2/
+
+# Development files
+demo-velocidade.ts
+exemplo-pratico.ts
+exemplo-uso.ts
+test-persistent.ts
+package-persistent.json
+start-persistent.bat
+start-persistent.sh
+
+# Documentation (too many, keep only essential)
+CACHE-SISTEMA-FINALIZADO.md
+DEPLOY-PRODUCAO.md
+PROJETO-CONCLUIDO.md
+PRONTO-PRODUCAO.txt
+QUICK-START.md
+README-PERSISTENT.md
+RESUMO-FINAL.txt
+RESUMO-MELHORIAS.md
+SISTEMA-CACHE-PRONTO.md
