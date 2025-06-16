@@ -1,24 +1,19 @@
-{
-    "name": "ai-agent-tool",
-    "version": "1.0.0",
-    "description": "AI Agent creation tool - Pilot project",
-    "main": "dist/app-monitoring.js",
-    "scripts": {
+{    "name": "ai-agent-tool",
+    "version": "2.0.0",
+    "description": "AI Agent creation tool - Persistent Browser System",
+    "main": "dist/auto-scraper.js",    "scripts": {
         "build": "tsc -p tsconfig.prod.json",
-        "build:all": "tsc --skipLibCheck",
-        "start": "node dist/app-monitoring.js",
-        "start:simple": "node dist/app-simple.js",
-        "dev": "ts-node-dev --respawn --transpile-only src/app-simple.ts",
-        "dev:monitor": "ts-node-dev --respawn --transpile-only src/app-monitoring.ts",
-        "scrape-once": "ts-node src/scraper/ridesScrapingSimple.ts",
-        "clean": "rimraf dist",
+        "start": "node dist/auto-scraper.js",
+        "start:server": "node dist/app-persistent.js",
+        "dev": "ts-node-dev --respawn --transpile-only src/auto-scraper.ts",
+        "dev:server": "ts-node-dev --respawn --transpile-only src/app-persistent.ts",
+        "clean": "rimraf dist browser-data session-data.json cache-data.json",
+        "clean:all": "rimraf dist browser-data session-data.json cache-data.json node_modules",
         "prebuild": "npm run clean",
         "prod": "npm run build && npm start",
-        "install:deps": "npm install --production",
         "setup": "npm install && npm run build",
-        "puppeteer-install-chrome": "PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=false npm install puppeteer",
         "playwright-install": "npx playwright install chromium",
-        "install-browsers": "npm run playwright-install && npm run puppeteer-install-chrome"
+        "install-browsers": "npm run playwright-install"
     },
     "dependencies": {
         "axios": "^1.10.0",

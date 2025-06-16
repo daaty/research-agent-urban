@@ -2,7 +2,7 @@ import * as cron from 'node-cron';
 import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
-import { scrapeAllRidesData } from '../scraper/ridesScrapingSimple';
+import { scrapeAllRidesDataPersistent } from '../scraper/ridesPersistentScraper';
 
 interface RideData {
   id: string;
@@ -190,10 +190,8 @@ class MonitoringService {
     }
 
     this.isRunning = true;
-    console.log(`🕐 [${new Date().toLocaleString()}] Iniciando scraping...`);
-
-    try {      // Executar scraping
-      const scrapingResult = await scrapeAllRidesData();
+    console.log(`🕐 [${new Date().toLocaleString()}] Iniciando scraping...`);    try {      // Executar scraping
+      const scrapingResult = await scrapeAllRidesDataPersistent();
       
       if (!scrapingResult.success || !scrapingResult.data || scrapingResult.data.length === 0) {
         console.log('⚠️ Nenhum dado extraído:', scrapingResult.message);
@@ -202,11 +200,11 @@ class MonitoringService {
 
       // Converter dados de tabelas para array plano
       const rawData: any[] = [];
-      scrapingResult.data.forEach(table => {
+      scrapingResult.data.forEach((table: any) => {
         if (!table.isEmpty && table.rows.length > 0) {
-          table.rows.forEach(row => {
+          table.rows.forEach((row: any) => {
             const rowData: any = {};
-            table.headers.forEach((header, index) => {
+            table.headers.forEach((header: any, index: number) => {
               rowData[header.toLowerCase().replace(/\s+/g, '_')] = row[index] || '';
             });
             rowData.table_name = table.name;

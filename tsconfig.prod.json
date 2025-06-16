@@ -9,15 +9,15 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true
-  },
-  "include": [
+  },  "include": [
+    "src/auto-scraper.ts",
+    "src/app-persistent.ts",
     "src/app-monitoring.ts",
     "src/app-simple.ts",
-    "src/services/monitoringService.ts",
-    "src/scraper/ridesScrapingSimple.ts",
-    "src/config/index.ts",
-    "src/types/index.ts",
-    "src/utils/**/*"
+    "src/services/**/*",
+    "src/scraper/ridesPersistentScraper.ts",
+    "src/config/**/*",
+    "src/types/**/*"
   ],
   "exclude": [
     "node_modules",
