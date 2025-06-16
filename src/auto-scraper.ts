@@ -6,6 +6,7 @@ import axios from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
+import express from 'express';
 
 interface CachedData {
   timestamp: string;
@@ -17,9 +18,76 @@ interface CachedData {
 class AutoScraper {
   private intervalId: NodeJS.Timeout | null = null;
   private cacheFilePath: string;
-    constructor() {
+  private app: express.Application;
+  private server: any;
+  private isRunning: boolean = false;
+  private lastExecution: Date | null = null;
+  private executionCount: number = 0;
+  
+  constructor() {
     this.cacheFilePath = path.join(process.cwd(), 'data', 'previous-rides-data.json');
+    this.app = express();
+    this.setupHealthCheck();
   }
+  
+  private setupHealthCheck() {
+    this.app.use(express.json());
+    
+    // Health check endpoint
+    this.app.get('/health', (req, res) => {
+      res.json({
+        status: 'ok',
+        service: 'Research Agent Urban',
+        version: '2.0.0',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        isRunning: this.isRunning,
+        lastExecution: this.lastExecution?.toISOString() || null,
+        executionCount: this.executionCount,
+        cacheFile: this.cacheFilePath,
+        webhookConfigured: !!config.n8nWebhookUrl
+      });
+    });
+    
+    // Status endpoint
+    this.app.get('/status', (req, res) => {
+      const cacheExists = fs.existsSync(this.cacheFilePath);
+      let cacheData = null;
+      
+      if (cacheExists) {
+        try {
+          cacheData = JSON.parse(fs.readFileSync(this.cacheFilePath, 'utf8'));
+        } catch (error) {
+          cacheData = { error: 'Unable to read cache' };
+        }
+      }
+      
+      res.json({
+        service: 'Research Agent Urban Auto Scraper',
+        status: this.isRunning ? 'running' : 'stopped',
+        interval: '2.5 minutes',
+        cache: {
+          exists: cacheExists,
+          path: this.cacheFilePath,
+          data: cacheData
+        },
+        stats: {
+          lastExecution: this.lastExecution?.toISOString() || null,
+          executionCount: this.executionCount,
+          uptime: process.uptime()
+        }
+      });
+    });
+    
+    // Start HTTP server
+    const port = process.env.PORT || 3000;
+    this.server = this.app.listen(port, () => {
+      console.log(`🌐 Health check server running on port ${port}`);
+      console.log(`📋 Health: http://localhost:${port}/health`);
+      console.log(`📊 Status: http://localhost:${port}/status`);
+    });
+  }
+
   async start() {
     console.log('🤖 INICIANDO SISTEMA AUTOMÁTICO DE SCRAPING COM CACHE');
     console.log('⏰ Executará a cada 2,5 minutos');
@@ -27,6 +95,8 @@ class AutoScraper {
     console.log(`📡 Webhook: ${config.n8nWebhookUrl ? 'Configurado ✅' : 'Não configurado ❌'}`);
     console.log(`💾 Cache: ${this.cacheFilePath}`);
     console.log('='.repeat(60));
+    
+    this.isRunning = true;
     
     // Verificar se existe cache antigo e mostrar info
     this.showCacheInfo();
@@ -42,10 +112,12 @@ class AutoScraper {
       this.doScraping();
     }, 2.5 * 60 * 1000);
   }
-  
-  private async doScraping() {
+    private async doScraping() {
     const now = new Date().toLocaleString('pt-BR');
-    console.log(`\n🔄 [${now}] Iniciando scraping...`);
+    this.lastExecution = new Date();
+    this.executionCount++;
+    
+    console.log(`\n🔄 [${now}] Iniciando scraping... (Execução #${this.executionCount})`);
     
     try {
       const result = await scrapeAllRidesDataPersistent();
@@ -307,22 +379,41 @@ class AutoScraper {
       console.log(`   Arquivo esperado: ${this.cacheFilePath}`);
     }
   }
-  
-  stop() {
+    stop() {
+    console.log('⏹️ Parando sistema automático...');
+    
+    this.isRunning = false;
+    
     if (this.intervalId) {
       clearInterval(this.intervalId);
-      console.log('⏹️ Sistema automático parado');
+      console.log('✅ Timer parado');
     }
+    
+    if (this.server) {
+      this.server.close(() => {
+        console.log('✅ Servidor HTTP encerrado');
+      });
+    }
+    
+    console.log('🔄 Shutdown completo');
   }
 }
 
-// Iniciar
+// Iniciar sistema
 const scraper = new AutoScraper();
 scraper.start();
 
-// Parar com Ctrl+C
-process.on('SIGINT', () => {
-  console.log('\n🔄 Parando sistema...');
+// Graceful shutdown
+const gracefulShutdown = () => {
+  console.log('\n� Recebido sinal de parada...');
   scraper.stop();
-  process.exit(0);
-});
+  
+  setTimeout(() => {
+    console.log('🚪 Forçando encerramento...');
+    process.exit(0);
+  }, 5000);
+};
+
+process.on('SIGINT', gracefulShutdown);
+process.on('SIGTERM', gracefulShutdown);
+process.on('SIGQUIT', gracefulShutdown);

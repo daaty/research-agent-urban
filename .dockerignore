@@ -1,12 +1,86 @@
-node_modules
-npm-debug.log
-.git
+# ==================================
+# .dockerignore - RESEARCH AGENT URBAN
+# ==================================
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn
+
+# Build outputs
+dist/
+build/
+*.tgz
+
+# Runtime data
+data/
+browser-data/
+cache/
+session-data.json
+cache-data.json
+*.log
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+*.tmp
+*.temp
+
+# Git
+.git/
 .gitignore
-.dockerignore
-Dockerfile
-.env.example
+.gitattributes
+
+# Documentation
 *.md
-.vscode
-dist
+!README.md
+
+# Test files
+test/
+tests/
+__tests__/
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Deployment
+deploy*
+ecosystem.config.js
+
+# Backup files
+*.bak
+*.backup
+
+# Temporary files
+tmp/
+temp/
+
+# LinkedIn cookies
 linkedin-cookies.json
-data/previous-rides-data.json
