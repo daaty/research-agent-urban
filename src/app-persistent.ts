@@ -63,20 +63,38 @@ app.post('/api/rides/scrape', async (req: any, res: any) => {
     if (result.success) {
       console.log('✅ Scraping persistente concluído com sucesso!');
       
-      // Enviar dados para n8n se configurado
+      // ⭐ NOVA LÓGICA: Enviar apenas dados novos para n8n
       if (config.n8nWebhookUrl && !config.n8nWebhookUrl.includes('seu-n8n.com')) {
-        try {
-          console.log('📤 Enviando dados para n8n...');
-          await axios.post(config.n8nWebhookUrl, {
-            timestamp: new Date().toISOString(),
-            source: 'rides-dashboard-persistent',
-            mode: 'persistent-browser',
-            sessionInfo: result.sessionInfo,
-            data: result.data
-          });
-          console.log('✅ Dados enviados para n8n com sucesso!');
-        } catch (error) {
-          console.error('❌ Erro ao enviar para n8n:', error);
+        if (result.hasChanges && result.differences && result.differences.length > 0) {
+          try {
+            console.log('📤 Enviando APENAS dados novos para n8n...');
+            
+            // Criar payload com apenas dados novos
+            const webhookPayload = {
+              timestamp: new Date().toISOString(),
+              source: 'rides-dashboard-persistent',
+              mode: 'persistent-browser',
+              sessionInfo: result.sessionInfo,
+              onlyNewData: true,
+              differences: result.differences,
+              summary: {
+                totalNewRecords: result.differences.reduce((sum, diff) => sum + diff.totalNewRecords, 0),
+                totalUpdatedRecords: result.differences.reduce((sum, diff) => sum + diff.updatedRecords.length, 0),
+                totalRemovedRecords: result.differences.reduce((sum, diff) => sum + diff.removedRecords.length, 0),
+                tablesWithChanges: result.differences.length
+              }
+            };
+            
+            await axios.post(config.n8nWebhookUrl, webhookPayload);
+            
+            const newRecords = webhookPayload.summary.totalNewRecords;
+            console.log(`✅ ${newRecords} novos registros enviados para n8n!`);
+            
+          } catch (error) {
+            console.error('❌ Erro ao enviar para n8n:', error);
+          }
+        } else {
+          console.log('ℹ️ Nenhuma mudança detectada - webhook não enviado');
         }
       }
       
@@ -85,12 +103,16 @@ app.post('/api/rides/scrape', async (req: any, res: any) => {
         message: result.message,
         mode: 'persistent',
         sessionInfo: result.sessionInfo,
-        data: result.data,
+        hasChanges: result.hasChanges,
+        onlyNewData: result.onlyNewData,
+        differences: result.differences,
+        data: result.data, // Dados completos para referência
         summary: {
           totalTables: result.data.length,
           tablesWithData: result.data.filter(table => !table.isEmpty).length,
           tablesEmpty: result.data.filter(table => table.isEmpty).length,
           totalRecords: result.data.reduce((sum, table) => sum + table.rows.length, 0),
+          newRecords: result.differences ? result.differences.reduce((sum, diff) => sum + diff.totalNewRecords, 0) : 0,
           timestamp: new Date().toISOString()
         }
       });
@@ -199,60 +221,182 @@ app.get('/api/test', async (req: any, res: any) => {
   }
 });
 
-// ⏰ Sistema de execução periódica (opcional)
-let intervalId: NodeJS.Timeout | null = null;
-
-app.post('/api/scheduler/start', async (req: any, res: any) => {
+// 🗂️ ENDPOINT - Gerenciar cache de dados
+app.get('/api/cache/stats', async (req: any, res: any) => {
   try {
-    const { intervalMinutes = 10 } = req.body;
-    
-    if (intervalId) {
-      clearInterval(intervalId);
-    }
-    
-    console.log(`⏰ Iniciando execução automática a cada ${intervalMinutes} minutos`);
-    
-    intervalId = setInterval(async () => {
-      try {
-        console.log('⏰ Execução automática iniciada...');
-        const result = await scrapeAllRidesDataPersistent();
-        
-        if (result.success) {
-          console.log(`✅ Execução automática concluída: ${result.data.reduce((sum, table) => sum + table.rows.length, 0)} registros`);
-        } else {
-          console.error('❌ Erro na execução automática:', result.message);
-        }
-      } catch (error) {
-        console.error('❌ Erro crítico na execução automática:', error);
-      }
-    }, intervalMinutes * 60 * 1000);
+    const stats = await scraper.getCacheStats();
     
     res.json({
       success: true,
-      message: `Execução automática iniciada (${intervalMinutes} min)`,
-      intervalMinutes
+      cache: stats,
+      timestamp: new Date().toISOString()
     });
-    
   } catch (error: any) {
+    console.error('❌ Erro ao obter estatísticas do cache:', error);
     res.status(500).json({
       success: false,
-      message: `Erro ao iniciar scheduler: ${error.message}`
+      message: error.message,
+      timestamp: new Date().toISOString()
     });
   }
 });
 
-app.post('/api/scheduler/stop', (req: any, res: any) => {
-  if (intervalId) {
-    clearInterval(intervalId);
-    intervalId = null;
+// 🗂️ ENDPOINT - Limpar cache
+app.post('/api/cache/clear', async (req: any, res: any) => {
+  try {
+    scraper.clearCache();
+    
     res.json({
       success: true,
-      message: 'Execução automática parada'
+      message: 'Cache limpo com sucesso',
+      timestamp: new Date().toISOString()
     });
-  } else {
-    res.json({
+  } catch (error: any) {
+    console.error('❌ Erro ao limpar cache:', error);
+    res.status(500).json({
       success: false,
-      message: 'Nenhuma execução automática ativa'
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// 🧪 ENDPOINT - Simular webhook (somente dados novos)
+app.post('/api/rides/simulate-webhook', async (req: any, res: any) => {
+  try {
+    console.log('🧪 Simulando webhook com dados novos...');
+    
+    const result = await scrapeAllRidesDataPersistent();
+    
+    if (result.success && result.hasChanges && result.differences) {
+      const webhookPayload = {
+        timestamp: new Date().toISOString(),
+        source: 'rides-dashboard-persistent',
+        mode: 'persistent-browser',
+        sessionInfo: result.sessionInfo,
+        onlyNewData: true,
+        differences: result.differences,
+        summary: {
+          totalNewRecords: result.differences.reduce((sum, diff) => sum + diff.totalNewRecords, 0),
+          totalUpdatedRecords: result.differences.reduce((sum, diff) => sum + diff.updatedRecords.length, 0),
+          totalRemovedRecords: result.differences.reduce((sum, diff) => sum + diff.removedRecords.length, 0),
+          tablesWithChanges: result.differences.length
+        }
+      };
+      
+      res.json({
+        success: true,
+        message: 'Webhook simulado com dados novos',
+        payload: webhookPayload,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      res.json({
+        success: true,
+        message: 'Nenhuma mudança detectada - webhook não seria enviado',
+        hasChanges: result.hasChanges,
+        timestamp: new Date().toISOString()
+      });
+    }
+  } catch (error: any) {
+    console.error('❌ Erro ao simular webhook:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// 🔐 ENDPOINT - Verificar status de login com captcha
+app.get('/api/rides/login-status', async (req: any, res: any) => {
+  try {
+    const sessionStatus = await scraper.getSessionStatus();
+    
+    res.json({
+      success: true,
+      status: sessionStatus,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    console.error('❌ Erro ao verificar status de login:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// 🔐 ENDPOINT - Aguardar login manual (para captcha)
+app.post('/api/rides/wait-manual-login', async (req: any, res: any) => {
+  try {
+    const { timeout = 300000 } = req.body; // 5 minutos por padrão
+    
+    console.log('⏳ Aguardando login manual...');
+    
+    const result = await scraper.waitForManualLogin(timeout);
+    
+    if (result) {
+      res.json({
+        success: true,
+        message: 'Login manual detectado com sucesso!',
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      res.status(408).json({
+        success: false,
+        message: 'Timeout aguardando login manual',
+        timestamp: new Date().toISOString()
+      });
+    }
+  } catch (error: any) {
+    console.error('❌ Erro ao aguardar login manual:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// 🔐 ENDPOINT - Abrir navegador para login manual
+app.post('/api/rides/open-browser-login', async (req: any, res: any) => {
+  try {
+    console.log('🌐 Abrindo navegador para login manual...');
+    
+    // Garantir que o browser está inicializado
+    await scraper.initializeBrowser();
+    
+    // Navegar para página de login
+    const page = scraper.getPage();
+    if (page) {
+      await page.goto('https://rides.ec2dashboard.com/#/page/login', {
+        waitUntil: 'domcontentloaded'
+      });
+    }
+    
+    const sessionStatus = await scraper.getSessionStatus();
+    
+    res.json({
+      success: true,
+      message: 'Navegador aberto na página de login',
+      status: sessionStatus,
+      instructions: [
+        '1. Faça login manualmente no navegador que foi aberto',
+        '2. Resolva o captcha se necessário',
+        '3. Aguarde até estar logado no dashboard',
+        '4. Use o endpoint /api/rides/wait-manual-login para aguardar confirmação',
+        '5. Ou use /api/rides/login-status para verificar o status'
+      ],
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    console.error('❌ Erro ao abrir navegador:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+      timestamp: new Date().toISOString()
     });
   }
 });
@@ -284,14 +428,8 @@ app.listen(PORT, () => {
 process.on('SIGINT', async () => {
   console.log('\n🔄 Recebido sinal de interrupção...');
   
-  if (intervalId) {
-    console.log('⏸️ Parando execução automática...');
-    clearInterval(intervalId);
-  }
-  
   console.log('🧹 Executando limpeza final...');
   try {
-    await scraper.cleanup();
     console.log('✅ Limpeza concluída');
   } catch (error) {
     console.error('❌ Erro na limpeza:', error);

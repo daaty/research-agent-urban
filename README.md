@@ -101,3 +101,93 @@ cp .env.example .env
 # Start development server
 npm run dev
 ```
+
+## 🔐 Tratamento de Captcha
+
+### ✅ NOVIDADE: Sistema Híbrido para Captcha
+
+O sistema agora detecta automaticamente quando há captcha na página de login e oferece uma solução híbrida:
+
+- **Detecção automática** de captcha
+- **Login manual** quando necessário  
+- **Continuidade automática** do scraping após login manual
+- **Sessão persistente** - login manual é feito apenas uma vez
+
+### 🚀 Como Usar com Captcha
+
+#### Opção 1: Fluxo Automático (Recomendado)
+```bash
+# O sistema detecta captcha automaticamente
+POST /api/rides/scrape
+
+# Se houver captcha, faz login manual no navegador e tenta novamente
+POST /api/rides/scrape
+```
+
+#### Opção 2: Fluxo Manual Controlado
+```bash
+# 1. Verificar status
+GET /api/rides/login-status
+
+# 2. Abrir navegador para login manual
+POST /api/rides/open-browser-login
+
+# 3. Aguardar confirmação (após login manual)
+POST /api/rides/wait-manual-login
+
+# 4. Executar scraping
+POST /api/rides/scrape
+```
+
+📖 **Documentação completa:** [`CAPTCHA_GUIDE.md`](CAPTCHA_GUIDE.md)
+
+## 🗂️ Sistema de Cache Inteligente
+
+### ✅ NOVIDADE: Apenas Dados Novos
+
+O sistema agora envia **apenas dados novos** para o webhook, eliminando duplicação na planilha:
+
+- **Primeira execução**: Todos os dados são novos
+- **Execuções subsequentes**: Apenas dados que mudaram
+- **Sem mudanças**: Webhook não é enviado
+- **Zero duplicação**: Planilha recebe apenas registros únicos
+
+### 📊 Comparação
+
+**Antes (Problema):**
+```json
+{
+  "data": [
+    { "rows": [["Corrida 1"], ["Corrida 2"]] }
+  ]
+}
+```
+
+**Agora (Solução):**
+```json
+{
+  "onlyNewData": true,
+  "differences": [
+    {
+      "tableName": "Completed Rides",
+      "newRecords": [["Corrida 2"]], // Apenas a nova
+      "totalNewRecords": 1
+    }
+  ]
+}
+```
+
+### 🔧 Endpoints do Cache
+
+```bash
+# Verificar estatísticas do cache
+GET /api/cache/stats
+
+# Limpar cache (força todos os dados como novos)
+POST /api/cache/clear
+
+# Simular webhook (ver o que seria enviado)
+POST /api/rides/simulate-webhook
+```
+
+📖 **Documentação completa:** [`CACHE_SYSTEM_GUIDE.md`](CACHE_SYSTEM_GUIDE.md)

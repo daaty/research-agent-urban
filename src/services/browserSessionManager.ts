@@ -84,6 +84,92 @@ export class BrowserSessionManager {
            this.sessionData.sessionExpiry > now &&
            (now - this.sessionData.loginTimestamp) < (2 * 60 * 60 * 1000); // 2 horas
   }
+
+  /**
+   * Verifica se o usuário está logado no navegador (detecta login manual)
+   */
+  private async isCurrentlyLoggedIn(): Promise<boolean> {
+    if (!this.page) return false;
+    
+    try {
+      const currentUrl = this.page.url();
+      console.log('🔍 Verificando URL atual:', currentUrl);
+      
+      // Se está na página de login, definitivamente não está logado
+      if (currentUrl.includes('login')) {
+        console.log('❌ Ainda na página de login');
+        return false;
+      }
+      
+      // Se não está na página de login, verificar se realmente está no dashboard
+      if (currentUrl.includes('dashboard') || currentUrl.includes('app/')) {
+        console.log('✅ URL indica dashboard');
+        
+        // Aguardar um pouco para elementos carregarem
+        await this.page.waitForTimeout(3000);
+        
+        // Verificações específicas para o site rides.ec2dashboard.com
+        try {
+          // Verificar se há elementos específicos do dashboard Urban
+          const specificChecks = await Promise.all([
+            // Verificar se há tabelas de dados (principal indicador)
+            this.page.$('table.t-fancy-table').then(el => !!el),
+            // Verificar se há título do dashboard Urban
+            this.page.$eval('title', el => el.textContent).then(title => 
+              title?.includes('Dashboard') || title?.includes('Urban')
+            ).catch(() => false),
+            // Verificar se há elementos de navegação específicos
+            this.page.$('.navbar, .nav-menu, .sidebar').then(el => !!el),
+            // Verificar se NÃO há formulário de login
+            this.page.$('#exampleInputEmail1').then(el => !el),
+            // Verificar se há conteúdo da página logada
+            this.page.$eval('body', el => el.textContent).then(text => 
+              text && text.length > 1000 && !text.includes('Login')
+            ).catch(() => false)
+          ]);
+          
+          console.log('🔍 Verificações específicas:', {
+            hasTable: specificChecks[0],
+            hasTitle: specificChecks[1],
+            hasNavigation: specificChecks[2],
+            noLoginForm: specificChecks[3],
+            hasContent: specificChecks[4]
+          });
+          
+          // Para considerar logado, deve passar em pelo menos 3 verificações
+          // E OBRIGATORIAMENTE não deve ter formulário de login
+          const positiveChecks = specificChecks.filter(Boolean).length;
+          const hasLoginForm = !specificChecks[3]; // Inverter pois specificChecks[3] é "NÃO há formulário"
+          
+          console.log(`🔍 Resultado: ${positiveChecks}/5 verificações positivas`);
+          console.log(`🔍 Formulário de login presente: ${hasLoginForm ? 'SIM' : 'NÃO'}`);
+          
+          // Regra: pelo menos 3 verificações positivas E sem formulário de login
+          const isLoggedIn = positiveChecks >= 3 && !hasLoginForm;
+          
+          if (isLoggedIn) {
+            console.log('✅ Login confirmado por verificações específicas');
+          } else {
+            console.log('❌ Login não confirmado pelas verificações');
+          }
+          
+          return isLoggedIn;
+          
+        } catch (error) {
+          console.log('⚠️ Erro ao verificar elementos específicos:', error);
+          return false;
+        }
+      }
+      
+      // Se não está nem em login nem em dashboard, algo está errado
+      console.log('⚠️ URL não reconhecida, assumindo não logado');
+      return false;
+      
+    } catch (error) {
+      console.log('⚠️ Erro ao verificar status de login:', error);
+      return false;
+    }
+  }
   /**
    * Inicializa o navegador com dados persistentes
    */
@@ -135,18 +221,77 @@ export class BrowserSessionManager {
       await this.initializeBrowser();
     }
 
-    // Verificar se já está logado e sessão é válida
+    console.log('🔐 Verificando status de login...');
+
+    // Primeiro, verificar se há sessão válida em cache
     if (this.isSessionValid()) {
-      console.log('✅ Sessão válida encontrada, pulando login');
+      console.log('✅ Sessão válida encontrada no cache');
       
-      // Verificar se ainda está na página correta
-      const currentUrl = this.page!.url();
-      if (!currentUrl.includes('login')) {
+      // Mesmo com sessão válida, verificar se realmente está logado
+      const isCurrentlyLoggedIn = await this.isCurrentlyLoggedIn();
+      if (isCurrentlyLoggedIn) {
+        console.log('✅ Sessão válida e usuário logado confirmado');
         return true;
+      } else {
+        console.log('⚠️ Sessão em cache, mas usuário não está logado. Limpando cache...');
+        this.clearSession();
       }
     }
 
-    console.log('🔑 Realizando login...');
+    // Verificar se já está logado no navegador (login manual ou sessão persistente)
+    const isCurrentlyLoggedIn = await this.isCurrentlyLoggedIn();
+    
+    if (isCurrentlyLoggedIn) {
+      console.log('✅ Login válido detectado no navegador');
+      
+      // Atualizar dados da sessão para refletir o login atual
+      const now = Date.now();
+      this.sessionData = {
+        isLoggedIn: true,
+        loginTimestamp: now,
+        sessionExpiry: now + (2 * 60 * 60 * 1000), // 2 horas de validade
+        userData: { email: this.email, detectedLogin: true }
+      };
+      this.saveSessionData();
+      
+      return true;
+    }
+
+    // Tentar navegar para dashboard primeiro para verificar se está logado
+    try {
+      console.log('🔍 Tentando acessar dashboard para verificar login...');
+      await this.page!.goto('https://rides.ec2dashboard.com/#/app/dashboard/', { 
+        waitUntil: 'domcontentloaded',
+        timeout: 15000 
+      });
+      
+      await this.page!.waitForTimeout(5000); // Aguardar mais tempo para carregamento
+      
+      // Verificar novamente após navegar para dashboard
+      const isLoggedAfterDashboard = await this.isCurrentlyLoggedIn();
+      if (isLoggedAfterDashboard) {
+        console.log('✅ Login confirmado após navegação para dashboard');
+        
+        // Atualizar dados da sessão
+        const now = Date.now();
+        this.sessionData = {
+          isLoggedIn: true,
+          loginTimestamp: now,
+          sessionExpiry: now + (2 * 60 * 60 * 1000),
+          userData: { email: this.email, dashboardAccess: true }
+        };
+        this.saveSessionData();
+        
+        return true;
+      }
+    } catch (error) {
+      console.log('⚠️ Erro ao verificar dashboard:', error);
+    }
+
+    // Se chegou aqui, precisa fazer login automático
+    console.log('🔑 Necessário fazer login...');
+    console.log('⚠️ ATENÇÃO: Se há captcha, faça login manualmente e tente novamente');
+    
     return await this.performLogin();
   }
 
@@ -163,7 +308,20 @@ export class BrowserSessionManager {
 
       await this.page!.waitForTimeout(3000);
 
-      // Preencher credenciais
+      // Verificar se há captcha na página
+      const hasCaptcha = await this.checkForCaptcha();
+      
+      if (hasCaptcha) {
+        console.log('🤖 CAPTCHA detectado na página!');
+        console.log('⚠️ Login automático não é possível com captcha');
+        console.log('📝 Por favor, faça login manualmente no navegador e tente novamente');
+        console.log('💡 O bot detectará automaticamente o login manual');
+        
+        // Não tentar login automático, apenas retornar false
+        return false;
+      }
+
+      // Preencher credenciais apenas se não há captcha
       console.log('📝 Preenchendo credenciais...');
       await this.page!.fill('#exampleInputEmail1', this.email);
       await this.page!.fill('#exampleInputPassword1', this.password);
@@ -173,9 +331,8 @@ export class BrowserSessionManager {
       await this.page!.press('#exampleInputPassword1', 'Enter');
       await this.page!.waitForTimeout(8000);
 
-      // Verificar se login foi bem-sucedido
-      const currentUrl = this.page!.url();
-      const isLoggedIn = !currentUrl.includes('login');
+      // Verificar se login foi bem-sucedido com método mais robusto
+      const isLoggedIn = await this.verifyLoginSuccess();
 
       if (isLoggedIn) {
         // Atualizar dados da sessão
@@ -184,19 +341,86 @@ export class BrowserSessionManager {
           isLoggedIn: true,
           loginTimestamp: now,
           sessionExpiry: now + (2 * 60 * 60 * 1000), // 2 horas de validade
-          userData: { email: this.email }
+          userData: { email: this.email, automaticLogin: true }
         };
         this.saveSessionData();
         
-        console.log('✅ Login realizado com sucesso!');
+        console.log('✅ Login automático realizado com sucesso!');
         return true;
       } else {
-        console.log('❌ Falha no login - ainda na página de login');
+        console.log('❌ Falha no login automático');
         return false;
       }
 
     } catch (error) {
       console.error('❌ Erro durante login:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Verifica se o login foi bem-sucedido de forma mais robusta
+   */
+  private async verifyLoginSuccess(): Promise<boolean> {
+    try {
+      // Aguardar um pouco para redirecionamento
+      await this.page!.waitForTimeout(5000);
+      
+      const currentUrl = this.page!.url();
+      console.log('🔍 URL após login:', currentUrl);
+      
+      // Se ainda está na página de login, login falhou
+      if (currentUrl.includes('login')) {
+        console.log('❌ Ainda na página de login');
+        return false;
+      }
+      
+      // Verificar se foi redirecionado para dashboard
+      if (currentUrl.includes('dashboard') || currentUrl.includes('app/')) {
+        console.log('✅ Redirecionado para dashboard');
+        
+        // Verificação dupla usando o método robusto
+        const loginConfirmed = await this.isCurrentlyLoggedIn();
+        if (loginConfirmed) {
+          console.log('✅ Login confirmado por verificação de elementos');
+          return true;
+        }
+      }
+      
+      return false;
+    } catch (error) {
+      console.log('⚠️ Erro ao verificar sucesso do login:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Verifica se há captcha na página de login
+   */
+  private async checkForCaptcha(): Promise<boolean> {
+    try {
+      // Verificar elementos comuns de captcha
+      const captchaSelectors = [
+        'iframe[src*="recaptcha"]',
+        '.g-recaptcha',
+        'div[class*="captcha"]',
+        'img[src*="captcha"]',
+        '#captcha',
+        '.captcha-container',
+        '[data-captcha]'
+      ];
+
+      for (const selector of captchaSelectors) {
+        const element = await this.page!.$(selector);
+        if (element) {
+          console.log(`🔍 Captcha detectado: ${selector}`);
+          return true;
+        }
+      }
+
+      return false;
+    } catch (error) {
+      console.log('⚠️ Erro ao verificar captcha:', error);
       return false;
     }
   }
@@ -328,6 +552,70 @@ export class BrowserSessionManager {
   }
 
   /**
+   * Obtém status detalhado da sessão
+   */
+  public async getSessionStatus(): Promise<{
+    browserActive: boolean;
+    sessionValid: boolean;
+    currentlyLoggedIn: boolean;
+    message: string;
+    availablePages: string[];
+    requiresManualLogin: boolean;
+  }> {
+    const browserActive = this.isActive();
+    const sessionValid = this.isSessionValid();
+    
+    let currentlyLoggedIn = false;
+    let availablePages: string[] = [];
+    let requiresManualLogin = false;
+    
+    if (browserActive && this.page) {
+      try {
+        currentlyLoggedIn = await this.isCurrentlyLoggedIn();
+        
+        // Verificar se há captcha
+        if (!currentlyLoggedIn) {
+          try {
+            await this.page.goto(this.loginUrl, { waitUntil: 'domcontentloaded', timeout: 5000 });
+            requiresManualLogin = await this.checkForCaptcha();
+          } catch (error) {
+            console.log('⚠️ Erro ao verificar captcha:', error);
+          }
+        }
+        
+        // Listar páginas disponíveis
+        if (this.context) {
+          availablePages = this.context.pages().map(p => p.url());
+        }
+      } catch (error) {
+        console.log('⚠️ Erro ao verificar status:', error);
+      }
+    }
+    
+    let message = '';
+    if (!browserActive) {
+      message = 'Browser não está ativo';
+    } else if (requiresManualLogin) {
+      message = 'Captcha detectado - login manual necessário';
+    } else if (currentlyLoggedIn) {
+      message = 'Logado e pronto para scraping';
+    } else if (sessionValid) {
+      message = 'Sessão válida em cache';
+    } else {
+      message = 'Não logado';
+    }
+    
+    return {
+      browserActive,
+      sessionValid,
+      currentlyLoggedIn,
+      message,
+      availablePages,
+      requiresManualLogin
+    };
+  }
+
+  /**
    * Limpa dados da sessão
    */
   public clearSession(): void {
@@ -363,5 +651,145 @@ export class BrowserSessionManager {
     console.log('🔄 Forçando novo login...');
     this.clearSession();
     return await this.ensureLogin();
+  }
+
+  /**
+   * Aguarda que o usuário faça login manual (útil quando há captcha)
+   */
+  public async waitForManualLogin(timeoutMs: number = 300000): Promise<boolean> {
+    if (!this.page) {
+      await this.initializeBrowser();
+    }
+
+    console.log('⏳ Aguardando login manual...');
+    console.log('📱 Por favor, faça login manualmente no navegador que foi aberto');
+    console.log('🤖 O bot detectará automaticamente quando o login for concluído');
+    
+    const startTime = Date.now();
+    let consecutiveFailures = 0;
+    
+    while (Date.now() - startTime < timeoutMs) {
+      try {
+        const isLoggedIn = await this.isCurrentlyLoggedIn();
+        
+        if (isLoggedIn) {
+          console.log('✅ Login manual detectado com sucesso!');
+          
+          // Verificação dupla para evitar falsos positivos
+          await this.page!.waitForTimeout(3000);
+          const doubleCheck = await this.isCurrentlyLoggedIn();
+          
+          if (doubleCheck) {
+            console.log('✅ Login confirmado após verificação dupla');
+            
+            // Atualizar dados da sessão
+            const now = Date.now();
+            this.sessionData = {
+              isLoggedIn: true,
+              loginTimestamp: now,
+              sessionExpiry: now + (2 * 60 * 60 * 1000),
+              userData: { email: this.email, manualLogin: true }
+            };
+            this.saveSessionData();
+            
+            return true;
+          } else {
+            console.log('⚠️ Falso positivo detectado, continuando aguardo...');
+            consecutiveFailures++;
+          }
+        } else {
+          consecutiveFailures = 0; // Reset contador se não está logado
+        }
+        
+        // Se houver muitos falsos positivos, aumentar tempo de espera
+        const waitTime = consecutiveFailures > 3 ? 5000 : 2000;
+        await this.page!.waitForTimeout(waitTime);
+        
+      } catch (error) {
+        console.log('⚠️ Erro durante verificação de login manual:', error);
+        consecutiveFailures++;
+        await this.page!.waitForTimeout(3000);
+      }
+    }
+    
+    console.log('⏰ Timeout aguardando login manual');
+    return false;
+  }
+
+  /**
+   * Método híbrido que tenta login automático ou aguarda manual
+   */
+  public async ensureLoginWithCaptchaHandling(): Promise<boolean> {
+    // Primeiro tentar o fluxo normal
+    const normalLogin = await this.ensureLogin();
+    
+    if (normalLogin) {
+      return true;
+    }
+    
+    // Se falhou, pode ser por causa do captcha
+    const status = await this.getSessionStatus();
+    
+    if (status.requiresManualLogin) {
+      console.log('🤖 Captcha detectado, aguardando login manual...');
+      return await this.waitForManualLogin();
+    }
+    
+    return false;
+  }
+
+  /**
+   * Método de debug para verificar o que está na página atual
+   */
+  public async debugCurrentPage(): Promise<void> {
+    if (!this.page) {
+      console.log('❌ Página não disponível para debug');
+      return;
+    }
+
+    try {
+      const currentUrl = this.page.url();
+      const title = await this.page.title();
+      
+      console.log('🔍 === DEBUG DA PÁGINA ATUAL ===');
+      console.log('📍 URL:', currentUrl);
+      console.log('📄 Title:', title);
+      
+      // Verificar elementos específicos
+      const elements = await Promise.all([
+        this.page.$('nav').then(el => ({ selector: 'nav', found: !!el })),
+        this.page.$('.sidebar').then(el => ({ selector: '.sidebar', found: !!el })),
+        this.page.$('.navigation').then(el => ({ selector: '.navigation', found: !!el })),
+        this.page.$('.user-info').then(el => ({ selector: '.user-info', found: !!el })),
+        this.page.$('.logout').then(el => ({ selector: '.logout', found: !!el })),
+        this.page.$('.dashboard-content').then(el => ({ selector: '.dashboard-content', found: !!el })),
+        this.page.$('.main-content').then(el => ({ selector: '.main-content', found: !!el })),
+        this.page.$('input[type="email"]').then(el => ({ selector: 'input[type="email"]', found: !!el })),
+        this.page.$('input[type="password"]').then(el => ({ selector: 'input[type="password"]', found: !!el })),
+        this.page.$('.login-form').then(el => ({ selector: '.login-form', found: !!el }))
+      ]);
+      
+      console.log('🔍 Elementos encontrados:');
+      elements.forEach(el => {
+        console.log(`   ${el.found ? '✅' : '❌'} ${el.selector}`);
+      });
+      
+      // Verificar se há tabelas (indicador de estar no dashboard)
+      const tables = await this.page.$$('table');
+      console.log(`📊 Tabelas encontradas: ${tables.length}`);
+      
+      // Verificar texto da página para identificar estado
+      const bodyText = await this.page.textContent('body');
+      const hasLoginText = bodyText?.toLowerCase().includes('login') || bodyText?.toLowerCase().includes('entrar');
+      const hasDashboardText = bodyText?.toLowerCase().includes('dashboard') || bodyText?.toLowerCase().includes('painel');
+      
+      console.log(`📝 Texto da página indica login: ${hasLoginText ? '✅' : '❌'}`);
+      console.log(`📝 Texto da página indica dashboard: ${hasDashboardText ? '✅' : '❌'}`);
+      
+      console.log('🔍 === FIM DO DEBUG ===');
+      
+    } catch (error) {
+      console.error('❌ Erro durante debug:', error);
+    }
   }
 }

@@ -1,4 +1,5 @@
 import { BrowserSessionManager } from '../services/browserSessionManager';
+import { DataCacheManager } from '../services/dataCacheManager';
 
 export interface RideTableData {
   name: string;
@@ -17,10 +18,14 @@ export interface PersistentScrapeResult {
     browserStatus: string;
     sessionValid: boolean;
   };
+  hasChanges?: boolean;
+  onlyNewData?: boolean;
+  differences?: any[];
 }
 
 export class RidesPersistentScraper {
   private sessionManager: BrowserSessionManager;
+  private cacheManager: DataCacheManager;
   private ridesPages = [
     { name: 'Ongoing Rides', url: 'https://rides.ec2dashboard.com/#/app/ongoing-rides/' },
     { name: 'Scheduled Rides', url: 'https://rides.ec2dashboard.com/#/app/scheduled-rides/' },
@@ -31,6 +36,7 @@ export class RidesPersistentScraper {
 
   constructor() {
     this.sessionManager = BrowserSessionManager.getInstance();
+    this.cacheManager = DataCacheManager.getInstance();
   }
 
   /**
@@ -40,19 +46,25 @@ export class RidesPersistentScraper {
     try {
       console.log('🚀 Iniciando scraping com sessão persistente...');
       
-      // Verificar status do browser antes de começar
+      // Verificar status detalhado antes de começar
       const browserWasActive = this.sessionManager.isActive();
+      const sessionStatus = await this.sessionManager.getSessionStatus();
       
-      // Garantir que está logado
-      const loginSuccess = await this.sessionManager.ensureLogin();
+      console.log('📊 Status da sessão:', sessionStatus.message);
+      
+      // Garantir que está logado (com tratamento de captcha)
+      const loginSuccess = await this.sessionManager.ensureLoginWithCaptchaHandling();
       
       if (!loginSuccess) {
+        const finalStatus = await this.sessionManager.getSessionStatus();
         return {
           success: false,
           data: [],
-          message: '❌ Falha no login - não foi possível autenticar',
+          message: finalStatus.requiresManualLogin 
+            ? 'Captcha detectado - por favor faça login manualmente no navegador e tente novamente'
+            : 'Falha no login',
           sessionInfo: {
-            isNewLogin: false,
+            isNewLogin: !browserWasActive,
             browserStatus: 'login_failed',
             sessionValid: false
           }
@@ -95,15 +107,32 @@ export class RidesPersistentScraper {
 
       const totalRecords = allData.reduce((sum, table) => sum + table.rows.length, 0);
       
+      // ⭐ NOVA FUNCIONALIDADE: Comparar com dados anteriores
+      console.log('🔍 Comparando com dados anteriores...');
+      const comparison = this.cacheManager.compareAndGetDifferences(allData);
+
+      let resultMessage = '';
+      if (comparison.hasChanges) {
+        const newRecords = comparison.differences.reduce((sum, diff) => sum + diff.totalNewRecords, 0);
+        resultMessage = `✅ Scraping concluído! ${newRecords} novos registros encontrados de ${totalRecords} total`;
+      } else {
+        resultMessage = `✅ Scraping concluído! Nenhuma mudança detectada (${totalRecords} registros existentes)`;
+      }
+
+      console.log(resultMessage);
+      
       return {
         success: true,
         data: allData,
-        message: `✅ Scraping concluído! ${allData.length} páginas processadas, ${totalRecords} registros extraídos.`,
+        message: resultMessage,
         sessionInfo: {
           isNewLogin: !browserWasActive,
           browserStatus: 'active',
           sessionValid: true
-        }
+        },
+        hasChanges: comparison.hasChanges,
+        onlyNewData: true,
+        differences: comparison.differences
       };
       
     } catch (error: any) {
@@ -191,24 +220,10 @@ export class RidesPersistentScraper {
   }
 
   /**
-   * Retorna informações sobre o status da sessão
+   * Obtém status detalhado da sessão
    */
-  public async getSessionStatus(): Promise<{
-    browserActive: boolean;
-    sessionValid: boolean;
-    message: string;
-    availablePages: string[];
-  }> {
-    const browserActive = this.sessionManager.isActive();
-    
-    return {
-      browserActive,
-      sessionValid: browserActive, // Simplificado por enquanto
-      message: browserActive ? 
-        '✅ Browser ativo e sessão válida' : 
-        '⚠️ Browser inativo - será inicializado no próximo scraping',
-      availablePages: this.ridesPages.map(page => page.name)
-    };
+  public async getSessionStatus() {
+    return await this.sessionManager.getSessionStatus();
   }
 
   /**
@@ -249,6 +264,56 @@ export class RidesPersistentScraper {
       name: page.name,
       url: page.url
     }));
+  }
+
+  /**
+   * Aguarda que o usuário faça login manual
+   */
+  public async waitForManualLogin(timeoutMs: number = 300000): Promise<boolean> {
+    return await this.sessionManager.waitForManualLogin(timeoutMs);
+  }
+
+  /**
+   * Inicializa o navegador
+   */
+  public async initializeBrowser(): Promise<void> {
+    return await this.sessionManager.initializeBrowser();
+  }
+
+  /**
+   * Obtém a página atual
+   */
+  public getPage() {
+    return this.sessionManager.getPage();
+  }
+
+  /**
+   * Limpa o cache de dados (útil para testes)
+   */
+  public clearCache(): void {
+    this.cacheManager.clearCache();
+  }
+
+  /**
+   * Obtém estatísticas do cache
+   */
+  public getCacheStats() {
+    return this.cacheManager.getCacheStats();
+  }
+
+  /**
+   * Obtém payload otimizado para webhook (somente dados novos)
+   */
+  public getWebhookPayload(result: PersistentScrapeResult) {
+    if (!result.hasChanges || !result.differences) {
+      return null;
+    }
+
+    const comparison = this.cacheManager.compareAndGetDifferences(result.data);
+    return {
+      ...comparison.webhookPayload,
+      sessionInfo: result.sessionInfo
+    };
   }
 }
 
