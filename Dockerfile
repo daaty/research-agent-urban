@@ -67,6 +67,7 @@ COPY package*.json ./
 COPY tsconfig*.json ./
 
 # Instalar TODAS as dependências (incluindo devDependencies para build)
+# Force cache bust - v2024-07-21
 RUN npm ci && \
     npm cache clean --force
 
