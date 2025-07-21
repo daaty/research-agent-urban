@@ -11,7 +11,6 @@ LABEL description="Sistema de scraping inteligente com VNC support"
 
 # Variáveis de ambiente para VNC
 ENV DISPLAY=:99
-ENV VNC_PASSWORD=youvncpassword
 ENV NODE_ENV=production
 ENV PLAYWRIGHT_BROWSERS_PATH=/app/browsers
 
@@ -67,18 +66,22 @@ WORKDIR /app
 COPY package*.json ./
 COPY tsconfig*.json ./
 
-# Instalar dependências Node.js
-RUN npm ci --only=production && \
+# Instalar TODAS as dependências (incluindo devDependencies para build)
+RUN npm ci && \
     npm cache clean --force
-
-# Instalar navegadores do Playwright
-RUN npx playwright install chromium --with-deps
 
 # Copiar código fonte
 COPY . .
 
 # Build da aplicação
 RUN npm run build
+
+# Instalar navegadores do Playwright
+RUN npx playwright install chromium --with-deps
+
+# Remover devDependencies após build (otimização)
+RUN npm ci --only=production && \
+    npm cache clean --force
 
 # Criar diretórios necessários
 RUN mkdir -p /app/data /app/browser-data /app/cache /var/log/supervisor
