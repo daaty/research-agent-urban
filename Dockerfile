@@ -74,15 +74,14 @@ RUN npm ci && \
 # Copiar código fonte
 COPY . .
 
-# Build da aplicação
+# Build da aplicação (agora com todos os tipos disponíveis)
 RUN npm run build
 
 # Instalar navegadores do Playwright
 RUN npx playwright install chromium --with-deps
 
-# Remover devDependencies após build (otimização)
-RUN npm ci --only=production && \
-    npm cache clean --force
+# Remover devDependencies após build (otimização) - OPCIONAL
+# RUN npm ci --only=production && npm cache clean --force
 
 # Criar diretórios necessários
 RUN mkdir -p /app/data /app/browser-data /app/cache /var/log/supervisor

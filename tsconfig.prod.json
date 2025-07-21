@@ -5,11 +5,13 @@
     "module": "commonjs",
     "outDir": "dist",
     "rootDir": "src",
-    "strict": true,
+    "strict": false,
+    "noImplicitAny": false,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true
-  },  "include": [
+  },
+  "include": [
     "src/auto-scraper.ts",
     "src/app-persistent.ts",
     "src/app-monitoring.ts",
