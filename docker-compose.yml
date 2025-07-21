@@ -1,7 +1,17 @@
 version: '3.8'
 
 services:
-  research-agent-urban:
+  research-a      # Configurações de rede
+      - PORT=${PORT:-3030}
+      
+    ports:
+      - "${PORT:-3030}:3030"      # Web UI
+      - "6080:6080"               # noVNC (acesso web ao VNC)
+      - "5901:5901"               # VNC direto
+      
+    # Health check
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3030/health"]
     build:
       context: .
       dockerfile: Dockerfile
@@ -13,7 +23,6 @@ services:
       - agent_data:/app/data
       - agent_browser:/app/browser-data
       - agent_cache:/app/cache
-      - /tmp/.X11-unix:/tmp/.X11-unix:rw
       
     environment:
       # Configurações básicas
@@ -26,9 +35,10 @@ services:
       - RIDES_PASSWORD=${RIDES_PASSWORD}
       - N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL}
       
-      # Configurações do navegador
+      # Configurações do navegador e VNC
       - DISPLAY=:99
-      - BROWSER_HEADLESS=${BROWSER_HEADLESS:-true}
+      - VNC_PASSWORD=${VNC_PASSWORD:-youvncpassword}
+      - BROWSER_HEADLESS=${BROWSER_HEADLESS:-false}
       - BROWSER_TIMEOUT=${BROWSER_TIMEOUT:-30000}
       
       # Configurações de scraping
@@ -37,14 +47,16 @@ services:
       - CACHE_ENABLED=${CACHE_ENABLED:-true}
       
       # Configurações de rede
-      - PORT=${PORT:-3000}
+      - PORT=${PORT:-3030}
       
     ports:
-      - "${PORT:-3000}:3000"
+      - "${PORT:-3030}:3030"      # Web UI
+      - "6080:6080"               # noVNC (acesso web ao VNC)
+      - "5901:5901"               # VNC direto
       
     # Health check
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3030/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -54,8 +66,8 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1G
-          cpus: "0.5"
+          memory: 1.5G
+          cpus: "0.8"
         reservations:
           memory: 512M
           cpus: "0.25"

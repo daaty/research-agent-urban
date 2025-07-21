@@ -1,12 +1,12 @@
-#!/bin/sh
+#!/bin/bash
 
 # ========================================
-# DOCKER ENTRYPOINT - RESEARCH AGENT URBAN
+# DOCKER ENTRYPOINT - RESEARCH AGENT URBAN WITH VNC
 # ========================================
 
 set -e
 
-echo "🚀 Iniciando Research Agent Urban..."
+echo "🚀 Iniciando Research Agent Urban com VNC..."
 
 # Verificar variáveis obrigatórias
 if [ -z "$RIDES_USERNAME" ] || [ -z "$RIDES_PASSWORD" ] || [ -z "$N8N_WEBHOOK_URL" ]; then
@@ -15,25 +15,19 @@ if [ -z "$RIDES_USERNAME" ] || [ -z "$RIDES_PASSWORD" ] || [ -z "$N8N_WEBHOOK_UR
     exit 1
 fi
 
-# Iniciar X Virtual Display
-echo "🖥️ Iniciando display virtual..."
-Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
-
-# Aguardar display inicializar
-sleep 3
-
-# Verificar se display está funcionando
-if ! pgrep -x "Xvfb" > /dev/null; then
-    echo "⚠️ Aviso: Display virtual pode não estar funcionando corretamente"
-fi
-
 # Criar diretórios se não existirem
 mkdir -p /app/data /app/browser-data /app/cache
 
 # Definir permissões
 chmod 755 /app/data /app/browser-data /app/cache
 
-echo "✅ Configuração concluída. Executando comando: $@"
+# Configurar variáveis de ambiente para VNC
+export DISPLAY=:99
+
+echo "✅ Configuração concluída."
+echo "🌐 WebUI será acessível em: http://localhost:3000"
+echo "🖥️ VNC será acessível em: http://localhost:6080/vnc.html"
+echo "🔑 Senha VNC: ${VNC_PASSWORD:-youvncpassword}"
 
 # Executar comando
 exec "$@"
