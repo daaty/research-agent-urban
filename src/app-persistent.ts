@@ -402,7 +402,7 @@ app.post('/api/rides/open-browser-login', async (req: any, res: any) => {
 });
 
 // Inicializar servidor
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log('🎉' + '='.repeat(60));
   console.log(`🚀 SERVIDOR PERSISTENTE FUNCIONANDO NA PORTA ${PORT}`);
   console.log('🎉' + '='.repeat(60));
@@ -420,8 +420,62 @@ app.listen(PORT, () => {
   console.log('🎉' + '='.repeat(60));
   console.log(`🖥️  Modo: BROWSER PERSISTENTE`);
   console.log(`🖥️  Visual: ${!config.headlessMode ? 'HABILITADO ✅' : 'Desabilitado'}`);
-  console.log(`🔄  Auto-execução: Disponível via /api/scheduler/start`);
+  console.log(`🔄  Auto-execução: ATIVANDO EM 30 SEGUNDOS...`);
   console.log('🎉' + '='.repeat(60));
+  
+  // 🚀 AUTO-INICIALIZAÇÃO
+  console.log('⏳ Aguardando 30 segundos para auto-inicialização...');
+  setTimeout(async () => {
+    try {
+      console.log('🚀 Iniciando auto-execução do scraper...');
+      
+      // Verificar se credenciais estão configuradas
+      if (!process.env.RIDES_USERNAME || process.env.RIDES_USERNAME.includes('seu_email') || 
+          !process.env.RIDES_PASSWORD || process.env.RIDES_PASSWORD.includes('sua_senha')) {
+        console.log('⚠️ Credenciais não configuradas - aguardando configuração manual');
+        return;
+      }
+      
+      // Executar primeiro scraping
+      const result = await scrapeAllRidesDataPersistent();
+      
+      if (result.success) {
+        console.log('✅ Auto-execução inicial concluída com sucesso!');
+        
+        // 🔄 Programar execução periódica a cada 15 minutos
+        const intervalMinutes = parseInt(process.env.SCRAPE_INTERVAL || '15');
+        console.log(`🔄 Programando execução automática a cada ${intervalMinutes} minutos...`);
+        
+        setInterval(async () => {
+          try {
+            console.log('🔄 Executando scraping automático...');
+            const autoResult = await scrapeAllRidesDataPersistent();
+            
+            if (autoResult.success) {
+              console.log('✅ Scraping automático concluído');
+              if (autoResult.hasChanges) {
+                console.log(`📊 ${autoResult.differences?.reduce((sum, diff) => sum + diff.totalNewRecords, 0) || 0} novos registros encontrados`);
+              } else {
+                console.log('ℹ️ Nenhuma mudança detectada');
+              }
+            } else {
+              console.log('❌ Erro no scraping automático:', autoResult.message);
+            }
+          } catch (error) {
+            console.error('❌ Erro na execução automática:', error);
+          }
+        }, intervalMinutes * 60 * 1000);
+        
+      } else {
+        console.log('❌ Falha na auto-execução inicial:', result.message);
+        console.log('💡 Use o VNC para resolver problemas manualmente');
+      }
+      
+    } catch (error) {
+      console.error('❌ Erro na auto-inicialização:', error);
+      console.log('💡 Use o endpoint /api/rides/scrape para execução manual');
+    }
+  }, 30000);
 });
 
 // Limpeza na saída do processo
