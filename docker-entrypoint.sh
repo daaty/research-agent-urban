@@ -25,7 +25,7 @@ chmod 755 /app/data /app/browser-data /app/cache
 export DISPLAY=:99
 
 echo "✅ Configuração concluída."
-echo "🌐 WebUI será acessível em: http://localhost:3000"
+echo "🌐 WebUI será acessível em: http://localhost:${PORT:-3030}"
 echo "🖥️ VNC será acessível em: http://localhost:6080/vnc.html"
 echo "🔑 Senha VNC: ${VNC_PASSWORD:-youvncpassword}"
 
