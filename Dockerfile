@@ -80,9 +80,6 @@ RUN npm run build
 # Instalar navegadores do Playwright
 RUN npx playwright install chromium --with-deps
 
-# Remover devDependencies após build (otimização) - OPCIONAL
-# RUN npm ci --only=production && npm cache clean --force
-
 # Criar diretórios necessários
 RUN mkdir -p /app/data /app/browser-data /app/cache /var/log/supervisor
 
@@ -94,11 +91,11 @@ COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Expor portas
-EXPOSE 3030 6080 5901 9222
+EXPOSE 3030 6080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD wget --quiet --tries=1 --spider http://localhost:3030/health || exit 1
+    CMD wget --quiet --tries=1 --spider http://localhost:3030/api/status || exit 1
 
 # Comando padrão usando supervisor
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
