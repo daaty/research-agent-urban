@@ -27,16 +27,20 @@ async function processScrapingResult(result: any, source: string = 'manual') {
     // 🗄️ NOVO: Armazenar dados no PostgreSQL
     try {
       if (databaseManager.isConnectedToDatabase()) {
-        console.log('💾 Salvando dados no PostgreSQL...');
         
         if (result.hasChanges && result.differences && result.differences.length > 0) {
           // Armazenar dados diferenciais (apenas mudanças)
+          console.log('💾 Salvando dados novos no PostgreSQL...');
           await dataTransformer.processDifferentialData(result.differences, source);
           console.log('✅ Dados diferenciais salvos no PostgreSQL!');
-        } else {
-          // Armazenar dados completos se não há diferenças
+        } else if (source === 'initial-execution') {
+          // ✅ Exceção: Na primeira execução sempre salvar dados completos
+          console.log('💾 Primeira execução - salvando dados completos no PostgreSQL...');
           await dataTransformer.processFullScrapingData(result.data, source);
-          console.log('✅ Dados completos salvos no PostgreSQL!');
+          console.log('✅ Dados iniciais salvos no PostgreSQL!');
+        } else {
+          // ✅ NÃO salvar se não há mudanças - evitar duplicação
+          console.log('ℹ️ Nenhuma mudança detectada - dados não salvos no PostgreSQL');
         }
       } else {
         console.log('⚠️ PostgreSQL não conectado - dados não salvos no banco');
