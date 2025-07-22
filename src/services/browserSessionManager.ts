@@ -399,7 +399,7 @@ export class BrowserSessionManager {
    * Aguarda login manual quando há captcha
    * Monitora mudança de URL para detectar quando usuário completa login via VNC
    */
-  private async waitForManualLogin(): Promise<boolean> {
+  public async waitForManualLogin(timeoutMs: number = 300000): Promise<boolean> {
     console.log('⏳ Aguardando login manual via VNC...');
     console.log('💡 Acesse o VNC em http://localhost:6080 para resolver o captcha');
     
