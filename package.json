@@ -1,42 +1,63 @@
-{    "name": "ai-agent-tool",
-    "version": "2.0.0",
-    "description": "AI Agent creation tool - Persistent Browser System",
-    "main": "dist/auto-scraper.js",    "scripts": {
-        "build": "tsc -p tsconfig.prod.json",
-        "start": "node dist/auto-scraper.js",
-        "start:server": "node dist/app-persistent.js",
-        "dev": "ts-node-dev --respawn --transpile-only src/auto-scraper.ts",
-        "dev:server": "ts-node-dev --respawn --transpile-only src/app-persistent.ts",
-        "clean": "rm -rf dist browser-data session-data.json cache-data.json",
-        "clean:all": "rm -rf dist browser-data session-data.json cache-data.json node_modules",
-        "prebuild": "npm run clean",
-        "prod": "npm run build && npm start",
-        "setup": "npm install && npm run build",
-        "playwright-install": "npx playwright install chromium",
-        "install-browsers": "npm run playwright-install",
-        "test:database": "ts-node-dev --respawn --transpile-only test-database-integration.ts"
-    },
-    "dependencies": {
-        "axios": "^1.10.0",
-        "cheerio": "^1.0.0-rc.12",
-        "dotenv": "^16.5.0",
-        "express": "^4.18.2",
-        "node-cron": "^4.1.0",
-        "node-fetch": "^2.7.0",
-        "pg": "^8.11.0",
-        "playwright": "^1.52.0",
-        "puppeteer": "^19.11.1"
-    },
-    "devDependencies": {
-        "@types/express": "^5.0.1",
-        "@types/node": "^22.15.2",
-        "@types/node-cron": "^3.0.11",
-        "@types/node-fetch": "^2.6.12",
-        "@types/pg": "^8.10.0",
-        "rimraf": "^6.0.1",
-        "ts-node-dev": "^2.0.0",
-        "typescript": "^5.3.3"
-    },
-    "author": "",
-    "license": "MIT"
+{
+  "name": "research-agent-urban-ai",
+  "version": "3.0.0",
+  "description": "Research Agent Urban - AI-Powered Web Automation with PostgreSQL Integration",
+  "main": "dist/app-persistent.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.prod.json",
+    "start": "node dist/app-persistent.js",
+    "start:legacy": "node dist/auto-scraper.js",
+    "dev": "ts-node-dev --respawn --transpile-only src/app-persistent.ts",
+    "dev:legacy": "ts-node-dev --respawn --transpile-only src/auto-scraper.ts",
+    "clean": "rm -rf dist browser-data session-data.json cache-data.json",
+    "clean:all": "rm -rf dist browser-data session-data.json cache-data.json node_modules",
+    "prebuild": "npm run clean",
+    "prod": "npm run build && npm start",
+    "setup": "npm install && npm run install-browsers && npm run build",
+    "setup:docker": "npm install --production && npm run install-browsers && npm run build",
+    "playwright-install": "npx playwright install chromium --with-deps",
+    "playwright-install-docker": "npx playwright install chromium",
+    "install-browsers": "npm run playwright-install",
+    "install-browsers:docker": "npm run playwright-install-docker",
+    "test:database": "ts-node-dev --respawn --transpile-only test-database-integration.ts",
+    "test:ai": "ts-node-dev --respawn --transpile-only test-ai-agent.ts",
+    "health-check": "curl -f http://localhost:3000/api/status || exit 1"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.19.0",
+    "axios": "^1.10.0",
+    "cheerio": "^1.0.0-rc.12",
+    "dotenv": "^16.5.0",
+    "express": "^4.18.2",
+    "node-cron": "^4.1.0",
+    "node-fetch": "^2.7.0",
+    "pg": "^8.11.0",
+    "playwright": "^1.52.0",
+    "puppeteer": "^19.11.1",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.1",
+    "@types/node": "^22.15.2",
+    "@types/node-cron": "^3.0.11",
+    "@types/node-fetch": "^2.6.12",
+    "@types/pg": "^8.10.0",
+    "rimraf": "^6.0.1",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "keywords": [
+    "ai-agent",
+    "web-automation",
+    "scraping",
+    "postgresql",
+    "gemini-ai",
+    "docker"
+  ],
+  "author": "Research Agent Urban Team",
+  "license": "MIT"
 }

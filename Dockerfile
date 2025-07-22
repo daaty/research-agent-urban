@@ -1,20 +1,21 @@
 # ==================================
-# DOCKERFILE - RESEARCH AGENT URBAN WITH VNC
+# DOCKERFILE - RESEARCH AGENT URBAN AI AGENT WITH VNC
 # ==================================
 
 FROM node:18-slim
 
 # Metadados
-LABEL maintainer="Research Agent Urban Team"
-LABEL version="2.0.0"
-LABEL description="Sistema de scraping inteligente com VNC support"
+LABEL maintainer="Research Agent Urban AI Team"
+LABEL version="3.0.0"
+LABEL description="AI-Powered Web Agent com PostgreSQL e VNC support"
 
-# Variáveis de ambiente para VNC
+# Variáveis de ambiente
 ENV DISPLAY=:99
 ENV NODE_ENV=production
 ENV PLAYWRIGHT_BROWSERS_PATH=/app/browsers
+ENV DEBIAN_FRONTEND=noninteractive
 
-# Instalar dependências do sistema incluindo VNC
+# Instalar dependências do sistema incluindo VNC e AI support
 RUN apt-get update && apt-get install -y \
     wget \
     curl \
@@ -51,7 +52,21 @@ RUN apt-get update && apt-get install -y \
     fonts-dejavu \
     fonts-dejavu-core \
     fonts-dejavu-extra \
+    fonts-noto \
+    fonts-noto-color-emoji \
     ca-certificates \
+    python3 \
+    python3-pip \
+    libglib2.0-0 \
+    libnss3-dev \
+    libatk-bridge2.0-dev \
+    libdrm-dev \
+    libxcomposite-dev \
+    libxdamage-dev \
+    libxrandr-dev \
+    libgbm-dev \
+    libxss-dev \
+    libasound2-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Instalar noVNC para acesso web
@@ -62,22 +77,53 @@ RUN git clone https://github.com/novnc/noVNC.git /opt/novnc \
 # Diretório de trabalho
 WORKDIR /app
 
-# Copiar arquivos de configuração
+# Copiar arquivos de configuração de dependências
 COPY package*.json ./
 COPY tsconfig*.json ./
 
-# Instalar TODAS as dependências (incluindo devDependencies para build)
-# Force cache bust - v2024-07-21
-RUN npm ci && \
+# Instalar dependências NPM COMPLETAS (incluindo devDependencies para build)
+# AI Agent dependencies cache bust - v2024-07-22
+RUN npm ci --include=dev && \
     npm cache clean --force
 
 # Copiar código fonte
 COPY . .
 
-# Dar permissões aos scripts de deploy
-RUN chmod +x deploy-postgresql.sh || echo "Script deploy-postgresql.sh não encontrado, continuando..."
+# Build da aplicação (com TypeScript completo)
+RUN npm run build
 
-# Build da aplicação (agora com todos os tipos disponíveis)
+# Instalar navegadores do Playwright com TODAS as dependências
+RUN npx playwright install chromium --with-deps
+
+# Limpar devDependencies após build para otimizar imagem
+RUN npm prune --production
+
+# Criar diretórios necessários para AI Agent
+RUN mkdir -p \
+    /app/data \
+    /app/browser-data \
+    /app/cache \
+    /app/screenshots \
+    /app/ai-logs \
+    /var/log/supervisor
+
+# Configurar Supervisor
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Scripts de inicialização
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Scripts de configuração PostgreSQL
+COPY deploy-postgresql.sh setup-postgresql.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/deploy-postgresql.sh /usr/local/bin/setup-postgresql.sh 2>/dev/null || echo "Scripts não encontrados, continuando..."
+
+# Expor portas (AI AGENT VERSION)
+EXPOSE 3040 6090 6091
+
+# Health check avançado para AI Agent
+HEALTHCHECK --interval=30s --timeout=15s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:3040/api/status && curl -f http://localhost:3040/api/ai/status || exit 1
 RUN npm run build
 
 # Instalar navegadores do Playwright

@@ -6,6 +6,7 @@ import { config } from './config';
 import axios from 'axios';
 import { DatabaseManager } from './services/databaseManager';
 import { DataTransformer } from './services/dataTransformer';
+import { AIAgentController } from './api/aiAgentController';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -18,6 +19,9 @@ const scraper = getPersistentScraper();
 // 🗄️ Instâncias do banco de dados
 const databaseManager = DatabaseManager.getInstance();
 const dataTransformer = DataTransformer.getInstance();
+
+// 🤖 Instância do AI Agent Controller
+const aiController = new AIAgentController();
 
 // 🔄 Função para processar resultado e enviar webhook
 async function processScrapingResult(result: any, source: string = 'manual') {
@@ -652,6 +656,50 @@ app.post('/api/database/query', async (req: any, res: any) => {
   }
 });
 
+// 🤖 ============= ROTAS DO AI AGENT =============
+
+// Inicializar AI Agent
+app.post('/api/ai/initialize', async (req: any, res: any) => {
+  await aiController.initializeAI(req, res);
+});
+
+// Executar comando em linguagem natural
+app.post('/api/ai/execute', async (req: any, res: any) => {
+  await aiController.executeCommand(req, res);
+});
+
+// Navegar para URL específica
+app.post('/api/ai/navigate', async (req: any, res: any) => {
+  await aiController.navigateToUrl(req, res);
+});
+
+// Extrair dados da página atual
+app.post('/api/ai/extract', async (req: any, res: any) => {
+  await aiController.extractData(req, res);
+});
+
+// Analisar página atual
+app.post('/api/ai/analyze', async (req: any, res: any) => {
+  await aiController.analyzePage(req, res);
+});
+
+// Automação complexa (workflows)
+app.post('/api/ai/workflow', async (req: any, res: any) => {
+  await aiController.complexAutomation(req, res);
+});
+
+// Status do AI Agent
+app.get('/api/ai/status', async (req: any, res: any) => {
+  await aiController.getStatus(req, res);
+});
+
+// Limpar histórico do AI
+app.post('/api/ai/clear', async (req: any, res: any) => {
+  await aiController.clearHistory(req, res);
+});
+
+// 🤖 ===============================================
+
 // Inicializar servidor
 app.listen(PORT, async () => {
   console.log('🎉' + '='.repeat(70));
@@ -668,7 +716,17 @@ app.listen(PORT, async () => {
   console.log(`- POST /api/scheduler/start     (execução automática)`);
   console.log(`- POST /api/scheduler/stop      (parar execução automática)`);
   console.log(`- GET  /api/test                (teste rápido)`);
-  console.log('💾' + '='.repeat(70));
+  console.log('🤖' + '='.repeat(70));
+  console.log('🤖 NOVOS ENDPOINTS AI AGENT:');
+  console.log(`- POST /api/ai/initialize       (inicializar AI Agent)`);
+  console.log(`- POST /api/ai/execute          (comandos em linguagem natural)`);
+  console.log(`- POST /api/ai/navigate         (navegar com AI)`);
+  console.log(`- POST /api/ai/extract          (extrair dados via AI)`);
+  console.log(`- POST /api/ai/analyze          (analisar página atual)`);
+  console.log(`- POST /api/ai/workflow         (automação complexa)`);
+  console.log(`- GET  /api/ai/status           (status do AI Agent)`);
+  console.log(`- POST /api/ai/clear            (limpar histórico AI)`);
+  console.log('🤖' + '='.repeat(70));
   console.log('🗄️  NOVOS ENDPOINTS POSTGRESQL:');
   console.log(`- GET  /api/database/stats           (estatísticas do banco)`);
   console.log(`- GET  /api/database/recent          (dados últimas 24h)`);

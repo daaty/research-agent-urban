@@ -1,19 +1,21 @@
 version: '3.8'
 
 services:
-  # 🗄️ NOVA VERSÃO COM POSTGRESQL
-  research-agent-postgresql:
+  # 🤖 AI AGENT VERSION WITH POSTGRESQL
+  research-agent-ai:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: research-agent-urban-postgresql
+    container_name: research-agent-urban-ai
     restart: unless-stopped
     
     # Volumes para persistência
     volumes:
-      - agent_data_pg:/app/data
-      - agent_browser_pg:/app/browser-data
-      - agent_cache_pg:/app/cache
+      - agent_data_ai:/app/data
+      - agent_browser_ai:/app/browser-data
+      - agent_cache_ai:/app/cache
+      - agent_screenshots_ai:/app/screenshots
+      - agent_logs_ai:/app/ai-logs
       
     environment:
       # Configurações básicas
@@ -26,7 +28,15 @@ services:
       - RIDES_PASSWORD=${RIDES_PASSWORD}
       - N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL}
       
-      # 🗄️ CONFIGURAÇÕES POSTGRESQL (USANDO POSTGRES EXISTENTE DO CHATWOOT)
+      # 🤖 CONFIGURAÇÕES AI AGENT
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - AI_ENABLED=${AI_ENABLED:-true}
+      - AI_MAX_RETRIES=${AI_MAX_RETRIES:-3}
+      - AI_SCREENSHOT_ON_ERROR=${AI_SCREENSHOT_ON_ERROR:-true}
+      - AI_WAIT_TIMEOUT=${AI_WAIT_TIMEOUT:-30000}
+      - AI_CONTEXT_MEMORY=${AI_CONTEXT_MEMORY:-true}
+      
+      # 🗄️ CONFIGURAÇÕES POSTGRESQL
       - ENABLE_DATABASE=${ENABLE_DATABASE:-true}
       - ENABLE_WEBHOOK=${ENABLE_WEBHOOK:-true}
       - DATABASE_URL=${DATABASE_URL:-postgresql://rides_user:rides_password@n8n_postgres:5432/rides_db}
@@ -82,38 +92,52 @@ services:
       
     # Configurações de rede (conectar ao PostgreSQL existente)
     networks:
-      - research_agent_postgresql_network
+      - research_agent_ai_network
       - n8n_postgres_network  # Rede do PostgreSQL/ChatWoot existente
 
-# Volumes nomeados para persistência (separados da versão anterior)
+# Volumes nomeados para persistência AI AGENT
 volumes:
-  agent_data_pg:
+  agent_data_ai:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /opt/research-agent-urban-postgresql/data
+      device: /opt/research-agent-urban-ai/data
       
-  agent_browser_pg:
+  agent_browser_ai:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /opt/research-agent-urban-postgresql/browser-data
+      device: /opt/research-agent-urban-ai/browser-data
       
-  agent_cache_pg:
+  agent_cache_ai:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /opt/research-agent-urban-postgresql/cache
+      device: /opt/research-agent-urban-ai/cache
+
+  agent_screenshots_ai:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/research-agent-urban-ai/screenshots
+
+  agent_logs_ai:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/research-agent-urban-ai/ai-logs
 
 # Redes
 networks:
-  research_agent_postgresql_network:
+  research_agent_ai_network:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.21.0.0/16
+        - subnet: 172.22.0.0/16
   n8n_postgres_network:
     external: true  # Rede externa do PostgreSQL/ChatWoot
