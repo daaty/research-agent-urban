@@ -13,6 +13,52 @@ app.use(express.json());
 // Instância do scraper persistente
 const scraper = getPersistentScraper();
 
+// 🔄 Função para processar resultado e enviar webhook
+async function processScrapingResult(result: any, source: string = 'manual') {
+  if (result.success) {
+    console.log('✅ Scraping concluído com sucesso!');
+    
+    // ⭐ LÓGICA: Enviar apenas dados novos para n8n
+    if (config.n8nWebhookUrl && !config.n8nWebhookUrl.includes('seu-n8n.com')) {
+      if (result.hasChanges && result.differences && result.differences.length > 0) {
+        try {
+          console.log('📤 Enviando APENAS dados novos para n8n...');
+          
+          // Criar payload com apenas dados novos
+          const webhookPayload = {
+            timestamp: new Date().toISOString(),
+            source: `rides-dashboard-persistent-${source}`,
+            mode: 'persistent-browser',
+            sessionInfo: result.sessionInfo,
+            onlyNewData: true,
+            differences: result.differences,
+            summary: {
+              totalNewRecords: result.differences.reduce((sum, diff) => sum + diff.totalNewRecords, 0),
+              totalUpdatedRecords: result.differences.reduce((sum, diff) => sum + diff.updatedRecords.length, 0),
+              totalRemovedRecords: result.differences.reduce((sum, diff) => sum + diff.removedRecords.length, 0),
+              tablesWithChanges: result.differences.length
+            }
+          };
+          
+          await axios.post(config.n8nWebhookUrl, webhookPayload);
+          
+          const newRecords = webhookPayload.summary.totalNewRecords;
+          console.log(`✅ ${newRecords} novos registros enviados para n8n!`);
+          
+        } catch (error) {
+          console.error('❌ Erro ao enviar para n8n:', error);
+        }
+      } else {
+        console.log('ℹ️ Nenhuma mudança detectada - webhook não enviado');
+      }
+    } else {
+      console.log('⚠️ Webhook N8N não configurado ou URL inválida');
+    }
+  }
+  
+  return result;
+}
+
 // 🏥 Health check
 app.get('/', (req: any, res: any) => {
   res.json({ 
@@ -60,44 +106,10 @@ app.post('/api/rides/scrape', async (req: any, res: any) => {
     
     const result = await scrapeAllRidesDataPersistent();
     
+    // Processar resultado e enviar webhook se necessário
+    await processScrapingResult(result, 'api');
+    
     if (result.success) {
-      console.log('✅ Scraping persistente concluído com sucesso!');
-      
-      // ⭐ NOVA LÓGICA: Enviar apenas dados novos para n8n
-      if (config.n8nWebhookUrl && !config.n8nWebhookUrl.includes('seu-n8n.com')) {
-        if (result.hasChanges && result.differences && result.differences.length > 0) {
-          try {
-            console.log('📤 Enviando APENAS dados novos para n8n...');
-            
-            // Criar payload com apenas dados novos
-            const webhookPayload = {
-              timestamp: new Date().toISOString(),
-              source: 'rides-dashboard-persistent',
-              mode: 'persistent-browser',
-              sessionInfo: result.sessionInfo,
-              onlyNewData: true,
-              differences: result.differences,
-              summary: {
-                totalNewRecords: result.differences.reduce((sum, diff) => sum + diff.totalNewRecords, 0),
-                totalUpdatedRecords: result.differences.reduce((sum, diff) => sum + diff.updatedRecords.length, 0),
-                totalRemovedRecords: result.differences.reduce((sum, diff) => sum + diff.removedRecords.length, 0),
-                tablesWithChanges: result.differences.length
-              }
-            };
-            
-            await axios.post(config.n8nWebhookUrl, webhookPayload);
-            
-            const newRecords = webhookPayload.summary.totalNewRecords;
-            console.log(`✅ ${newRecords} novos registros enviados para n8n!`);
-            
-          } catch (error) {
-            console.error('❌ Erro ao enviar para n8n:', error);
-          }
-        } else {
-          console.log('ℹ️ Nenhuma mudança detectada - webhook não enviado');
-        }
-      }
-      
       res.json({
         success: true,
         message: result.message,
@@ -112,7 +124,7 @@ app.post('/api/rides/scrape', async (req: any, res: any) => {
           tablesWithData: result.data.filter(table => !table.isEmpty).length,
           tablesEmpty: result.data.filter(table => table.isEmpty).length,
           totalRecords: result.data.reduce((sum, table) => sum + table.rows.length, 0),
-          newRecords: result.differences ? result.differences.reduce((sum, diff) => sum + diff.totalNewRecords, 0) : 0,
+          newRecords: result.differences ? result.differences.reduce((sum: any, diff: any) => sum + diff.totalNewRecords, 0) : 0,
           timestamp: new Date().toISOString()
         }
       });
@@ -451,10 +463,13 @@ app.listen(PORT, async () => {
             console.log('🔄 Executando scraping automático...');
             const autoResult = await scrapeAllRidesDataPersistent();
             
+            // ⭐ AGORA PROCESSA WEBHOOK TAMBÉM NO SCHEDULER!
+            await processScrapingResult(autoResult, 'scheduler');
+            
             if (autoResult.success) {
               console.log('✅ Scraping automático concluído');
               if (autoResult.hasChanges) {
-                console.log(`📊 ${autoResult.differences?.reduce((sum, diff) => sum + diff.totalNewRecords, 0) || 0} novos registros encontrados`);
+                console.log(`📊 ${autoResult.differences?.reduce((sum: any, diff: any) => sum + diff.totalNewRecords, 0) || 0} novos registros encontrados`);
               } else {
                 console.log('ℹ️ Nenhuma mudança detectada');
               }
