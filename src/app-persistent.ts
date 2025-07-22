@@ -454,6 +454,9 @@ app.listen(PORT, async () => {
       if (result.success) {
         console.log('✅ Auto-execução inicial concluída com sucesso!');
         
+        // ⭐ PROCESSAR WEBHOOK TAMBÉM NA PRIMEIRA EXECUÇÃO!
+        await processScrapingResult(result, 'initial-execution');
+        
         // 🔄 Programar execução periódica a cada 15 minutos
         const intervalMinutes = parseInt(process.env.SCRAPE_INTERVAL || '15');
         console.log(`🔄 Programando execução automática a cada ${intervalMinutes} minutos...`);
