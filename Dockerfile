@@ -93,8 +93,9 @@ COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Script de configuração PostgreSQL
-RUN chmod +x deploy-postgresql.sh setup-postgresql.sh
+# Scripts de configuração PostgreSQL
+COPY deploy-postgresql.sh setup-postgresql.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/deploy-postgresql.sh /usr/local/bin/setup-postgresql.sh
 
 # Expor portas (NOVA VERSÃO COM POSTGRESQL)
 EXPOSE 3040 6090 6091
