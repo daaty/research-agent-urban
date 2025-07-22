@@ -736,7 +736,11 @@ app.listen(PORT, async () => {
   console.log('🎉' + '='.repeat(70));
   console.log(`🖥️  Modo: BROWSER PERSISTENTE`);
   console.log(`🖥️  Visual: ${!config.headlessMode ? 'HABILITADO ✅' : 'Desabilitado'}`);
-  console.log(`🔄  Auto-execução: ATIVANDO EM 30 SEGUNDOS...`);
+  
+  // 🔄 Verificar se scraping automático está habilitado
+  const isAutoScrapingEnabled = process.env.ENABLE_AUTO_SCRAPING === 'true';
+  console.log(`🔄  Auto-execução: ${isAutoScrapingEnabled ? 'ATIVANDO EM 30 SEGUNDOS...' : '⚠️ DESABILITADO'}`);
+  
   console.log('🎉' + '='.repeat(70));
 
   // 🗄️ INICIALIZAR POSTGRESQL
@@ -749,65 +753,70 @@ app.listen(PORT, async () => {
     console.log('⚠️ Sistema continuará funcionando sem banco de dados');
   }
   
-  // 🚀 AUTO-INICIALIZAÇÃO
-  console.log('⏳ Aguardando 30 segundos para auto-inicialização...');
-  setTimeout(async () => {
-    try {
-      console.log('🚀 Iniciando auto-execução do scraper...');
-      
-      // Verificar se credenciais estão configuradas
-      if (!process.env.RIDES_USERNAME || process.env.RIDES_USERNAME.includes('seu_email') || 
-          !process.env.RIDES_PASSWORD || process.env.RIDES_PASSWORD.includes('sua_senha')) {
-        console.log('⚠️ Credenciais não configuradas - aguardando configuração manual');
-        return;
-      }
-      
-      // Executar primeiro scraping
-      const result = await scrapeAllRidesDataPersistent();
-      
-      if (result.success) {
-        console.log('✅ Auto-execução inicial concluída com sucesso!');
+  // 🚀 AUTO-INICIALIZAÇÃO (apenas se habilitada)
+  if (isAutoScrapingEnabled) {
+    console.log('⏳ Aguardando 30 segundos para auto-inicialização...');
+    setTimeout(async () => {
+      try {
+        console.log('🚀 Iniciando auto-execução do scraper...');
         
-        // ⭐ PROCESSAR WEBHOOK TAMBÉM NA PRIMEIRA EXECUÇÃO!
-        await processScrapingResult(result, 'initial-execution');
+        // Verificar se credenciais estão configuradas
+        if (!process.env.RIDES_USERNAME || process.env.RIDES_USERNAME.includes('seu_email') || 
+            !process.env.RIDES_PASSWORD || process.env.RIDES_PASSWORD.includes('sua_senha')) {
+          console.log('⚠️ Credenciais não configuradas - aguardando configuração manual');
+          return;
+        }
         
-        // 🔄 Programar execução periódica a cada 15 minutos
-        const intervalMinutes = parseInt(process.env.SCRAPE_INTERVAL || '15');
-        console.log(`🔄 Programando execução automática a cada ${intervalMinutes} minutos...`);
+        // Executar primeiro scraping
+        const result = await scrapeAllRidesDataPersistent();
         
-        setInterval(async () => {
-          try {
-            console.log('🔄 Executando scraping automático...');
-            const autoResult = await scrapeAllRidesDataPersistent();
-            
-            // ⭐ AGORA PROCESSA WEBHOOK TAMBÉM NO SCHEDULER!
-            await processScrapingResult(autoResult, 'scheduler');
-            
-            if (autoResult.success) {
-              console.log('✅ Scraping automático concluído');
-              if (autoResult.hasChanges) {
-                console.log(`📊 ${autoResult.differences?.reduce((sum: any, diff: any) => sum + diff.totalNewRecords, 0) || 0} novos registros encontrados`);
+        if (result.success) {
+          console.log('✅ Auto-execução inicial concluída com sucesso!');
+          
+          // ⭐ PROCESSAR WEBHOOK TAMBÉM NA PRIMEIRA EXECUÇÃO!
+          await processScrapingResult(result, 'initial-execution');
+          
+          // 🔄 Programar execução periódica a cada intervalo configurado
+          const intervalMinutes = parseInt(process.env.SCRAPE_INTERVAL || '15');
+          console.log(`🔄 Programando execução automática a cada ${intervalMinutes} minutos...`);
+          
+          setInterval(async () => {
+            try {
+              console.log('🔄 Executando scraping automático...');
+              const autoResult = await scrapeAllRidesDataPersistent();
+              
+              // ⭐ AGORA PROCESSA WEBHOOK TAMBÉM NO SCHEDULER!
+              await processScrapingResult(autoResult, 'scheduler');
+              
+              if (autoResult.success) {
+                console.log('✅ Scraping automático concluído');
+                if (autoResult.hasChanges) {
+                  console.log(`📊 ${autoResult.differences?.reduce((sum: any, diff: any) => sum + diff.totalNewRecords, 0) || 0} novos registros encontrados`);
+                } else {
+                  console.log('ℹ️ Nenhuma mudança detectada');
+                }
               } else {
-                console.log('ℹ️ Nenhuma mudança detectada');
+                console.log('❌ Erro no scraping automático:', autoResult.message);
               }
-            } else {
-              console.log('❌ Erro no scraping automático:', autoResult.message);
+            } catch (error) {
+              console.error('❌ Erro na execução automática:', error);
             }
-          } catch (error) {
-            console.error('❌ Erro na execução automática:', error);
-          }
-        }, intervalMinutes * 60 * 1000);
+          }, intervalMinutes * 60 * 1000);
+          
+        } else {
+          console.log('❌ Falha na auto-execução inicial:', result.message);
+          console.log('💡 Use o VNC para resolver problemas manualmente');
+        }
         
-      } else {
-        console.log('❌ Falha na auto-execução inicial:', result.message);
-        console.log('💡 Use o VNC para resolver problemas manualmente');
+      } catch (error) {
+        console.error('❌ Erro na auto-inicialização:', error);
+        console.log('💡 Use o endpoint /api/rides/scrape para execução manual');
       }
-      
-    } catch (error) {
-      console.error('❌ Erro na auto-inicialização:', error);
-      console.log('💡 Use o endpoint /api/rides/scrape para execução manual');
-    }
-  }, 30000);
+    }, 30000);
+  } else {
+    console.log('ℹ️ Auto-execução DESABILITADA (ENABLE_AUTO_SCRAPING=false)');
+    console.log('💡 Use o endpoint POST /api/rides/scrape para execução manual quando necessário');
+  }
 });
 
 // Limpeza na saída do processo

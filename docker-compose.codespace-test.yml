@@ -1,0 +1,89 @@
+services:
+  # 🤖 AI AGENT VERSION - CODESPACE EDITION
+  research-agent-ai:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: research-agent-urban-ai
+    restart: unless-stopped
+    
+    # Portas expostas
+    ports:
+      - "3040:3040"   # API Principal
+      - "6090:6090"   # VNC Server
+      - "6091:6091"   # noVNC Web
+
+    # Volumes para persistência
+    volumes:
+      - agent_data_ai:/app/data
+      - agent_browser_ai:/app/browser-data
+      - agent_cache_ai:/app/cache
+      - agent_screenshots_ai:/app/screenshots
+      - agent_logs_ai:/app/ai-logs
+      
+    environment:
+      # Configurações básicas
+      - NODE_ENV=production
+      - TZ=America/Sao_Paulo
+      
+      # URLs e configurações do sistema
+      - RIDES_LOGIN_URL=${RIDES_LOGIN_URL:-https://carreira.ridesapp.com.br/driver/login}
+      - RIDES_USERNAME=${RIDES_USERNAME}
+      - RIDES_PASSWORD=${RIDES_PASSWORD}
+      - N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL}
+      
+      # 🤖 CONFIGURAÇÕES AI AGENT
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - AI_ENABLED=true
+      - AI_MAX_RETRIES=3
+      - AI_SCREENSHOT_ON_ERROR=true
+      - AI_WAIT_TIMEOUT=30000
+      - AI_CONTEXT_MEMORY=true
+      
+      # Configurações PostgreSQL (sem rede externa)
+      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@localhost:5432/research_agent}
+      - DB_HOST=${DB_HOST:-localhost}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_NAME=${DB_NAME:-research_agent}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      
+      # Configurações do servidor
+      - PORT=3040
+      - VNC_PORT=6090
+      - NOVNC_PORT=6091
+      - VNC_PASSWORD=youvncpassword
+      
+      # Configurações do browser
+      - BROWSER_HEADLESS=false
+      - ENABLE_AUTO_SCRAPING=false
+      - SCRAPE_INTERVAL=15
+      - BROWSER_TIMEOUT=30000
+      
+      # Configurações de cache
+      - CACHE_ENABLED=true
+      - CACHE_TTL=300
+      
+    networks:
+      - research_agent_ai_network
+
+# Volumes
+volumes:
+  agent_data_ai:
+    driver: local
+  agent_browser_ai:
+    driver: local
+  agent_cache_ai:
+    driver: local
+  agent_screenshots_ai:
+    driver: local
+  agent_logs_ai:
+    driver: local
+
+# Redes
+networks:
+  research_agent_ai_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.22.0.0/16

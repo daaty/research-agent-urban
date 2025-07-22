@@ -39,7 +39,7 @@ export class AIBrowserManager {
   /**
    * Inicializar browser com configurações otimizadas para AI
    */
-  async initialize(browser: Browser, page: Page): Promise<void> {
+  async initialize(browser: Browser | null, page: Page): Promise<void> {
     this.browser = browser;
     this.page = page;
 

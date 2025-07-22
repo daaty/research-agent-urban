@@ -110,6 +110,10 @@ RUN mkdir -p \
 # Configurar Supervisor
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
+# Script de configuração VNC
+COPY vnc-setup.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/vnc-setup.sh
+
 # Scripts de inicialização
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh

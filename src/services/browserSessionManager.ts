@@ -1,6 +1,7 @@
 import { Browser, Page, chromium, BrowserContext } from 'playwright';
 import * as fs from 'fs';
 import * as path from 'path';
+import { EnvironmentDetector } from '../config/environmentDetector';
 
 export interface SessionData {
   isLoggedIn: boolean;
@@ -34,6 +35,23 @@ export class BrowserSessionManager {
     this.userDataDir = path.join(process.cwd(), 'browser-data');
     this.sessionFilePath = path.join(process.cwd(), 'session-data.json');
     this.sessionData = this.loadSessionData();
+    
+    // 🔍 Detectar ambiente e configurar adequadamente
+    const envDetector = EnvironmentDetector.getInstance();
+    const envConfig = envDetector.getConfig();
+    
+    // Log do ambiente detectado
+    envDetector.logEnvironmentInfo();
+    
+    // Ajustar headless baseado no ambiente
+    if (envConfig.displayMode === 'headless') {
+      this.isHeadless = true;
+    } else if (envConfig.displayMode === 'vnc' || envConfig.displayMode === 'xvfb') {
+      this.isHeadless = false;
+    }
+    
+    console.log(`🖥️ Browser configurado para modo: ${envConfig.displayMode.toUpperCase()}`);
+    console.log(`🖥️ Headless: ${this.isHeadless ? 'SIM' : 'NÃO'}`);
     
     // Garantir que o diretório de dados do browser existe
     if (!fs.existsSync(this.userDataDir)) {
@@ -226,18 +244,27 @@ export class BrowserSessionManager {
     console.log('🚀 Inicializando browser com persistência...');
     
     try {
+      // 🔍 Obter configuração de browser baseada no ambiente
+      const envDetector = EnvironmentDetector.getInstance();
+      const playwrightConfig = envDetector.getPlaywrightConfig();
+      
+      console.log(`🖥️ Configuração Playwright: headless=${playwrightConfig.headless}`);
+      
       this.context = await chromium.launchPersistentContext(this.userDataDir, {
-        headless: this.isHeadless,
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-background-timer-throttling',
-          '--disable-backgrounding-occluded-windows',
-          '--disable-renderer-backgrounding'
-        ],
+        headless: playwrightConfig.headless,
+        args: playwrightConfig.args,
         viewport: { width: 1366, height: 768 }
       });
+
+      // Obter referência do browser do context
+      this.browser = this.context.browser();
+      
+      // Se o browser não foi retornado pelo context, vamos tentar uma abordagem diferente
+      if (!this.browser) {
+        console.log('⚠️ Context não retornou instância do browser, usando abordagem alternativa...');
+        // Para compatibilidade com AI Agent, vamos criar um mock ou usar o context como proxy
+        this.browser = this.context as any; // Temporariamente para testes
+      }
 
       // Pegar a página existente ou criar uma nova
       const pages = this.context.pages();
@@ -634,6 +661,14 @@ export class BrowserSessionManager {
   public getPage(): Page | null {
     return this.page;
   }
+
+  /**
+   * Obtém a instância do browser para operações customizadas
+   */
+  public getBrowser(): Browser | null {
+    return this.browser;
+  }
+
   /**
    * Verifica se o browser está ativo
    */

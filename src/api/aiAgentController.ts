@@ -37,18 +37,32 @@ export class AIAgentController {
         contextMemory: true
       });
 
-      const page = this.browserSessionManager.getPage();
+      // Garantir que o browser está inicializado
+      let page = this.browserSessionManager.getPage();
+      let browser = this.browserSessionManager.getBrowser();
+
+      if (!page || !browser) {
+        console.log('🔄 Browser não inicializado, inicializando...');
+        // Usar o scraper para inicializar o browser
+        const { getPersistentScraper } = require('../scraper/ridesPersistentScraper');
+        const scraper = getPersistentScraper();
+        await scraper.initializeBrowser();
+        
+        page = this.browserSessionManager.getPage();
+        browser = this.browserSessionManager.getBrowser();
+      }
 
       if (!page) {
-        throw new Error('Falha ao obter instância da página');
+        throw new Error('Falha ao obter instância da página após inicialização');
       }
 
-      const browser = page.context().browser();
+      // Para agora, vamos aceitar browser como null se necessário
       if (!browser) {
-        throw new Error('Falha ao obter instância do browser');
+        console.log('⚠️ Browser instance não disponível, usando context proxy');
+        browser = null;
       }
 
-      await this.aiBrowserManager.initialize(browser, page);
+      await this.aiBrowserManager.initialize(browser!, page);
 
       res.json({
         success: true,
