@@ -70,9 +70,12 @@ Dockerfile*
 docker-compose*
 .dockerignore
 
-# Deployment
-deploy*
+# Deployment - excluir configs mas manter scripts essenciais
+deploy.sh
+deploy-producao.sh
 ecosystem.config.js
+# deploy-postgresql.sh - NECESSÁRIO para container
+# setup-postgresql.sh - NECESSÁRIO para container
 
 # Backup files
 *.bak
