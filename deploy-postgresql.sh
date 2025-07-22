@@ -76,12 +76,37 @@ print_status "PostgreSQL verificado"
 
 # 4. Configurar PostgreSQL
 print_info "Configurando banco de dados..."
-sudo -u postgres psql -c "CREATE DATABASE rides_db;" 2>/dev/null || print_warning "Banco rides_db já existe"
-sudo -u postgres psql -c "CREATE USER postgres;" 2>/dev/null || print_warning "Usuário postgres já existe"
-sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'senha123';"
-sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE rides_db TO postgres;"
 
-print_status "Banco de dados configurado"
+# Carregar variáveis de ambiente do .env.docker
+if [ -f .env.docker ]; then
+    print_info "Carregando variáveis de ambiente..."
+    export $(grep -v '^#' .env.docker | xargs)
+else
+    print_error "Arquivo .env.docker não encontrado!"
+    exit 1
+fi
+
+# Conectar ao PostgreSQL existente e criar estruturas necessárias
+print_info "Criando usuário e banco para Research Agent..."
+print_info "Usuário: $DB_USER | Banco: $DB_NAME"
+
+# Criar usuário se não existir
+sudo -u postgres psql -c "CREATE USER $DB_USER;" 2>/dev/null || print_warning "Usuário $DB_USER já existe"
+
+# Definir senha para o usuário
+sudo -u postgres psql -c "ALTER USER $DB_USER PASSWORD '$DB_PASSWORD';"
+
+# Criar banco se não existir  
+sudo -u postgres psql -c "CREATE DATABASE $DB_NAME;" 2>/dev/null || print_warning "Banco $DB_NAME já existe"
+
+# Conceder privilégios ao usuário no banco
+sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;"
+
+# Conectar ao banco e conceder privilégios no schema
+sudo -u postgres psql -d $DB_NAME -c "GRANT ALL ON SCHEMA public TO $DB_USER;"
+sudo -u postgres psql -d $DB_NAME -c "GRANT CREATE ON SCHEMA public TO $DB_USER;"
+
+print_status "Usuário $DB_USER e banco $DB_NAME configurados"
 
 # 5. Criar diretórios necessários
 print_info "Criando diretórios..."
@@ -92,7 +117,7 @@ print_status "Diretórios criados"
 
 # 6. Verificar portas disponíveis
 print_info "Verificando portas..."
-PORTS_TO_CHECK=(3040 6090 6091)
+PORTS_TO_CHECK=($PORT $VNC_PORT $NOVNC_PORT)
 for port in "${PORTS_TO_CHECK[@]}"; do
     if lsof -Pi :$port -sTCP:LISTEN -t >/dev/null 2>&1; then
         print_warning "Porta $port está em uso, mas continuando..."
@@ -102,13 +127,13 @@ for port in "${PORTS_TO_CHECK[@]}"; do
 done
 
 # 7. Configurar variáveis de ambiente
-print_info "Configurando variáveis de ambiente..."
+print_info "Verificando arquivo de configuração..."
 if [ ! -f .env.docker ]; then
     print_error "Arquivo .env.docker não encontrado!"
     exit 1
 fi
 
-# Verificar se as credenciais foram configuradas
+# Verificar se as credenciais foram configuradas (as variáveis já foram carregadas anteriormente)
 if grep -q "seu_email@exemplo.com" .env.docker; then
     print_warning "⚠️ ATENÇÃO: Configure as credenciais em .env.docker!"
     print_warning "   RIDES_USERNAME=seu_email_real"
@@ -157,8 +182,8 @@ sleep 60
 # 12. Verificar health check
 print_info "Verificando health check..."
 for i in {1..10}; do
-    if curl -s http://localhost:3040/api/status > /dev/null 2>&1; then
-        print_status "Aplicação respondendo na porta 3040"
+    if curl -s http://localhost:$PORT/api/status > /dev/null 2>&1; then
+        print_status "Aplicação respondendo na porta $PORT"
         break
     else
         print_warning "Tentativa $i/10 - Aguardando resposta..."
@@ -168,7 +193,7 @@ done
 
 # 13. Testar PostgreSQL
 print_info "Testando conexão PostgreSQL..."
-if curl -s http://localhost:3040/api/database/test-connection | grep -q "success"; then
+if curl -s http://localhost:$PORT/api/database/test-connection | grep -q "success"; then
     print_status "PostgreSQL conectado com sucesso!"
 else
     print_warning "PostgreSQL pode não estar conectado corretamente"
@@ -183,11 +208,11 @@ echo "🎉 ========================================================"
 echo "🚀 DEPLOY CONCLUÍDO - VERSÃO POSTGRESQL!"
 echo "🎉 ========================================================"
 echo ""
-print_status "🌐 API Principal: http://seu-vps-ip:3040"
-print_status "🖥️ VNC Web (noVNC): http://seu-vps-ip:6091"
-print_status "🔍 Status: http://seu-vps-ip:3040/api/status"
-print_status "🗄️ Database Stats: http://seu-vps-ip:3040/api/database/stats"
-print_status "📊 Dashboard Data: http://seu-vps-ip:3040/api/database/dashboard"
+print_status "🌐 API Principal: http://seu-vps-ip:$PORT"
+print_status "🖥️ VNC Web (noVNC): http://seu-vps-ip:$NOVNC_PORT"
+print_status "🔍 Status: http://seu-vps-ip:$PORT/api/status"
+print_status "🗄️ Database Stats: http://seu-vps-ip:$PORT/api/database/stats"
+print_status "📊 Dashboard Data: http://seu-vps-ip:$PORT/api/database/dashboard"
 echo ""
 print_info "📋 NOVOS ENDPOINTS POSTGRESQL:"
 print_info "   GET  /api/database/stats           (estatísticas)"
@@ -197,9 +222,10 @@ print_info "   GET  /api/database/dashboard       (dados dashboard)"
 print_info "   POST /api/database/query           (busca período)"
 echo ""
 print_warning "⚙️ IMPORTANTE:"
-print_warning "   1. Configure as credenciais em .env.docker"
+print_warning "   1. Usuário PostgreSQL: $DB_USER / Banco: $DB_NAME"
 print_warning "   2. A versão anterior continua rodando em outras portas"
-print_warning "   3. Esta versão PostgreSQL roda em portas 3040, 6090, 6091"
-print_warning "   4. Use VNC na porta 6091 para login manual"
+print_warning "   3. Esta versão PostgreSQL roda em portas $PORT, $VNC_PORT, $NOVNC_PORT"
+print_warning "   4. Use VNC na porta $NOVNC_PORT para login manual no sistema Rides"
+print_warning "   5. PostgreSQL existente reutilizado com novas estruturas"
 echo ""
 print_status "🎯 Sistema dual funcionando: Webhook + PostgreSQL!"
