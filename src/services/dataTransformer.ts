@@ -39,7 +39,11 @@ export class DataTransformer {
 
     // Transformar cada tabela em registros do banco
     scrapingData.forEach(table => {
-      if (!table.isEmpty && table.rows.length > 0) {
+      // Verificar se a tabela tem nome e dados válidos
+      if (!table.isEmpty && 
+          table.rows.length > 0 && 
+          table.tableName && 
+          table.tableName.trim() !== '') {
         // Criar hash único para esta tabela
         const tableHash = this.generateTableHash(table);
         
@@ -67,6 +71,9 @@ export class DataTransformer {
         if (hasChanges) {
           newRecords += table.rows.length;
         }
+      } else {
+        // Log para debug de tabelas vazias ou inválidas
+        console.log(`🔍 Ignorando tabela: ${table.tableName || 'sem nome'} (isEmpty: ${table.isEmpty}, rows: ${table.rows?.length || 0})`);
       }
     });
 
@@ -100,7 +107,11 @@ export class DataTransformer {
     let newRecords = 0;
 
     differences.forEach(diff => {
-      if (diff.newRecords && diff.newRecords.length > 0) {
+      // Verificar se há dados válidos e tableName não é nulo
+      if (diff.newRecords && 
+          diff.newRecords.length > 0 && 
+          diff.tableName && 
+          diff.tableName.trim() !== '') {
         // Criar estrutura apenas com dados novos
         const newDataStructure = {
           tableName: diff.tableName,
@@ -125,6 +136,9 @@ export class DataTransformer {
         records.push(record);
         newRecords += diff.totalNewRecords;
         totalRecords += diff.totalNewRecords;
+      } else {
+        // Log para debug de diferenças inválidas
+        console.log(`🔍 Ignorando diferença: ${diff.tableName || 'sem nome'} (newRecords: ${diff.newRecords?.length || 0})`);
       }
     });
 
