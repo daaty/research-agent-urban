@@ -26,15 +26,15 @@ services:
       - RIDES_PASSWORD=${RIDES_PASSWORD}
       - N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL}
       
-      # 🗄️ CONFIGURAÇÕES POSTGRESQL (VPS)
+      # 🗄️ CONFIGURAÇÕES POSTGRESQL (USANDO POSTGRES EXISTENTE DO CHATWOOT)
       - ENABLE_DATABASE=${ENABLE_DATABASE:-true}
       - ENABLE_WEBHOOK=${ENABLE_WEBHOOK:-true}
-      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:senha123@host.docker.internal:5432/rides_db}
-      - DB_HOST=${DB_HOST:-host.docker.internal}
+      - DATABASE_URL=${DATABASE_URL:-postgresql://rides_user:rides_password@n8n_postgres:5432/rides_db}
+      - DB_HOST=${DB_HOST:-n8n_postgres}
       - DB_PORT=${DB_PORT:-5432}
       - DB_NAME=${DB_NAME:-rides_db}
-      - DB_USER=${DB_USER:-postgres}
-      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_USER=${DB_USER:-rides_user}
+      - DB_PASSWORD=${DB_PASSWORD:-rides_password}
       - DB_SSL=${DB_SSL:-false}
       
       # Configurações do navegador e VNC
@@ -80,13 +80,10 @@ services:
     security_opt:
       - no-new-privileges:true
       
-    # Configurações de rede
+    # Configurações de rede (conectar ao PostgreSQL existente)
     networks:
       - research_agent_postgresql_network
-    
-    # Conectar ao PostgreSQL externo (host da VPS)
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - n8n_postgres_network  # Rede do PostgreSQL/ChatWoot existente
 
 # Volumes nomeados para persistência (separados da versão anterior)
 volumes:
@@ -111,10 +108,12 @@ volumes:
       o: bind
       device: /opt/research-agent-urban-postgresql/cache
 
-# Rede isolada (separada da versão anterior)
+# Redes
 networks:
   research_agent_postgresql_network:
     driver: bridge
     ipam:
       config:
         - subnet: 172.21.0.0/16
+  n8n_postgres_network:
+    external: true  # Rede externa do PostgreSQL/ChatWoot
