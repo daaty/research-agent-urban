@@ -19,6 +19,11 @@ export class BrowserSessionManager {
   private userDataDir: string;
   private isHeadless: boolean;
   
+  // 🔄 Cache de status para evitar verificações excessivas
+  private lastLoginCheck: number = 0;
+  private lastLoginStatus: boolean = false;
+  private loginCheckCacheDuration: number = 30000; // 30 segundos
+  
   // URLs de configuração
   private loginUrl: string = 'https://rides.ec2dashboard.com/#/page/login';
   private email: string = 'herbert@urbandobrasil.com.br';
@@ -88,25 +93,41 @@ export class BrowserSessionManager {
   /**
    * Verifica se o usuário está logado no navegador (detecta login manual)
    */
-  private async isCurrentlyLoggedIn(): Promise<boolean> {
+  private async isCurrentlyLoggedIn(verbose: boolean = true): Promise<boolean> {
     if (!this.page) return false;
+    
+    // 🔄 Usar cache durante scraping para evitar verificações excessivas
+    const now = Date.now();
+    if (!verbose && (now - this.lastLoginCheck) < this.loginCheckCacheDuration) {
+      return this.lastLoginStatus;
+    }
     
     try {
       const currentUrl = this.page.url();
-      console.log('🔍 Verificando URL atual:', currentUrl);
+      if (verbose) {
+        console.log('🔍 Verificando URL atual:', currentUrl);
+      }
       
       // Se está na página de login, definitivamente não está logado
       if (currentUrl.includes('login')) {
-        console.log('❌ Ainda na página de login');
+        if (verbose) {
+          console.log('❌ Ainda na página de login');
+        }
+        this.lastLoginCheck = now;
+        this.lastLoginStatus = false;
         return false;
       }
       
       // Se não está na página de login, verificar se realmente está no dashboard
       if (currentUrl.includes('dashboard') || currentUrl.includes('app/')) {
-        console.log('✅ URL indica dashboard');
+        if (verbose) {
+          console.log('✅ URL indica dashboard');
+        }
         
-        // Aguardar um pouco para elementos carregarem
-        await this.page.waitForTimeout(3000);
+        // Aguardar um pouco para elementos carregarem (apenas se verbose)
+        if (verbose) {
+          await this.page.waitForTimeout(3000);
+        }
         
         // Verificações específicas para o site rides.ec2dashboard.com
         try {
@@ -128,45 +149,61 @@ export class BrowserSessionManager {
             ).catch(() => false)
           ]);
           
-          console.log('🔍 Verificações específicas:', {
-            hasTable: specificChecks[0],
-            hasTitle: specificChecks[1],
-            hasNavigation: specificChecks[2],
-            noLoginForm: specificChecks[3],
-            hasContent: specificChecks[4]
-          });
+          if (verbose) {
+            console.log('🔍 Verificações específicas:', {
+              hasTable: specificChecks[0],
+              hasTitle: specificChecks[1],
+              hasNavigation: specificChecks[2],
+              noLoginForm: specificChecks[3],
+              hasContent: specificChecks[4]
+            });
+          }
           
           // Para considerar logado, deve passar em pelo menos 3 verificações
           // E OBRIGATORIAMENTE não deve ter formulário de login
           const positiveChecks = specificChecks.filter(Boolean).length;
           const hasLoginForm = !specificChecks[3]; // Inverter pois specificChecks[3] é "NÃO há formulário"
           
-          console.log(`🔍 Resultado: ${positiveChecks}/5 verificações positivas`);
-          console.log(`🔍 Formulário de login presente: ${hasLoginForm ? 'SIM' : 'NÃO'}`);
+          if (verbose) {
+            console.log(`🔍 Resultado: ${positiveChecks}/5 verificações positivas`);
+            console.log(`🔍 Formulário de login presente: ${hasLoginForm ? 'SIM' : 'NÃO'}`);
+          }
           
           // Regra: pelo menos 3 verificações positivas E sem formulário de login
           const isLoggedIn = positiveChecks >= 3 && !hasLoginForm;
           
-          if (isLoggedIn) {
-            console.log('✅ Login confirmado por verificações específicas');
-          } else {
-            console.log('❌ Login não confirmado pelas verificações');
+          if (verbose) {
+            if (isLoggedIn) {
+              console.log('✅ Login confirmado por verificações específicas');
+            } else {
+              console.log('❌ Login não confirmado pelas verificações');
+            }
           }
+          
+          // 🔄 Atualizar cache
+          this.lastLoginCheck = now;
+          this.lastLoginStatus = isLoggedIn;
           
           return isLoggedIn;
           
         } catch (error) {
           console.log('⚠️ Erro ao verificar elementos específicos:', error);
+          this.lastLoginCheck = now;
+          this.lastLoginStatus = false;
           return false;
         }
       }
       
       // Se não está nem em login nem em dashboard, algo está errado
       console.log('⚠️ URL não reconhecida, assumindo não logado');
+      this.lastLoginCheck = now;
+      this.lastLoginStatus = false;
       return false;
       
     } catch (error) {
       console.log('⚠️ Erro ao verificar status de login:', error);
+      this.lastLoginCheck = now;
+      this.lastLoginStatus = false;
       return false;
     }
   }
@@ -571,17 +608,8 @@ export class BrowserSessionManager {
     
     if (browserActive && this.page) {
       try {
-        currentlyLoggedIn = await this.isCurrentlyLoggedIn();
-        
-        // Verificar se há captcha
-        if (!currentlyLoggedIn) {
-          try {
-            await this.page.goto(this.loginUrl, { waitUntil: 'domcontentloaded', timeout: 5000 });
-            requiresManualLogin = await this.checkForCaptcha();
-          } catch (error) {
-            console.log('⚠️ Erro ao verificar captcha:', error);
-          }
-        }
+        // ⚠️ CORREÇÃO: Apenas verificar login, NÃO navegar para login
+        currentlyLoggedIn = await this.isCurrentlyLoggedIn(false); // Modo silencioso
         
         // Listar páginas disponíveis
         if (this.context) {
