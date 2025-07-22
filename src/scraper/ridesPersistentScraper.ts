@@ -42,7 +42,7 @@ export class RidesPersistentScraper {
   /**
    * Executa scraping usando sessão persistente
    */
-  public async scrapeAllData(): Promise<PersistentScrapeResult> {
+  public async scrapeAllData(skipLoginVerification: boolean = false): Promise<PersistentScrapeResult> {
     try {
       console.log('🚀 Iniciando scraping com sessão persistente...');
       
@@ -52,23 +52,35 @@ export class RidesPersistentScraper {
       
       console.log('📊 Status da sessão:', sessionStatus.message);
       
-      // Garantir que está logado (com tratamento de captcha)
-      const loginSuccess = await this.sessionManager.ensureLoginWithCaptchaHandling();
+      // 🔥 NOVA LÓGICA: Pular verificação se solicitado
+      let loginSuccess = true;
       
-      if (!loginSuccess) {
-        const finalStatus = await this.sessionManager.getSessionStatus();
-        return {
-          success: false,
-          data: [],
-          message: finalStatus.requiresManualLogin 
-            ? 'Captcha detectado - por favor faça login manualmente no navegador e tente novamente'
-            : 'Falha no login',
-          sessionInfo: {
-            isNewLogin: !browserWasActive,
-            browserStatus: 'login_failed',
-            sessionValid: false
-          }
-        };
+      if (skipLoginVerification) {
+        console.log('⚡ Pulando verificação de login - assumindo login manual válido');
+        
+        // Garantir que browser está ativo
+        if (!this.sessionManager.isActive()) {
+          await this.sessionManager.initializeBrowser();
+        }
+      } else {
+        // Garantir que está logado (com tratamento de captcha)
+        loginSuccess = await this.sessionManager.ensureLoginWithCaptchaHandling();
+        
+        if (!loginSuccess) {
+          const finalStatus = await this.sessionManager.getSessionStatus();
+          return {
+            success: false,
+            data: [],
+            message: finalStatus.requiresManualLogin 
+              ? 'Captcha detectado - por favor faça login manualmente no navegador e tente novamente'
+              : 'Falha no login',
+            sessionInfo: {
+              isNewLogin: !browserWasActive,
+              browserStatus: 'login_failed',
+              sessionValid: false
+            }
+          };
+        }
       }
 
       console.log('✅ Login verificado/realizado com sucesso');
@@ -333,7 +345,7 @@ export function getPersistentScraper(): RidesPersistentScraper {
 /**
  * Função principal para compatibilidade com o sistema existente
  */
-export async function scrapeAllRidesDataPersistent(): Promise<PersistentScrapeResult> {
+export async function scrapeAllRidesDataPersistent(skipLoginVerification: boolean = false): Promise<PersistentScrapeResult> {
   const scraper = getPersistentScraper();
-  return await scraper.scrapeAllData();
+  return await scraper.scrapeAllData(skipLoginVerification);
 }

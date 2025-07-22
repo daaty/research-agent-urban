@@ -351,11 +351,11 @@ export class BrowserSessionManager {
       if (hasCaptcha) {
         console.log('🤖 CAPTCHA detectado na página!');
         console.log('⚠️ Login automático não é possível com captcha');
-        console.log('📝 Por favor, faça login manualmente no navegador e tente novamente');
-        console.log('💡 O bot detectará automaticamente o login manual');
+        console.log('📝 Por favor, faça login manualmente no navegador VNC');
+        console.log('� O sistema irá detectar automaticamente quando você completar o login...');
         
-        // Não tentar login automático, apenas retornar false
-        return false;
+        // 🔄 Iniciar polling para detectar login manual
+        return await this.waitForManualLogin();
       }
 
       // Preencher credenciais apenas se não há captcha
@@ -393,6 +393,58 @@ export class BrowserSessionManager {
       console.error('❌ Erro durante login:', error);
       return false;
     }
+  }
+
+  /**
+   * Aguarda login manual quando há captcha
+   * Monitora mudança de URL para detectar quando usuário completa login via VNC
+   */
+  private async waitForManualLogin(): Promise<boolean> {
+    console.log('⏳ Aguardando login manual via VNC...');
+    console.log('💡 Acesse o VNC em http://localhost:6080 para resolver o captcha');
+    
+    const maxWaitTime = 5 * 60 * 1000; // 5 minutos
+    const checkInterval = 5000; // 5 segundos
+    const startTime = Date.now();
+    
+    while ((Date.now() - startTime) < maxWaitTime) {
+      try {
+        const currentUrl = this.page!.url();
+        
+        // Se saiu da página de login, verificar se está logado
+        if (!currentUrl.includes('login')) {
+          console.log('🔍 Mudança de URL detectada, verificando login...');
+          await this.page!.waitForTimeout(3000); // Aguardar carregamento completo
+          
+          const isLoggedIn = await this.isCurrentlyLoggedIn(true);
+          if (isLoggedIn) {
+            console.log('🎉 Login manual detectado com sucesso!');
+            
+            // Atualizar dados da sessão
+            const now = Date.now();
+            this.sessionData = {
+              isLoggedIn: true,
+              loginTimestamp: now,
+              sessionExpiry: now + (2 * 60 * 60 * 1000),
+              userData: { email: this.email, manualLogin: true, captchaSolved: true }
+            };
+            this.saveSessionData();
+            
+            return true;
+          }
+        }
+        
+        // Aguardar antes da próxima verificação
+        await this.page!.waitForTimeout(checkInterval);
+        
+      } catch (error) {
+        console.log('⚠️ Erro durante polling de login manual:', error);
+        await this.page!.waitForTimeout(checkInterval);
+      }
+    }
+    
+    console.log('⏰ Timeout aguardando login manual');
+    return false;
   }
 
   /**
@@ -611,6 +663,31 @@ export class BrowserSessionManager {
         // ⚠️ CORREÇÃO: Apenas verificar login, NÃO navegar para login
         currentlyLoggedIn = await this.isCurrentlyLoggedIn(false); // Modo silencioso
         
+        // 🔍 Se não detectou login automaticamente, verificar se fez login manual
+        if (!currentlyLoggedIn) {
+          const currentUrl = this.page.url();
+          
+          // Se não está na página de login, pode ter feito login manual
+          if (!currentUrl.includes('login') && (currentUrl.includes('dashboard') || currentUrl.includes('app/'))) {
+            console.log('🔍 URL sugere login manual, verificando...');
+            await this.page.waitForTimeout(2000); // Aguardar carregamento
+            currentlyLoggedIn = await this.isCurrentlyLoggedIn(true); // Verificação detalhada
+            
+            if (currentlyLoggedIn) {
+              console.log('✅ Login manual detectado e confirmado!');
+              // Atualizar dados da sessão
+              const now = Date.now();
+              this.sessionData = {
+                isLoggedIn: true,
+                loginTimestamp: now,
+                sessionExpiry: now + (2 * 60 * 60 * 1000),
+                userData: { email: this.email, manualLogin: true }
+              };
+              this.saveSessionData();
+            }
+          }
+        }
+        
         // Listar páginas disponíveis
         if (this.context) {
           availablePages = this.context.pages().map(p => p.url());
@@ -684,66 +761,6 @@ export class BrowserSessionManager {
   /**
    * Aguarda que o usuário faça login manual (útil quando há captcha)
    */
-  public async waitForManualLogin(timeoutMs: number = 300000): Promise<boolean> {
-    if (!this.page) {
-      await this.initializeBrowser();
-    }
-
-    console.log('⏳ Aguardando login manual...');
-    console.log('📱 Por favor, faça login manualmente no navegador que foi aberto');
-    console.log('🤖 O bot detectará automaticamente quando o login for concluído');
-    
-    const startTime = Date.now();
-    let consecutiveFailures = 0;
-    
-    while (Date.now() - startTime < timeoutMs) {
-      try {
-        const isLoggedIn = await this.isCurrentlyLoggedIn();
-        
-        if (isLoggedIn) {
-          console.log('✅ Login manual detectado com sucesso!');
-          
-          // Verificação dupla para evitar falsos positivos
-          await this.page!.waitForTimeout(3000);
-          const doubleCheck = await this.isCurrentlyLoggedIn();
-          
-          if (doubleCheck) {
-            console.log('✅ Login confirmado após verificação dupla');
-            
-            // Atualizar dados da sessão
-            const now = Date.now();
-            this.sessionData = {
-              isLoggedIn: true,
-              loginTimestamp: now,
-              sessionExpiry: now + (2 * 60 * 60 * 1000),
-              userData: { email: this.email, manualLogin: true }
-            };
-            this.saveSessionData();
-            
-            return true;
-          } else {
-            console.log('⚠️ Falso positivo detectado, continuando aguardo...');
-            consecutiveFailures++;
-          }
-        } else {
-          consecutiveFailures = 0; // Reset contador se não está logado
-        }
-        
-        // Se houver muitos falsos positivos, aumentar tempo de espera
-        const waitTime = consecutiveFailures > 3 ? 5000 : 2000;
-        await this.page!.waitForTimeout(waitTime);
-        
-      } catch (error) {
-        console.log('⚠️ Erro durante verificação de login manual:', error);
-        consecutiveFailures++;
-        await this.page!.waitForTimeout(3000);
-      }
-    }
-    
-    console.log('⏰ Timeout aguardando login manual');
-    return false;
-  }
-
   /**
    * Método híbrido que tenta login automático ou aguarda manual
    */
