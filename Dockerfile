@@ -74,6 +74,9 @@ RUN npm ci && \
 # Copiar código fonte
 COPY . .
 
+# Dar permissões aos scripts de deploy
+RUN chmod +x deploy-postgresql.sh || echo "Script deploy-postgresql.sh não encontrado, continuando..."
+
 # Build da aplicação (agora com todos os tipos disponíveis)
 RUN npm run build
 
@@ -90,12 +93,12 @@ COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Expor portas
-EXPOSE 3030 6080
+# Expor portas (NOVA VERSÃO COM POSTGRESQL)
+EXPOSE 3040 6090 6091
 
-# Health check
+# Health check (nova porta)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD wget --quiet --tries=1 --spider http://localhost:3030/api/status || exit 1
+    CMD wget --quiet --tries=1 --spider http://localhost:3040/api/status || exit 1
 
 # Comando padrão usando supervisor
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
