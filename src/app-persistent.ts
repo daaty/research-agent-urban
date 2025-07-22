@@ -4,6 +4,8 @@ import express, { Request, Response } from 'express';
 import { getPersistentScraper, scrapeAllRidesDataPersistent } from './scraper/ridesPersistentScraper';
 import { config } from './config';
 import axios from 'axios';
+import { DatabaseManager } from './services/databaseManager';
+import { DataTransformer } from './services/dataTransformer';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -13,10 +15,36 @@ app.use(express.json());
 // Instância do scraper persistente
 const scraper = getPersistentScraper();
 
+// 🗄️ Instâncias do banco de dados
+const databaseManager = DatabaseManager.getInstance();
+const dataTransformer = DataTransformer.getInstance();
+
 // 🔄 Função para processar resultado e enviar webhook
 async function processScrapingResult(result: any, source: string = 'manual') {
   if (result.success) {
     console.log('✅ Scraping concluído com sucesso!');
+    
+    // 🗄️ NOVO: Armazenar dados no PostgreSQL
+    try {
+      if (databaseManager.isConnectedToDatabase()) {
+        console.log('💾 Salvando dados no PostgreSQL...');
+        
+        if (result.hasChanges && result.differences && result.differences.length > 0) {
+          // Armazenar dados diferenciais (apenas mudanças)
+          await dataTransformer.processDifferentialData(result.differences, source);
+          console.log('✅ Dados diferenciais salvos no PostgreSQL!');
+        } else {
+          // Armazenar dados completos se não há diferenças
+          await dataTransformer.processFullScrapingData(result.data, source);
+          console.log('✅ Dados completos salvos no PostgreSQL!');
+        }
+      } else {
+        console.log('⚠️ PostgreSQL não conectado - dados não salvos no banco');
+      }
+    } catch (dbError) {
+      console.error('❌ Erro ao salvar no PostgreSQL:', dbError);
+      // Não interromper o fluxo se o banco falhar
+    }
     
     // ⭐ LÓGICA: Enviar apenas dados novos para n8n
     if (config.n8nWebhookUrl && !config.n8nWebhookUrl.includes('seu-n8n.com')) {
@@ -33,9 +61,9 @@ async function processScrapingResult(result: any, source: string = 'manual') {
             onlyNewData: true,
             differences: result.differences,
             summary: {
-              totalNewRecords: result.differences.reduce((sum, diff) => sum + diff.totalNewRecords, 0),
-              totalUpdatedRecords: result.differences.reduce((sum, diff) => sum + diff.updatedRecords.length, 0),
-              totalRemovedRecords: result.differences.reduce((sum, diff) => sum + diff.removedRecords.length, 0),
+              totalNewRecords: result.differences.reduce((sum: number, diff: any) => sum + diff.totalNewRecords, 0),
+              totalUpdatedRecords: result.differences.reduce((sum: number, diff: any) => sum + diff.updatedRecords.length, 0),
+              totalRemovedRecords: result.differences.reduce((sum: number, diff: any) => sum + diff.removedRecords.length, 0),
               tablesWithChanges: result.differences.length
             }
           };
@@ -413,11 +441,217 @@ app.post('/api/rides/open-browser-login', async (req: any, res: any) => {
   }
 });
 
+// 🗄️ ENDPOINTS DO BANCO DE DADOS
+
+// Estatísticas do PostgreSQL
+app.get('/api/database/stats', async (req: any, res: any) => {
+  try {
+    if (!databaseManager.isConnectedToDatabase()) {
+      return res.status(503).json({
+        success: false,
+        message: 'Banco de dados não conectado'
+      });
+    }
+
+    const stats = await dataTransformer.getDatabaseStats();
+    
+    res.json({
+      success: true,
+      stats,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    console.error('❌ Erro ao obter estatísticas do banco:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Dados recentes (últimas 24h)
+app.get('/api/database/recent', async (req: any, res: any) => {
+  try {
+    if (!databaseManager.isConnectedToDatabase()) {
+      return res.status(503).json({
+        success: false,
+        message: 'Banco de dados não conectado'
+      });
+    }
+
+    const endDate = new Date();
+    const startDate = new Date(endDate.getTime() - 24 * 60 * 60 * 1000);
+    
+    const rides = await databaseManager.getRidesByDateRange(startDate, endDate);
+    
+    res.json({
+      success: true,
+      data: rides,
+      count: rides.length,
+      period: 'last_24_hours',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    console.error('❌ Erro ao buscar dados recentes:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Teste de conexão com PostgreSQL
+app.get('/api/database/test-connection', async (req: any, res: any) => {
+  try {
+    const isConnected = databaseManager.isConnectedToDatabase();
+    
+    if (!isConnected) {
+      // Tentar reconectar
+      await databaseManager.initialize();
+    }
+    
+    const stats = await databaseManager.getDatabaseStats();
+    
+    res.json({
+      success: true,
+      isConnected: true,
+      stats,
+      message: 'Conexão com PostgreSQL funcionando',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    console.error('❌ Erro na conexão com PostgreSQL:', error);
+    res.status(500).json({
+      success: false,
+      isConnected: false,
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Dados para dashboard (agregados)
+app.get('/api/database/dashboard', async (req: any, res: any) => {
+  try {
+    if (!databaseManager.isConnectedToDatabase()) {
+      return res.status(503).json({
+        success: false,
+        message: 'Banco de dados não conectado'
+      });
+    }
+
+    const stats = await databaseManager.getDatabaseStats();
+    
+    // Buscar dados dos últimos 7 dias
+    const endDate = new Date();
+    const startDate = new Date(endDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const recentRides = await databaseManager.getRidesByDateRange(startDate, endDate);
+    
+    // Agrupar dados por tabela e dia
+    const dataByTable = recentRides.reduce((acc: any, ride: any) => {
+      const tableName = ride.table_name;
+      const day = ride.scraped_at.toISOString().split('T')[0];
+      
+      if (!acc[tableName]) {
+        acc[tableName] = {};
+      }
+      
+      if (!acc[tableName][day]) {
+        acc[tableName][day] = 0;
+      }
+      
+      // Contar registros (assumindo que ride_data.rows existe)
+      const rideData = typeof ride.ride_data === 'string' 
+        ? JSON.parse(ride.ride_data) 
+        : ride.ride_data;
+        
+      acc[tableName][day] += rideData.rows?.length || 0;
+      
+      return acc;
+    }, {});
+    
+    res.json({
+      success: true,
+      dashboardData: {
+        overview: stats,
+        last7Days: dataByTable,
+        recentRides: recentRides.slice(0, 10), // Últimos 10 registros
+        period: {
+          start: startDate.toISOString(),
+          end: endDate.toISOString()
+        }
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    console.error('❌ Erro ao obter dados do dashboard:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Buscar dados por período específico
+app.post('/api/database/query', async (req: any, res: any) => {
+  try {
+    if (!databaseManager.isConnectedToDatabase()) {
+      return res.status(503).json({
+        success: false,
+        message: 'Banco de dados não conectado'
+      });
+    }
+
+    const { startDate, endDate, tableName } = req.body;
+    
+    if (!startDate || !endDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'startDate e endDate são obrigatórios'
+      });
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Datas inválidas'
+      });
+    }
+
+    const rides = await databaseManager.getRidesByDateRange(
+      start, 
+      end, 
+      tableName
+    );
+    
+    res.json({
+      success: true,
+      data: rides,
+      count: rides.length,
+      period: { startDate, endDate, tableName },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    console.error('❌ Erro ao buscar dados por período:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // Inicializar servidor
 app.listen(PORT, async () => {
-  console.log('🎉' + '='.repeat(60));
+  console.log('🎉' + '='.repeat(70));
   console.log(`🚀 SERVIDOR PERSISTENTE FUNCIONANDO NA PORTA ${PORT}`);
-  console.log('🎉' + '='.repeat(60));
+  console.log('🎉' + '='.repeat(70));
   console.log(`📋 ENDPOINTS DISPONÍVEIS:`);
   console.log(`- GET  /                        (status geral)`);
   console.log(`- GET  /api/status              (status detalhado)`);
@@ -429,11 +663,28 @@ app.listen(PORT, async () => {
   console.log(`- POST /api/scheduler/start     (execução automática)`);
   console.log(`- POST /api/scheduler/stop      (parar execução automática)`);
   console.log(`- GET  /api/test                (teste rápido)`);
-  console.log('🎉' + '='.repeat(60));
+  console.log('💾' + '='.repeat(70));
+  console.log('🗄️  NOVOS ENDPOINTS POSTGRESQL:');
+  console.log(`- GET  /api/database/stats           (estatísticas do banco)`);
+  console.log(`- GET  /api/database/recent          (dados últimas 24h)`);
+  console.log(`- GET  /api/database/test-connection (testar conexão)`);
+  console.log(`- GET  /api/database/dashboard       (dados para dashboard)`);
+  console.log(`- POST /api/database/query           (buscar por período)`);
+  console.log('🎉' + '='.repeat(70));
   console.log(`🖥️  Modo: BROWSER PERSISTENTE`);
   console.log(`🖥️  Visual: ${!config.headlessMode ? 'HABILITADO ✅' : 'Desabilitado'}`);
   console.log(`🔄  Auto-execução: ATIVANDO EM 30 SEGUNDOS...`);
-  console.log('🎉' + '='.repeat(60));
+  console.log('🎉' + '='.repeat(70));
+
+  // 🗄️ INICIALIZAR POSTGRESQL
+  console.log('💾 Inicializando conexão com PostgreSQL...');
+  try {
+    await databaseManager.initialize();
+    console.log('✅ PostgreSQL conectado e pronto!');
+  } catch (error) {
+    console.error('❌ Erro ao conectar PostgreSQL:', error);
+    console.log('⚠️ Sistema continuará funcionando sem banco de dados');
+  }
   
   // 🚀 AUTO-INICIALIZAÇÃO
   console.log('⏳ Aguardando 30 segundos para auto-inicialização...');

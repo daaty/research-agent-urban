@@ -13,7 +13,8 @@
         "prod": "npm run build && npm start",
         "setup": "npm install && npm run build",
         "playwright-install": "npx playwright install chromium",
-        "install-browsers": "npm run playwright-install"
+        "install-browsers": "npm run playwright-install",
+        "test:database": "ts-node-dev --respawn --transpile-only test-database-integration.ts"
     },
     "dependencies": {
         "axios": "^1.10.0",
@@ -22,6 +23,7 @@
         "express": "^4.18.2",
         "node-cron": "^4.1.0",
         "node-fetch": "^2.7.0",
+        "pg": "^8.11.0",
         "playwright": "^1.52.0",
         "puppeteer": "^19.11.1"
     },
@@ -30,6 +32,7 @@
         "@types/node": "^22.15.2",
         "@types/node-cron": "^3.0.11",
         "@types/node-fetch": "^2.6.12",
+        "@types/pg": "^8.10.0",
         "rimraf": "^6.0.1",
         "ts-node-dev": "^2.0.0",
         "typescript": "^5.3.3"
