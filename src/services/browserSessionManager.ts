@@ -24,10 +24,10 @@ export class BrowserSessionManager {
   private lastLoginStatus: boolean = false;
   private loginCheckCacheDuration: number = 30000; // 30 segundos
   
-  // URLs de configuração
-  private loginUrl: string = 'https://rides.ec2dashboard.com/#/page/login';
-  private email: string = 'herbert@urbandobrasil.com.br';
-  private password: string = 'herbert@urban25';
+  // URLs de configuração (usando variáveis de ambiente)
+  private loginUrl: string = process.env.RIDES_LOGIN_URL || 'https://rides.ec2dashboard.com/#/page/login';
+  private email: string = process.env.RIDES_USERNAME || '';
+  private password: string = process.env.RIDES_PASSWORD || '';
   
   private constructor() {
     this.isHeadless = process.env.HEADLESS_MODE === 'true';
@@ -297,7 +297,8 @@ export class BrowserSessionManager {
     // Tentar navegar para dashboard primeiro para verificar se está logado
     try {
       console.log('🔍 Tentando acessar dashboard para verificar login...');
-      await this.page!.goto('https://rides.ec2dashboard.com/#/app/dashboard/', { 
+      const baseUrl = this.loginUrl.split('#')[0]; // Extrair domínio base
+      await this.page!.goto(`${baseUrl}#/app/dashboard/`, { 
         waitUntil: 'domcontentloaded',
         timeout: 15000 
       });

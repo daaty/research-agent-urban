@@ -26,17 +26,25 @@ export interface PersistentScrapeResult {
 export class RidesPersistentScraper {
   private sessionManager: BrowserSessionManager;
   private cacheManager: DataCacheManager;
-  private ridesPages = [
-    { name: 'Ongoing Rides', url: 'https://rides.ec2dashboard.com/#/app/ongoing-rides/' },
-    { name: 'Scheduled Rides', url: 'https://rides.ec2dashboard.com/#/app/scheduled-rides/' },
-    { name: 'Completed Rides', url: 'https://rides.ec2dashboard.com/#/app/completed-rides/' },
-    { name: 'Cancelled Rides', url: 'https://rides.ec2dashboard.com/#/app/cancelled-rides/4/' },
-    { name: 'Missed Rides', url: 'https://rides.ec2dashboard.com/#/app/missed-rides/3/' }
-  ];
+  private baseUrl: string;
+  private ridesPages: Array<{name: string, url: string}>;
 
   constructor() {
     this.sessionManager = BrowserSessionManager.getInstance();
     this.cacheManager = DataCacheManager.getInstance();
+    
+    // Extrair domínio base da URL de login
+    const loginUrl = process.env.RIDES_LOGIN_URL || 'https://rides.ec2dashboard.com/#/page/login';
+    this.baseUrl = loginUrl.split('#')[0]; // https://rides.ec2dashboard.com/
+    
+    // Montar URLs dinamicamente baseado no domínio
+    this.ridesPages = [
+      { name: 'Ongoing Rides', url: `${this.baseUrl}#/app/ongoing-rides/` },
+      { name: 'Scheduled Rides', url: `${this.baseUrl}#/app/scheduled-rides/` },
+      { name: 'Completed Rides', url: `${this.baseUrl}#/app/completed-rides/` },
+      { name: 'Cancelled Rides', url: `${this.baseUrl}#/app/cancelled-rides/4/` },
+      { name: 'Missed Rides', url: `${this.baseUrl}#/app/missed-rides/3/` }
+    ];
   }
 
   /**

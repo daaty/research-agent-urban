@@ -411,7 +411,8 @@ app.post('/api/rides/open-browser-login', async (req: any, res: any) => {
     // Navegar para página de login
     const page = scraper.getPage();
     if (page) {
-      await page.goto('https://rides.ec2dashboard.com/#/page/login', {
+      const loginUrl = process.env.RIDES_LOGIN_URL || 'https://rides.ec2dashboard.com/#/page/login';
+      await page.goto(loginUrl, {
         waitUntil: 'domcontentloaded'
       });
     }
