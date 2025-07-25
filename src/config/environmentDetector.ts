@@ -51,7 +51,7 @@ export class EnvironmentDetector {
       // Docker: usar VNC se disponível
       if (process.env.VNC_PORT || process.env.NOVNC_PORT) {
         displayMode = 'vnc';
-        displayVar = ':1'; // Display padrão VNC
+        displayVar = ':99'; // Display padrão VNC
         vncEnabled = true;
       } else {
         displayMode = 'headless';
