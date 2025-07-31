@@ -2,10 +2,10 @@
   "name": "research-agent-urban-ai",
   "version": "3.0.0",
   "description": "Research Agent Urban - AI-Powered Web Automation with PostgreSQL Integration",
-  "main": "dist/auto-scraper.js",
+  "main": "src/auto-scraper-v3-simple.js",
   "scripts": {
-    "build": "tsc -p tsconfig.prod.json",
-    "start": "node dist/auto-scraper.js",
+    "build": "echo 'Build não necessário - usando JS direto'",
+    "start": "node src/auto-scraper-v3-simple.js",
     "start:legacy": "node dist/app-automatic.js",
     "dev": "ts-node-dev --respawn --transpile-only src/auto-scraper.ts",
     "dev:legacy": "ts-node-dev --respawn --transpile-only src/app-automatic.ts",
