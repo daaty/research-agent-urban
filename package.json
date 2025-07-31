@@ -5,10 +5,10 @@
   "main": "dist/auto-scraper.js",
   "scripts": {
     "build": "tsc -p tsconfig.prod.json",
-    "start": "node dist/app-persistent.js",
-    "start:legacy": "node dist/auto-scraper.js",
-    "dev": "ts-node-dev --respawn --transpile-only src/app-persistent.ts",
-    "dev:legacy": "ts-node-dev --respawn --transpile-only src/auto-scraper.ts",
+    "start": "node dist/auto-scraper.js",
+    "start:legacy": "node dist/app-automatic.js",
+    "dev": "ts-node-dev --respawn --transpile-only src/auto-scraper.ts",
+    "dev:legacy": "ts-node-dev --respawn --transpile-only src/app-automatic.ts",
     "clean": "rm -rf dist browser-data session-data.json cache-data.json",
     "clean:all": "rm -rf dist browser-data session-data.json cache-data.json node_modules",
     "prebuild": "npm run clean",
@@ -21,7 +21,7 @@
     "install-browsers:docker": "npm run playwright-install-docker",
     "test:database": "ts-node-dev --respawn --transpile-only test-database-integration.ts",
     "test:ai": "ts-node-dev --respawn --transpile-only test-ai-agent.ts",
-    "health-check": "curl -f http://localhost:3000/api/status || exit 1"
+    "health-check": "curl -f http://localhost:3040/health || exit 1"
   },
   "dependencies": {
     "@google/generative-ai": "^0.19.0",

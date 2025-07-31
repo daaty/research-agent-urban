@@ -1,13 +1,14 @@
 # ==================================
-# DOCKERFILE - RESEARCH AGENT URBAN AI AGENT WITH VNC
+# DOCKERFILE - RESEARCH AGENT URBAN v3.0 
+# Sistema de Prevenção de Duplicados com PostgreSQL
 # ==================================
 
 FROM node:18-slim
 
 # Metadados
-LABEL maintainer="Research Agent Urban AI Team"
+LABEL maintainer="Research Agent Urban v3.0 Team"
 LABEL version="3.0.0"
-LABEL description="AI-Powered Web Agent com PostgreSQL e VNC support"
+LABEL description="Auto-Scraper v3.0 com PostgreSQL Database Integration e VNC support"
 
 # Variáveis de ambiente
 ENV DISPLAY=:99
@@ -15,7 +16,7 @@ ENV NODE_ENV=production
 ENV PLAYWRIGHT_BROWSERS_PATH=/app/browsers
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Instalar dependências do sistema incluindo VNC e AI support
+# Instalar dependências do sistema incluindo VNC
 RUN apt-get update && apt-get install -y \
     wget \
     curl \
@@ -82,7 +83,6 @@ COPY package*.json ./
 COPY tsconfig*.json ./
 
 # Instalar dependências NPM COMPLETAS (incluindo devDependencies para build)
-# AI Agent dependencies cache bust - v2024-07-22
 RUN npm ci --include=dev && \
     npm cache clean --force
 
@@ -98,61 +98,27 @@ RUN npx playwright install chromium --with-deps
 # Limpar devDependencies após build para otimizar imagem
 RUN npm prune --production
 
-# Criar diretórios necessários para AI Agent
+# Criar diretórios necessários para v3.0
 RUN mkdir -p \
     /app/data \
     /app/browser-data \
     /app/cache \
     /app/screenshots \
-    /app/ai-logs \
     /var/log/supervisor
 
 # Configurar Supervisor
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-# Script de configuração VNC
-COPY vnc-setup.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/vnc-setup.sh
-
 # Scripts de inicialização
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Scripts de configuração PostgreSQL
-COPY deploy-postgresql.sh setup-postgresql.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/deploy-postgresql.sh /usr/local/bin/setup-postgresql.sh 2>/dev/null || echo "Scripts não encontrados, continuando..."
-
-# Expor portas (AI AGENT VERSION)
+# Expor portas (v3.0 - porta 3040 para evitar conflito com EasyPanel + VNC)
 EXPOSE 3040 6090 6091
 
-# Health check avançado para AI Agent
-HEALTHCHECK --interval=30s --timeout=15s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:3040/api/status && curl -f http://localhost:3040/api/ai/status || exit 1
-RUN npm run build
-
-# Instalar navegadores do Playwright
-RUN npx playwright install chromium --with-deps
-
-# Criar diretórios necessários
-RUN mkdir -p /app/data /app/browser-data /app/cache /var/log/supervisor
-
-# Configurar Supervisor
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-
-# Script de inicialização VNC
-COPY docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-
-# Scripts de configuração PostgreSQL
-COPY deploy-postgresql.sh setup-postgresql.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/deploy-postgresql.sh /usr/local/bin/setup-postgresql.sh
-
-# Expor portas (NOVA VERSÃO COM POSTGRESQL)
-EXPOSE 3040 6090 6091
-
-# Health check (nova porta)
+# Health check para v3.0
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD wget --quiet --tries=1 --spider http://localhost:3040/api/status || exit 1
+    CMD curl -f http://localhost:3040/health || exit 1
 
 # Comando padrão usando supervisor
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
