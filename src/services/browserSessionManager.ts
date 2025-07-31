@@ -424,28 +424,34 @@ export class BrowserSessionManager {
   }
 
   /**
-   * Aguarda login manual quando há captcha
+   * Aguarda login manual quando há captcha - versão melhorada para reinicialização
    * Monitora mudança de URL para detectar quando usuário completa login via VNC
    */
   public async waitForManualLogin(timeoutMs: number = 300000): Promise<boolean> {
     console.log('⏳ Aguardando login manual via VNC...');
     console.log('💡 Acesse o VNC em http://localhost:6080 para resolver o captcha');
+    console.log('🔄 O sistema detectará automaticamente quando você fizer login...');
     
     const maxWaitTime = 5 * 60 * 1000; // 5 minutos
-    const checkInterval = 5000; // 5 segundos
+    const checkInterval = 3000; // 3 segundos (mais rápido)
     const startTime = Date.now();
     
     while ((Date.now() - startTime) < maxWaitTime) {
       try {
         const currentUrl = this.page!.url();
+        console.log(`🔍 Verificando URL: ${currentUrl.substring(0, 50)}...`);
         
-        // Se saiu da página de login, verificar se está logado
-        if (!currentUrl.includes('login')) {
-          console.log('🔍 Mudança de URL detectada, verificando login...');
+        // Verificar se saiu da página de login OU se está logado
+        const notInLogin = !currentUrl.includes('login');
+        const isLoggedIn = await this.isCurrentlyLoggedIn(true);
+        
+        if (notInLogin || isLoggedIn) {
+          console.log('🔍 Mudança detectada, verificando login completo...');
           await this.page!.waitForTimeout(3000); // Aguardar carregamento completo
           
-          const isLoggedIn = await this.isCurrentlyLoggedIn(true);
-          if (isLoggedIn) {
+          // Verificação dupla mais robusta
+          const finalLoginCheck = await this.isCurrentlyLoggedIn(true);
+          if (finalLoginCheck) {
             console.log('🎉 Login manual detectado com sucesso!');
             
             // Atualizar dados da sessão
@@ -454,15 +460,28 @@ export class BrowserSessionManager {
               isLoggedIn: true,
               loginTimestamp: now,
               sessionExpiry: now + (2 * 60 * 60 * 1000),
-              userData: { email: this.email, manualLogin: true, captchaSolved: true }
+              userData: { 
+                email: this.email, 
+                manualLogin: true, 
+                captchaSolved: true,
+                detectedAt: new Date().toISOString()
+              }
             };
             this.saveSessionData();
             
+            // Limpar cache de login para próximas verificações
+            this.lastLoginCheck = 0;
+            this.lastLoginStatus = true;
+            
+            console.log('✅ Sessão atualizada após login manual');
             return true;
+          } else {
+            console.log('⚠️ URL mudou mas login não confirmado, continuando...');
           }
         }
         
         // Aguardar antes da próxima verificação
+        console.log(`⏳ Aguardando... (${Math.round((Date.now() - startTime) / 1000)}s/${Math.round(maxWaitTime / 1000)}s)`);
         await this.page!.waitForTimeout(checkInterval);
         
       } catch (error) {
@@ -512,33 +531,91 @@ export class BrowserSessionManager {
   }
 
   /**
-   * Verifica se há captcha na página de login
+   * Verifica se há captcha na página de login - versão melhorada
    */
   private async checkForCaptcha(): Promise<boolean> {
     try {
+      console.log('🔍 Verificando presença de captcha na página...');
+      
+      // Aguardar um pouco para garantir que a página carregou completamente
+      await this.page!.waitForTimeout(2000);
+      
       // Verificar elementos comuns de captcha
       const captchaSelectors = [
         'iframe[src*="recaptcha"]',
+        'iframe[src*="hcaptcha"]',
         '.g-recaptcha',
+        '.h-captcha',
         'div[class*="captcha"]',
+        'div[id*="captcha"]',
         'img[src*="captcha"]',
         '#captcha',
         '.captcha-container',
-        '[data-captcha]'
+        '.captcha-wrapper',
+        '[data-captcha]',
+        '[data-sitekey]',
+        '.cf-turnstile',
+        'iframe[title*="captcha"]',
+        'iframe[title*="challenge"]'
       ];
 
+      let captchaFound = false;
+      let detectedSelector = '';
+
       for (const selector of captchaSelectors) {
-        const element = await this.page!.$(selector);
-        if (element) {
-          console.log(`🔍 Captcha detectado: ${selector}`);
-          return true;
+        try {
+          const element = await this.page!.$(selector);
+          if (element) {
+            const isVisible = await element.isVisible();
+            if (isVisible) {
+              console.log(`🤖 Captcha detectado e visível: ${selector}`);
+              captchaFound = true;
+              detectedSelector = selector;
+              break;
+            } else {
+              console.log(`📋 Captcha encontrado mas não visível: ${selector}`);
+            }
+          }
+        } catch (error) {
+          // Continuar verificando outros seletores
         }
       }
 
-      return false;
+      // Verificação adicional: procurar por texto indicativo de captcha
+      if (!captchaFound) {
+        const pageContent = await this.page!.textContent('body') || '';
+        const captchaTexts = [
+          'captcha',
+          'verify you are human',
+          'prove you are not a robot',
+          'security check',
+          'human verification'
+        ];
+
+        for (const text of captchaTexts) {
+          if (pageContent.toLowerCase().includes(text)) {
+            console.log(`🤖 Captcha detectado por texto: "${text}"`);
+            captchaFound = true;
+            detectedSelector = `texto: "${text}"`;
+            break;
+          }
+        }
+      }
+
+      if (captchaFound) {
+        console.log(`🤖 CAPTCHA CONFIRMADO - Detectado via: ${detectedSelector}`);
+        console.log('⚠️ Login automático não será tentado');
+        return true;
+      } else {
+        console.log('✅ Nenhum captcha detectado - prosseguindo com login automático');
+        return false;
+      }
+
     } catch (error) {
       console.log('⚠️ Erro ao verificar captcha:', error);
-      return false;
+      // Em caso de erro, assumir que há captcha para ser seguro
+      console.log('🛡️ Por segurança, assumindo presença de captcha');
+      return true;
     }
   }
   /**
@@ -798,25 +875,85 @@ export class BrowserSessionManager {
    * Aguarda que o usuário faça login manual (útil quando há captcha)
    */
   /**
-   * Método híbrido que tenta login automático ou aguarda manual
+   * Método híbrido que usa a mesma lógica do início - funciona para reinicialização
    */
   public async ensureLoginWithCaptchaHandling(): Promise<boolean> {
-    // Primeiro tentar o fluxo normal
-    const normalLogin = await this.ensureLogin();
-    
-    if (normalLogin) {
-      return true;
-    }
-    
-    // Se falhou, pode ser por causa do captcha
-    const status = await this.getSessionStatus();
-    
-    if (status.requiresManualLogin) {
-      console.log('🤖 Captcha detectado, aguardando login manual...');
+    try {
+      console.log('🔄 Iniciando processo de login com tratamento de captcha...');
+      
+      // Garantir que browser está ativo
+      if (!this.page) {
+        await this.initializeBrowser();
+      }
+      
+      // Verificar se já está logado primeiro
+      const alreadyLoggedIn = await this.isCurrentlyLoggedIn();
+      if (alreadyLoggedIn) {
+        console.log('✅ Já está logado, continuando...');
+        return true;
+      }
+      
+      console.log('📍 Navegando para página de login...');
+      await this.page!.goto(this.loginUrl, { 
+        waitUntil: 'domcontentloaded',
+        timeout: 30000 
+      });
+
+      await this.page!.waitForTimeout(3000);
+
+      // 🔑 MESMA LÓGICA DO INÍCIO: Verificar captcha ANTES de preencher
+      const hasCaptcha = await this.checkForCaptcha();
+      
+      if (hasCaptcha) {
+        console.log('🤖 CAPTCHA detectado na página!');
+        console.log('⚠️ Login automático não é possível com captcha');
+        console.log('📝 Por favor, faça login manualmente no navegador VNC');
+        console.log('🔄 O sistema irá detectar automaticamente quando você completar o login...');
+        
+        // 🔄 MESMA LÓGICA: Aguardar login manual
+        return await this.waitForManualLogin();
+      }
+
+      // Se não há captcha, tentar login automático
+      console.log('📝 Preenchendo credenciais...');
+      await this.page!.fill('#exampleInputEmail1', this.email);
+      await this.page!.fill('#exampleInputPassword1', this.password);
+
+      console.log('🚪 Fazendo login...');
+      await this.page!.press('#exampleInputPassword1', 'Enter');
+      await this.page!.waitForTimeout(8000);
+
+      // Verificar se login foi bem-sucedido
+      const isLoggedIn = await this.verifyLoginSuccess();
+
+      if (isLoggedIn) {
+        // Atualizar dados da sessão
+        const now = Date.now();
+        this.sessionData = {
+          isLoggedIn: true,
+          loginTimestamp: now,
+          sessionExpiry: now + (2 * 60 * 60 * 1000),
+          userData: { email: this.email, automaticLogin: true, captchaHandled: true }
+        };
+        this.saveSessionData();
+        
+        console.log('✅ Login automático realizado com sucesso após verificação de captcha!');
+        return true;
+      } else {
+        console.log('❌ Falha no login automático, pode ter captcha não detectado');
+        console.log('🔄 Tentando aguardar login manual como fallback...');
+        
+        // 🔑 FALLBACK: Se falhou, pode ser captcha não detectado, aguardar login manual
+        return await this.waitForManualLogin();
+      }
+
+    } catch (error) {
+      console.error('❌ Erro durante login com tratamento de captcha:', error);
+      console.log('🔄 Tentando aguardar login manual como fallback...');
+      
+      // Em caso de erro, tentar login manual
       return await this.waitForManualLogin();
     }
-    
-    return false;
   }
 
   /**
