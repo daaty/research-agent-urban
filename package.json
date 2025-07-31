@@ -2,7 +2,7 @@
   "name": "research-agent-urban-ai",
   "version": "3.0.0",
   "description": "Research Agent Urban - AI-Powered Web Automation with PostgreSQL Integration",
-  "main": "dist/app-persistent.js",
+  "main": "dist/auto-scraper.js",
   "scripts": {
     "build": "tsc -p tsconfig.prod.json",
     "start": "node dist/app-persistent.js",
