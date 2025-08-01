@@ -7,6 +7,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import express from 'express';
+import { RideDataService } from './services/rideDataService';
 
 interface CachedData {
   timestamp: string;
@@ -23,10 +24,12 @@ class AutoScraper {
   private isRunning: boolean = false;
   private lastExecution: Date | null = null;
   private executionCount: number = 0;
+  private rideDataService: RideDataService;
   
   constructor() {
     this.cacheFilePath = path.join(process.cwd(), 'data', 'previous-rides-data.json');
     this.app = express();
+    this.rideDataService = new RideDataService();
     this.setupHealthCheck();
   }
   
@@ -38,14 +41,15 @@ class AutoScraper {
       res.json({
         status: 'ok',
         service: 'Research Agent Urban',
-        version: '2.0.0',
+        version: '3.0.0-DATABASE-DUPLICATE-PREVENTION',
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
         isRunning: this.isRunning,
         lastExecution: this.lastExecution?.toISOString() || null,
         executionCount: this.executionCount,
         cacheFile: this.cacheFilePath,
-        webhookConfigured: !!config.n8nWebhookUrl
+        webhookConfigured: !!config.n8nWebhookUrl,
+        duplicatePreventionSystem: 'database-based'
       });
     });
     
@@ -80,7 +84,7 @@ class AutoScraper {
     });
     
     // Start HTTP server
-    const port = process.env.PORT || 3000;
+    const port = process.env.PORT || 3040;
     this.server = this.app.listen(port, () => {
       console.log(`🌐 Health check server running on port ${port}`);
       console.log(`📋 Health: http://localhost:${port}/health`);
@@ -133,24 +137,32 @@ class AutoScraper {
           console.log(`   📄 ${table.name}: ${status}`);
         });
         
-        // Verificar se houve mudanças
-        const hasChanges = await this.checkForChanges(result.data, now);
+        // 🆕 NOVA FUNCIONALIDADE: Processar e salvar dados COM verificação de duplicados
+        console.log(`🛡️ [${now}] Processando dados com verificação direta na base de dados...`);
+        const duplicateCheckResult = await this.processDataWithDuplicateCheck(result.data, now);
         
-        if (hasChanges) {
-          console.log(`🆕 [${now}] MUDANÇAS DETECTADAS! Enviando para webhook...`);
+        // Verificar se há dados novos após verificação
+        const hasNewData = duplicateCheckResult.totalNewRecords > 0;
+        
+        if (hasNewData) {
+          console.log(`🆕 [${now}] ${duplicateCheckResult.totalNewRecords} NOVOS REGISTROS salvos na base de dados!`);
           
-          // Enviar para webhook se houver dados e webhook configurado
-          if (totalRecords > 0 && this.hasWebhook()) {
-            await this.sendWebhook(result.data, now);
-          } else if (totalRecords === 0) {
-            console.log(`📊 [${now}] Nenhum dado - webhook não enviado`);
+          if (duplicateCheckResult.totalDuplicates > 0) {
+            console.log(`🛡️ [${now}] ${duplicateCheckResult.totalDuplicates} duplicatas prevenidas`);
           }
           
-          // Salvar dados atuais como cache
+          // Enviar apenas dados novos para webhook
+          await this.sendDatabaseVerifiedWebhook(duplicateCheckResult, now);
+          
+          // Salvar dados atuais como cache (opcional, para logs locais)
           await this.saveCache(result.data, now);
           
         } else {
-          console.log(`🔄 [${now}] NENHUMA MUDANÇA detectada - webhook não enviado`);
+          if (duplicateCheckResult.totalDuplicates > 0) {
+            console.log(`�️ [${now}] TODOS os ${duplicateCheckResult.totalDuplicates} registros são duplicatas - webhook não enviado`);
+          } else {
+            console.log(`📊 [${now}] Nenhum dado encontrado - webhook não enviado`);
+          }
         }
         
       } else {
@@ -396,6 +408,149 @@ class AutoScraper {
     }
     
     console.log('🔄 Shutdown completo');
+  }
+
+  /**
+   * 🆕 Processa dados com verificação de duplicados na base de dados
+   */
+  async processDataWithDuplicateCheck(scrapedData: any[], timestamp: string): Promise<any> {
+    let totalNewRecords = 0;
+    let totalDuplicates = 0;
+    const processedTables: any[] = [];
+    
+    for (const table of scrapedData) {
+      if (table.isEmpty || table.rows.length === 0) {
+        processedTables.push({
+          tableName: table.name,
+          newRecords: 0,
+          duplicates: 0,
+          processedData: []
+        });
+        continue;
+      }
+      
+      try {
+        // Processar cada linha da tabela
+        const processedRows = [];
+        let tableNewRecords = 0;
+        let tableDuplicates = 0;
+        
+        for (const row of table.rows) {
+          const rideData = {
+            tableName: table.name,
+            headers: table.headers,
+            data: row,
+            scrapedAt: timestamp,
+            sourceUrl: table.url
+          };
+          
+          // Verificar e salvar com proteção anti-erro
+          try {
+            const saveResult = await this.rideDataService.saveRidesData([rideData], table.name);
+            
+            if (saveResult.savedCount > 0) {
+              processedRows.push(rideData);
+              tableNewRecords++;
+            } else {
+              tableDuplicates++;
+            }
+          } catch (error: any) {
+            console.error(`⚠️ Erro ao salvar registro individual (continuando):`, error.message);
+            tableDuplicates++; // Contar como duplicata para não parar o processo
+          }
+        }
+        
+        totalNewRecords += tableNewRecords;
+        totalDuplicates += tableDuplicates;
+        
+        processedTables.push({
+          tableName: table.name,
+          newRecords: tableNewRecords,
+          duplicates: tableDuplicates,
+          processedData: processedRows
+        });
+        
+        console.log(`   🛡️ ${table.name}: ${tableNewRecords} novos, ${tableDuplicates} duplicatas`);
+        
+      } catch (error: any) {
+        console.error(`❌ Erro ao processar tabela ${table.name} (continuando):`, error.message);
+        processedTables.push({
+          tableName: table.name,
+          newRecords: 0,
+          duplicates: table.rows.length,
+          processedData: [],
+          error: error.message
+        });
+        totalDuplicates += table.rows.length;
+      }
+    }
+    
+    return {
+      totalNewRecords,
+      totalDuplicates,
+      processedTables,
+      timestamp
+    };
+  }
+
+  /**
+   * 🆕 Envia webhook apenas com dados novos verificados
+   */
+  async sendDatabaseVerifiedWebhook(duplicateCheckResult: any, timestamp: string): Promise<void> {
+    if (!this.hasWebhook()) {
+      console.log(`⚠️ [${timestamp}] Webhook URL não configurada`);
+      return;
+    }
+    
+    try {
+      const payload = {
+        timestamp,
+        localTime: new Date().toLocaleString('pt-BR'),
+        source: 'rides-auto-scraper-database-verified',
+        version: '3.0.0-DATABASE-DUPLICATE-PREVENTION',
+        duplicatePreventionSystem: 'database-based',
+        hasNewData: duplicateCheckResult.totalNewRecords > 0,
+        summary: {
+          totalNewRecords: duplicateCheckResult.totalNewRecords,
+          totalDuplicatesPrevenidos: duplicateCheckResult.totalDuplicates,
+          tablesProcessed: duplicateCheckResult.processedTables.length,
+          executionNumber: this.executionCount,
+          persistedToDatabase: true
+        },
+        processedTables: duplicateCheckResult.processedTables.map((table: any) => ({
+          tableName: table.tableName,
+          originalCount: table.newRecords + table.duplicates,
+          newRecords: table.newRecords,
+          duplicatesPrevenidos: table.duplicates,
+          data: table.processedData
+        })),
+        newDataOnly: duplicateCheckResult.processedTables
+          .filter((table: any) => table.newRecords > 0)
+          .map((table: any) => ({
+            name: table.tableName,
+            headers: table.processedData.length > 0 ? Object.keys(table.processedData[0]) : [],
+            rows: table.processedData,
+            isEmpty: false
+          }))
+      };
+      
+      const response = await axios.post(config.n8nWebhookUrl, payload, {
+        timeout: 30000,
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'Research-Agent-Urban-v3.0-DATABASE-VERIFIED'
+        }
+      });
+      
+      if (response.status === 200) {
+        console.log(`✅ [${timestamp}] Webhook enviado com sucesso (${duplicateCheckResult.totalNewRecords} novos registros)`);
+      } else {
+        console.log(`⚠️ [${timestamp}] Webhook respondeu com status ${response.status}`);
+      }
+      
+    } catch (error: any) {
+      console.error(`❌ [${timestamp}] Erro webhook verificado:`, error.message);
+    }
   }
 }
 
