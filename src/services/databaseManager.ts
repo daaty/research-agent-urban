@@ -302,6 +302,22 @@ export class DatabaseManager {
   }
 
   /**
+   * Executa uma query direta no banco (para uso interno dos serviços)
+   */
+  public async query(text: string, params?: any[]): Promise<any> {
+    if (!this.pool || !this.isConnected) {
+      throw new Error('Banco de dados não conectado');
+    }
+    
+    try {
+      return await this.pool.query(text, params);
+    } catch (error: any) {
+      console.error('❌ Erro na query:', error.message);
+      throw error;
+    }
+  }
+
+  /**
    * Verifica se está conectado
    */
   public isConnectedToDatabase(): boolean {

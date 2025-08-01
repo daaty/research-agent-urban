@@ -241,7 +241,85 @@ app.post('/api/system/cleanup', async (req: any, res: any) => {
   }
 });
 
-// 📋 Listar páginas disponíveis
+// � NOVO: Scraping com prevenção de duplicados avançada
+app.post('/api/rides/scrape-deduplicated', async (req: any, res: any) => {
+  try {
+    console.log('🚀 Iniciando scraping com prevenção de duplicados...');
+    
+    // Executar scraping normal
+    const scrapingResult = await scrapeAllRidesDataPersistent();
+    
+    if (scrapingResult.success && scrapingResult.data.length > 0) {
+      // Converter RideTableData para RidesTableData
+      const convertedData = scrapingResult.data.map(table => ({
+        tableName: table.name, // name -> tableName
+        headers: table.headers,
+        rows: table.rows,
+        isEmpty: table.isEmpty
+      }));
+
+      // Usar novo método de transformação com deduplicação
+      const transformedData = await dataTransformer.transformScrapingDataWithDeduplication(
+        convertedData, // Usar dados convertidos
+        {
+          isNewLogin: scrapingResult.sessionInfo?.isNewLogin || false,
+          browserStatus: scrapingResult.sessionInfo?.browserStatus || 'unknown',
+          sessionValid: scrapingResult.sessionInfo?.sessionValid || false,
+          timestamp: new Date().toISOString(),
+          source: 'deduplicated-scraper'
+        },
+        'deduplicated-scraper'
+      );
+
+      // Salvar apenas dados novos no banco
+      if (transformedData.newRecords > 0) {
+        await dataTransformer.saveToDatabase(transformedData);
+        
+        console.log('✅ Dados salvos com prevenção de duplicados:');
+        console.log(`   📊 Total verificados: ${transformedData.totalRecords}`);
+        console.log(`   🆕 Novos inseridos: ${transformedData.newRecords}`);
+        console.log(`   🔄 Duplicados ignorados: ${transformedData.totalRecords - transformedData.newRecords}`);
+      } else {
+        console.log('ℹ️ Nenhum dado novo encontrado - todos eram duplicados');
+      }
+
+      res.json({
+        success: true,
+        message: `Scraping com deduplicação concluído`,
+        originalData: scrapingResult,
+        deduplicationStats: {
+          totalRecordsScraped: transformedData.totalRecords,
+          newRecordsSaved: transformedData.newRecords,
+          duplicatesIgnored: transformedData.totalRecords - transformedData.newRecords,
+          tablesProcessed: transformedData.records.length
+        },
+        timestamp: new Date().toISOString()
+      });
+
+    } else {
+      res.json({
+        success: false,
+        message: scrapingResult.message || 'Falha no scraping',
+        deduplicationStats: {
+          totalRecordsScraped: 0,
+          newRecordsSaved: 0,
+          duplicatesIgnored: 0,
+          tablesProcessed: 0
+        }
+      });
+    }
+
+  } catch (error: any) {
+    console.error('❌ Erro no scraping com deduplicação:', error);
+    res.status(500).json({
+      success: false,
+      message: `Erro durante scraping com deduplicação: ${error.message}`,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// �📋 Listar páginas disponíveis
 app.get('/api/rides/pages', (req: any, res: any) => {
   res.json({
     success: true,
@@ -269,7 +347,66 @@ app.get('/api/test', async (req: any, res: any) => {
   }
 });
 
-// 🗂️ ENDPOINT - Gerenciar cache de dados
+// � ENDPOINT - Estatísticas de prevenção de duplicados
+app.get('/api/duplicate-stats', async (req: any, res: any) => {
+  try {
+    if (!databaseManager.isConnectedToDatabase()) {
+      return res.status(503).json({
+        success: false,
+        message: 'Banco de dados não conectado',
+        stats: null
+      });
+    }
+
+    // Buscar estatísticas de duplicação
+    const query = `
+      SELECT 
+        table_name,
+        COUNT(*) as total_records,
+        COUNT(DISTINCT data_hash) as unique_hashes,
+        COUNT(*) - COUNT(DISTINCT data_hash) as potential_duplicates,
+        MIN(scraped_at) as first_scraping,
+        MAX(scraped_at) as last_scraping
+      FROM rides_data 
+      GROUP BY table_name
+      ORDER BY total_records DESC
+    `;
+
+    const result = await databaseManager.query(query);
+    
+    const totalQuery = `
+      SELECT 
+        COUNT(*) as total_records,
+        COUNT(DISTINCT data_hash) as unique_hashes,
+        COUNT(DISTINCT table_name) as total_tables
+      FROM rides_data
+    `;
+    
+    const totalResult = await databaseManager.query(totalQuery);
+    
+    res.json({
+      success: true,
+      stats: {
+        byTable: result.rows,
+        overall: totalResult.rows[0],
+        duplicatePreventionStatus: 'V2.0 - Engagement ID based',
+        recommendation: result.rows.length > 0 && totalResult.rows[0].total_records > totalResult.rows[0].unique_hashes 
+          ? 'Use /api/rides/scrape-deduplicated para prevenir duplicados'
+          : 'Sistema funcionando corretamente'
+      },
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: `Erro ao obter estatísticas: ${error.message}`,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// �🗂️ ENDPOINT - Gerenciar cache de dados
 app.get('/api/cache/stats', async (req: any, res: any) => {
   try {
     const stats = await scraper.getCacheStats();
@@ -710,12 +847,14 @@ app.listen(PORT, async () => {
   console.log(`- GET  /api/status              (status detalhado)`);
   console.log(`- POST /api/rides/scrape        (🎯 SCRAPER PRINCIPAL)`);
   console.log(`- POST /api/rides/scrape-page   (scraping página específica)`);
+  console.log(`- POST /api/rides/scrape-deduplicated (⭐ NOVO: com prevenção de duplicados)`);
   console.log(`- POST /api/auth/force-login    (forçar novo login)`);
   console.log(`- POST /api/system/cleanup      (limpeza completa)`);
   console.log(`- GET  /api/rides/pages         (listar páginas)`);
   console.log(`- POST /api/scheduler/start     (execução automática)`);
   console.log(`- POST /api/scheduler/stop      (parar execução automática)`);
   console.log(`- GET  /api/test                (teste rápido)`);
+  console.log(`- GET  /api/duplicate-stats     (⭐ NOVO: estatísticas de duplicação)`);
   console.log('🤖' + '='.repeat(70));
   console.log('🤖 NOVOS ENDPOINTS AI AGENT:');
   console.log(`- POST /api/ai/initialize       (inicializar AI Agent)`);

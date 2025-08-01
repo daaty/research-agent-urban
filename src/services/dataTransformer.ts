@@ -1,6 +1,7 @@
 import { createHash } from 'crypto';
 import { DatabaseManager, RideRecord, ScrapingSession } from './databaseManager';
 import { RidesTableData } from '../types/common';
+import { DuplicatePreventionService } from './duplicatePreventionService';
 
 export interface TransformedData {
   records: RideRecord[];
@@ -12,9 +13,11 @@ export interface TransformedData {
 export class DataTransformer {
   private static instance: DataTransformer;
   private databaseManager: DatabaseManager;
+  private duplicatePreventionService: DuplicatePreventionService;
 
   private constructor() {
     this.databaseManager = DatabaseManager.getInstance();
+    this.duplicatePreventionService = DuplicatePreventionService.getInstance();
   }
 
   public static getInstance(): DataTransformer {
@@ -22,6 +25,125 @@ export class DataTransformer {
       DataTransformer.instance = new DataTransformer();
     }
     return DataTransformer.instance;
+  }
+
+  /**
+   * Transforma dados do scraping para formato do banco COM prevenção de duplicados
+   */
+  public async transformScrapingDataWithDeduplication(
+    scrapingData: RidesTableData[],
+    sessionInfo: any,
+    executionSource: string = 'persistent-scraper'
+  ): Promise<TransformedData> {
+    console.log('🔄 Transformando dados com prevenção de duplicados...');
+    
+    const records: RideRecord[] = [];
+    let totalRecords = 0;
+    let newRecords = 0;
+    let totalDuplicates = 0;
+
+    // Processar cada tabela com deduplicação
+    for (const table of scrapingData) {
+      if (!table.isEmpty && 
+          table.rows.length > 0 && 
+          table.tableName && 
+          table.tableName.trim() !== '') {
+
+        console.log(`📊 Processando tabela: ${table.tableName} (${table.rows.length} registros)`);
+
+        // ⭐ NOVA FUNCIONALIDADE: Filtrar duplicados usando Engagement ID
+        const deduplicationResult = await this.duplicatePreventionService.filterDuplicates({
+          name: table.tableName,
+          headers: table.headers,
+          rows: table.rows,
+          isEmpty: table.isEmpty,
+          url: '' // URL não disponível na interface RidesTableData
+        });
+
+        const filteredTable = deduplicationResult.filteredTable;
+        const stats = deduplicationResult.deduplicationStats;
+
+        // Atualizar estatísticas
+        totalRecords += stats.totalRows;
+        newRecords += stats.newRows.length;
+        totalDuplicates += stats.duplicateRows.length;
+
+        console.log(`   🆕 Novos registros: ${stats.newRows.length}`);
+        console.log(`   🔄 Duplicados ignorados: ${stats.duplicateRows.length}`);
+
+        // Só incluir no banco se houver dados novos
+        if (filteredTable.rows.length > 0) {
+          // Gerar hash sem timestamp para evitar duplicação
+          const tableHash = this.generateContentOnlyHash(filteredTable);
+          
+          // Preparar dados estruturados para o banco
+          const structuredData = {
+            tableName: filteredTable.name,
+            headers: filteredTable.headers,
+            rows: filteredTable.rows,
+            isEmpty: filteredTable.isEmpty,
+            scrapedAt: new Date().toISOString(),
+            totalRows: filteredTable.rows.length,
+            originalRowCount: stats.totalRows,
+            deduplicationApplied: true,
+            duplicatesIgnored: stats.duplicateRows.length
+          };
+
+          const record: RideRecord = {
+            table_name: filteredTable.name,
+            data_hash: tableHash,
+            ride_data: structuredData,
+            session_info: sessionInfo,
+            source: executionSource
+          };
+
+          records.push(record);
+        } else {
+          console.log(`   ⏭️ Nenhum dado novo para ${table.tableName} - todos eram duplicados`);
+        }
+      } else {
+        console.log(`🔍 Ignorando tabela: ${table.tableName || 'sem nome'} (isEmpty: ${table.isEmpty}, rows: ${table.rows?.length || 0})`);
+      }
+    }
+
+    // Criar objeto de sessão
+    const session: ScrapingSession = {
+      total_records: totalRecords,
+      new_records: newRecords,
+      has_changes: newRecords > 0,
+      execution_source: executionSource,
+      browser_session_id: this.generateSessionId()
+    };
+
+    console.log(`✅ Transformação concluída:`);
+    console.log(`   📊 Total de registros verificados: ${totalRecords}`);
+    console.log(`   🆕 Registros novos: ${newRecords}`);
+    console.log(`   🔄 Duplicados ignorados: ${totalDuplicates}`);
+    console.log(`   📋 Tabelas com dados novos: ${records.length}`);
+
+    return {
+      records,
+      session,
+      totalRecords,
+      newRecords
+    };
+  }
+
+  /**
+   * Gera hash baseado apenas no conteúdo (sem timestamp)
+   */
+  private generateContentOnlyHash(table: any): string {
+    const hashData = {
+      name: table.name,
+      headers: table.headers,
+      rowCount: table.rows.length,
+      firstRows: table.rows.slice(0, 3) // Primeiras 3 linhas para hash
+      // Removido: timestamp para evitar hashes diferentes
+    };
+    
+    return createHash('md5')
+      .update(JSON.stringify(hashData))
+      .digest('hex');
   }
 
   /**
