@@ -21,6 +21,7 @@
     "install-browsers:docker": "npm run playwright-install-docker",
     "test:database": "ts-node-dev --respawn --transpile-only test-database-integration.ts",
     "test:ai": "ts-node-dev --respawn --transpile-only test-ai-agent.ts",
+    "test:anti-duplication": "ts-node-dev --respawn --transpile-only test-anti-duplication.ts",
     "health-check": "curl -f http://localhost:3000/api/status || exit 1"
   },
   "dependencies": {

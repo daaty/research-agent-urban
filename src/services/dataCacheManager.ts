@@ -89,14 +89,15 @@ export class DataCacheManager {
   }
 
   /**
-   * Gera hash único dos dados para comparação rápida
+   * Gera hash único dos dados para comparação rápida (SEM timestamp)
    */
   private generateDataHash(data: RideTableData[]): string {
     const dataString = JSON.stringify(data.map(table => ({
       name: table.name,
       rowCount: table.rows.length,
-      rows: table.rows.sort() // Ordenar para hash consistente
-    })));
+      rows: table.rows.sort(), // Ordenar para hash consistente
+      headers: table.headers.sort() // Incluir headers ordenados
+    })).sort((a, b) => a.name.localeCompare(b.name))); // Ordenar tabelas por nome
     return createHash('md5').update(dataString).digest('hex');
   }
 

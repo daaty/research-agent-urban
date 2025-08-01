@@ -100,7 +100,8 @@ export class DatabaseManager {
         ride_data JSONB NOT NULL,
         scraped_at TIMESTAMP DEFAULT NOW(),
         session_info JSONB,
-        source VARCHAR(50) DEFAULT 'persistent-scraper'
+        source VARCHAR(50) DEFAULT 'persistent-scraper',
+        CONSTRAINT unique_ride_hash UNIQUE (table_name, data_hash)
       );
     `;
 
@@ -136,7 +137,8 @@ export class DatabaseManager {
   }
 
   /**
-   * Insere dados de rides no banco
+   * Insere dados de rides no banco usando UPSERT (INSERT ... ON CONFLICT)
+   * Evita duplicação baseada na constraint unique_ride_hash
    */
   public async insertRideData(records: RideRecord[]): Promise<void> {
     if (!this.pool || !this.isConnected) {
@@ -148,23 +150,40 @@ export class DatabaseManager {
     try {
       await client.query('BEGIN');
 
+      let insertedCount = 0;
+      let updatedCount = 0;
+
       for (const record of records) {
         const query = `
           INSERT INTO rides_data (table_name, data_hash, ride_data, session_info, source)
           VALUES ($1, $2, $3, $4, $5)
+          ON CONFLICT (table_name, data_hash) 
+          DO UPDATE SET 
+            ride_data = EXCLUDED.ride_data,
+            scraped_at = NOW(),
+            session_info = EXCLUDED.session_info,
+            source = EXCLUDED.source
+          RETURNING (xmax = 0) AS inserted
         `;
         
-        await client.query(query, [
+        const result = await client.query(query, [
           record.table_name,
           record.data_hash,
           JSON.stringify(record.ride_data),
           JSON.stringify(record.session_info || {}),
           record.source || 'persistent-scraper'
         ]);
+
+        // xmax = 0 significa INSERT, xmax > 0 significa UPDATE
+        if (result.rows[0].inserted) {
+          insertedCount++;
+        } else {
+          updatedCount++;
+        }
       }
 
       await client.query('COMMIT');
-      console.log(`✅ ${records.length} registros inseridos no banco`);
+      console.log(`✅ Dados processados: ${insertedCount} inseridos, ${updatedCount} atualizados`);
 
     } catch (error: any) {
       await client.query('ROLLBACK');

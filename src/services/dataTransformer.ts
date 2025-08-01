@@ -25,7 +25,7 @@ export class DataTransformer {
   }
 
   /**
-   * Transforma dados do scraping para formato do banco
+   * Transforma dados do scraping para formato do banco com IDs únicos
    */
   public transformScrapingData(
     scrapingData: RidesTableData[],
@@ -44,33 +44,41 @@ export class DataTransformer {
           table.rows.length > 0 && 
           table.tableName && 
           table.tableName.trim() !== '') {
-        // Criar hash único para esta tabela
-        const tableHash = this.generateTableHash(table);
         
-        // Preparar dados estruturados para o banco
-        const structuredData = {
-          tableName: table.tableName,
-          headers: table.headers,
-          rows: table.rows,
-          isEmpty: table.isEmpty,
-          scrapedAt: new Date().toISOString(),
-          totalRows: table.rows.length
-        };
+        // Processar cada linha da tabela como um registro individual
+        table.rows.forEach(row => {
+          // Extrair ID único da corrida
+          const rideId = this.extractRideId(row, table.headers);
+          
+          // Preparar dados estruturados para o banco
+          const structuredData = {
+            tableName: table.tableName,
+            headers: table.headers,
+            rideId: rideId,
+            rowData: row,
+            scrapedAt: new Date().toISOString()
+          };
 
-        const record: RideRecord = {
-          table_name: table.tableName,
-          data_hash: tableHash,
-          ride_data: structuredData,
-          session_info: sessionInfo,
-          source: executionSource
-        };
+          // Usar combinação de table_name + ride_id como hash único
+          const uniqueHash = createHash('md5')
+            .update(`${table.tableName}|${rideId}`)
+            .digest('hex');
 
-        records.push(record);
-        totalRecords += table.rows.length;
-        
-        if (hasChanges) {
-          newRecords += table.rows.length;
-        }
+          const record: RideRecord = {
+            table_name: table.tableName,
+            data_hash: uniqueHash, // Hash baseado em table + ride_id (sem timestamp)
+            ride_data: structuredData,
+            session_info: sessionInfo,
+            source: executionSource
+          };
+
+          records.push(record);
+          totalRecords++;
+          
+          if (hasChanges) {
+            newRecords++;
+          }
+        });
       } else {
         // Log para debug de tabelas vazias ou inválidas
         console.log(`🔍 Ignorando tabela: ${table.tableName || 'sem nome'} (isEmpty: ${table.isEmpty}, rows: ${table.rows?.length || 0})`);
@@ -226,15 +234,15 @@ export class DataTransformer {
   }
 
   /**
-   * Gera hash único para uma tabela
+   * Gera hash único para uma tabela (SEM timestamp para evitar duplicação)
    */
   private generateTableHash(table: RidesTableData): string {
     const hashData = {
       name: table.tableName,
       headers: table.headers,
       rowCount: table.rows.length,
-      firstRows: table.rows.slice(0, 3), // Primeiras 3 linhas para hash
-      timestamp: Date.now()
+      firstRows: table.rows.slice(0, 3).sort(), // Primeiras 3 linhas ordenadas para hash consistente
+      dataContent: table.rows.sort() // Ordenar dados para hash consistente
     };
     
     return createHash('md5')
@@ -243,14 +251,14 @@ export class DataTransformer {
   }
 
   /**
-   * Gera hash único para diferenças
+   * Gera hash único para diferenças (SEM timestamp para evitar duplicação)
    */
   private generateDifferenceHash(difference: any): string {
     const hashData = {
       tableName: difference.tableName,
       newRecordsCount: difference.totalNewRecords,
-      firstNewRecords: difference.newRecords?.slice(0, 3) || [],
-      timestamp: Date.now()
+      firstNewRecords: difference.newRecords?.slice(0, 3).sort() || [], // Ordenar para consistência
+      dataContent: difference.newRecords?.sort() || [] // Dados ordenados
     };
     
     return createHash('md5')
@@ -259,10 +267,67 @@ export class DataTransformer {
   }
 
   /**
-   * Gera ID único para sessão
+   * Gera ID único de sessão
    */
   private generateSessionId(): string {
     return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  /**
+   * Extrai ID único de uma corrida baseado nos dados disponíveis
+   */
+  private extractRideId(rideRow: string[], headers: string[]): string {
+    // Tentar encontrar campos que podem ser IDs únicos
+    const possibleIdFields = ['id', 'ride_id', 'booking_id', 'trip_id', 'request_id'];
+    const possibleDateFields = ['date', 'data', 'created_at', 'timestamp'];
+    const possibleTimeFields = ['time', 'hora', 'hour'];
+    
+    let idComponents: string[] = [];
+    
+    // 1. Procurar por campos de ID explícitos
+    headers.forEach((header, index) => {
+      const headerLower = header.toLowerCase();
+      if (possibleIdFields.some(field => headerLower.includes(field)) && rideRow[index]) {
+        idComponents.push(`id:${rideRow[index]}`);
+      }
+    });
+    
+    // 2. Se não encontrou ID explícito, usar combinação de campos únicos
+    if (idComponents.length === 0) {
+      headers.forEach((header, index) => {
+        const headerLower = header.toLowerCase();
+        const value = rideRow[index];
+        
+        if (value) {
+          // Adicionar campos de data/hora
+          if (possibleDateFields.some(field => headerLower.includes(field))) {
+            idComponents.push(`date:${value}`);
+          }
+          if (possibleTimeFields.some(field => headerLower.includes(field))) {
+            idComponents.push(`time:${value}`);
+          }
+          // Adicionar outros campos importantes (motorista, passageiro, rota)
+          if (headerLower.includes('driver') || headerLower.includes('motorista')) {
+            idComponents.push(`driver:${value}`);
+          }
+          if (headerLower.includes('passenger') || headerLower.includes('passageiro')) {
+            idComponents.push(`passenger:${value}`);
+          }
+          if (headerLower.includes('route') || headerLower.includes('rota') || headerLower.includes('origin') || headerLower.includes('destination')) {
+            idComponents.push(`route:${value}`);
+          }
+        }
+      });
+    }
+    
+    // 3. Se ainda não temos componentes suficientes, usar toda a linha
+    if (idComponents.length < 2) {
+      idComponents = rideRow.filter(cell => cell && cell.trim() !== '').slice(0, 4);
+    }
+    
+    // 4. Gerar hash MD5 dos componentes
+    const combinedKey = idComponents.join('|');
+    return createHash('md5').update(combinedKey).digest('hex').substring(0, 16);
   }
 
   /**
