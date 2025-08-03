@@ -160,9 +160,10 @@ export class DataCacheManager {
 
     console.log('📊 Mudanças detectadas, analisando detalhes...');
 
-    // Comparar cada tabela
+    // Comparar cada tabela (verificar se previousData.data existe)
+    const previousDataArray = previousData.data || [];
     currentData.forEach(currentTable => {
-      const previousTable = previousData.data.find(t => t.name === currentTable.name);
+      const previousTable = previousDataArray.find(t => t.name === currentTable.name);
       
       if (!previousTable) {
         // Tabela nova

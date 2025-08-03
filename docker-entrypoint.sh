@@ -25,9 +25,10 @@ chmod 755 /app/data /app/browser-data /app/cache
 export DISPLAY=:99
 
 echo "✅ Configuração concluída."
-echo "🌐 WebUI será acessível em: http://localhost:${PORT:-3030}"
-echo "🖥️ VNC será acessível em: http://localhost:6080/vnc.html"
-echo "🔑 Senha VNC: ${VNC_PASSWORD:-youvncpassword}"
+echo "🌐 WebUI será acessível em: http://localhost:3040"
+echo "🖥️ VNC será acessível em: http://localhost:6091/vnc.html"
+echo "� Scraper: Rides + Drivers integrado (auto-execução)"
+echo "📊 Banco: PostgreSQL externo configurado"
 
 # Executar comando
 exec "$@"

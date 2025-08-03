@@ -3,6 +3,8 @@ import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
 import { scrapeAllRidesDataPersistent } from '../scraper/ridesPersistentScraper';
+import { scrapeAllDriversDataPersistent } from '../scraper/driversPersistentScraper';
+import { DriversDataTransformer } from './driversDataTransformer';
 
 interface RideData {
   id: string;
@@ -98,8 +100,9 @@ class MonitoringService {
     const cancelledRecords: RideData[] = [];
     const completedRecords: RideData[] = [];
 
-    // Mapear dados anteriores por ID
-    const previousMap = new Map(previousData.map(ride => [ride.id, ride]));
+    // Mapear dados anteriores por ID (verificar se é array)
+    const previousArray = Array.isArray(previousData) ? previousData : [];
+    const previousMap = new Map(previousArray.map(ride => [ride.id, ride]));
 
     // Verificar registros atuais
     for (const currentRide of currentData) {
@@ -190,11 +193,15 @@ class MonitoringService {
     }
 
     this.isRunning = true;
-    console.log(`🕐 [${new Date().toLocaleString()}] Iniciando scraping...`);    try {      // Executar scraping
+    console.log(`🕐 [${new Date().toLocaleString()}] Iniciando scraping (rides + drivers)...`);
+    
+    try {
+      // 1. EXECUTAR SCRAPING DE RIDES
+      console.log('🚗 Executando scraping de rides...');
       const scrapingResult = await scrapeAllRidesDataPersistent();
       
       if (!scrapingResult.success || !scrapingResult.data || scrapingResult.data.length === 0) {
-        console.log('⚠️ Nenhum dado extraído:', scrapingResult.message);
+        console.log('⚠️ Nenhum dado de rides extraído:', scrapingResult.message);
         return;
       }
 
@@ -213,35 +220,63 @@ class MonitoringService {
         }
       });
 
-      // Normalizar dados
+      // Normalizar dados de rides
       const currentData = this.normalizeRideData(rawData);
-      console.log(`📊 Dados extraídos: ${currentData.length} registros`);
+      console.log(`📊 Dados de rides extraídos: ${currentData.length} registros`);
 
-      // Detectar mudanças
+      // 2. EXECUTAR SCRAPING DE DRIVERS (usando a mesma sessão do browser)
+      console.log('👥 Executando scraping de drivers...');
+      const driversResult = await scrapeAllDriversDataPersistent();
+      
+      let driversTransformed = null;
+      if (driversResult.success && driversResult.data && driversResult.data.length > 0) {
+        console.log(`📊 Dados de drivers extraídos: ${driversResult.data.reduce((sum, table) => sum + table.rows.length, 0)} registros`);
+        
+        // Transformar e salvar dados de drivers (usando sessionInfo das rides)
+        const driversTransformer = DriversDataTransformer.getInstance();
+        driversTransformed = await driversTransformer.transformAndSave(
+          driversResult.data,
+          scrapingResult.sessionInfo || driversResult.sessionInfo, // Usar sessionInfo das rides preferencialmente
+          'drivers-monitoring-service',
+          driversResult.hasChanges || false
+        );
+      } else {
+        console.log('⚠️ Nenhum dado de drivers extraído:', driversResult.message);
+      }
+
+      // 3. DETECTAR MUDANÇAS (RIDES)
       const changes = this.detectChanges(currentData, this.previousData);
       
-      // Log das mudanças
+      // Log das mudanças (rides)
       if (changes.summary.newCount > 0) {
-        console.log(`🆕 Novos registros: ${changes.summary.newCount}`);
+        console.log(`🆕 Novos registros de rides: ${changes.summary.newCount}`);
       }
       if (changes.summary.updatedCount > 0) {
-        console.log(`🔄 Registros atualizados: ${changes.summary.updatedCount}`);
+        console.log(`🔄 Registros de rides atualizados: ${changes.summary.updatedCount}`);
       }
       if (changes.summary.cancelledCount > 0) {
-        console.log(`❌ Registros cancelados: ${changes.summary.cancelledCount}`);
+        console.log(`❌ Registros de rides cancelados: ${changes.summary.cancelledCount}`);
       }
       if (changes.summary.completedCount > 0) {
-        console.log(`✅ Registros concluídos: ${changes.summary.completedCount}`);
+        console.log(`✅ Registros de rides concluídos: ${changes.summary.completedCount}`);
+      }
+
+      // Log dados de drivers
+      if (driversTransformed) {
+        console.log(`👥 Drivers processados: ${driversTransformed.totalRecords} registros`);
+        if (driversTransformed.newRecords > 0) {
+          console.log(`🆕 Novos registros de drivers: ${driversTransformed.newRecords}`);
+        }
       }
 
       // Enviar para n8n (sempre, mesmo sem mudanças para heartbeat)
       await this.sendToN8n(changes);
 
-      // Salvar dados atuais
+      // Salvar dados atuais de rides
       this.savePreviousData(currentData);
       this.previousData = currentData;
 
-      console.log(`✅ [${new Date().toLocaleString()}] Scraping concluído`);
+      console.log(`✅ [${new Date().toLocaleString()}] Scraping concluído (rides + drivers)`);
     } catch (error) {
       console.error('❌ Erro durante scraping:', error);
     } finally {
@@ -250,27 +285,30 @@ class MonitoringService {
   }
 
   public startMonitoring(): void {
-    console.log('🚀 Iniciando monitoramento automático...');
-    console.log('⏰ Frequência: A cada 2,5 minutos');
+    // Obter intervalo da variável de ambiente (padrão 5 minutos - intervalo seguro testado)
+    const scrapeIntervalMinutes = parseFloat(process.env.SCRAPE_INTERVAL || '5');
+    const scrapeIntervalCron = Math.round(scrapeIntervalMinutes); // Arredondar para cron
+    
+    console.log('🚀 Iniciando monitoramento automático (Rides + Drivers)...');
+    console.log(`⏰ Frequência: A cada ${scrapeIntervalMinutes} minutos (configurável via SCRAPE_INTERVAL)`);
+    console.log('🚗 Scrapers: Rides + Drivers integrados');
     console.log(`🌐 Webhook n8n: ${process.env.N8N_WEBHOOK_URL}`);
     console.log(`👀 Modo headless: ${process.env.HEADLESS_MODE}`);
 
     // Executar uma vez imediatamente
     setTimeout(() => {
       this.performScraping();
-    }, 5000); // 5 segundos de delay inicial    // Agendar execução a cada 2,5 minutos
-    const task1 = cron.schedule('*/2 * * * *', () => {
+    }, 5000); // 5 segundos de delay inicial
+
+    // Agendar execução usando variável SCRAPE_INTERVAL
+    const cronExpression = `*/${scrapeIntervalCron} * * * *`;
+    console.log(`⏰ Cron configurado: ${cronExpression} (a cada ${scrapeIntervalCron} minutos)`);
+    
+    const task1 = cron.schedule(cronExpression, () => {
       this.performScraping();
     });
 
-    // Também executar no meio do intervalo (1,25 minutos depois)
-    const task2 = cron.schedule('1-59/2 * * * *', () => {
-      setTimeout(() => {
-        this.performScraping();
-      }, 30000); // 30 segundos depois do minuto ímpar
-    });
-
-    this.cronTasks = [task1, task2];
+    this.cronTasks = [task1];
 
     console.log('✅ Monitoramento iniciado!');
   }

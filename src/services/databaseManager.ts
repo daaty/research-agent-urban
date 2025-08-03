@@ -19,6 +19,22 @@ export interface RideRecord {
   source?: string;
 }
 
+export interface DriverRecord {
+  id?: number;
+  driver_id: string;
+  name: string;
+  email?: string;
+  mobile?: string;
+  data_type: string; // 'active', 'deactive', 'enrollment', 'leaderboard', 'performance'
+  page_source: string; // nome da página origem
+  additional_data?: any; // JSON para campos específicos de cada página
+  data_hash: string;
+  scraped_at?: Date;
+  session_info?: any;
+  source?: string;
+  unique_id: string;
+}
+
 export interface ScrapingSession {
   id?: number;
   session_start?: Date;
@@ -105,6 +121,28 @@ export class DatabaseManager {
       );
     `;
 
+    // Recriar tabela de drivers com campos corrigidos
+    const dropDriversTable = `DROP TABLE IF EXISTS drivers_data CASCADE;`;
+    
+    const createDriversDataTable = `
+      CREATE TABLE IF NOT EXISTS drivers_data (
+        id SERIAL PRIMARY KEY,
+        driver_id VARCHAR(255) NOT NULL,
+        name VARCHAR(500),
+        email VARCHAR(255),
+        mobile VARCHAR(100),
+        data_type VARCHAR(50) NOT NULL, -- 'active', 'deactive', 'enrollment', 'leaderboard', 'performance'
+        page_source VARCHAR(255) NOT NULL, -- nome da página origem
+        additional_data JSONB, -- JSON para campos específicos de cada página
+        data_hash VARCHAR(32) NOT NULL,
+        scraped_at TIMESTAMP DEFAULT NOW(),
+        session_info JSONB,
+        source VARCHAR(50) DEFAULT 'drivers-persistent-scraper',
+        unique_id VARCHAR(255) NOT NULL,
+        CONSTRAINT unique_driver_hash UNIQUE (data_type, driver_id, data_hash)
+      );
+    `;
+
     const createScrapingSessionsTable = `
       CREATE TABLE IF NOT EXISTS scraping_sessions (
         id SERIAL PRIMARY KEY,
@@ -122,14 +160,22 @@ export class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_rides_data_scraped_at ON rides_data(scraped_at);
       CREATE INDEX IF NOT EXISTS idx_rides_data_table_name ON rides_data(table_name);
       CREATE INDEX IF NOT EXISTS idx_rides_data_hash ON rides_data(data_hash);
+      CREATE INDEX IF NOT EXISTS idx_drivers_data_scraped_at ON drivers_data(scraped_at);
+      CREATE INDEX IF NOT EXISTS idx_drivers_data_page_source ON drivers_data(page_source);
+      CREATE INDEX IF NOT EXISTS idx_drivers_data_data_type ON drivers_data(data_type);
+      CREATE INDEX IF NOT EXISTS idx_drivers_data_driver_id ON drivers_data(driver_id);
+      CREATE INDEX IF NOT EXISTS idx_drivers_data_hash ON drivers_data(data_hash);
       CREATE INDEX IF NOT EXISTS idx_sessions_start ON scraping_sessions(session_start);
     `;
 
     try {
       await this.pool.query(createRidesDataTable);
+      // Recriar tabela de drivers para garantir campos corretos
+      await this.pool.query(dropDriversTable);
+      await this.pool.query(createDriversDataTable);
       await this.pool.query(createScrapingSessionsTable);
       await this.pool.query(createIndexes);
-      console.log('✅ Tabelas e índices criados/verificados');
+      console.log('✅ Tabelas de rides, drivers (recriada) e índices criados/verificados');
     } catch (error: any) {
       console.error('❌ Erro ao criar tabelas:', error.message);
       throw error;
@@ -188,6 +234,76 @@ export class DatabaseManager {
     } catch (error: any) {
       await client.query('ROLLBACK');
       console.error('❌ Erro ao inserir dados:', error.message);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Insere dados de drivers no banco usando UPSERT (INSERT ... ON CONFLICT)
+   * Evita duplicação baseada na constraint unique_driver_hash
+   */
+  public async insertDriverData(records: DriverRecord[]): Promise<void> {
+    if (!this.pool || !this.isConnected) {
+      throw new Error('Banco de dados não conectado');
+    }
+
+    const client = await this.pool.connect();
+    
+    try {
+      await client.query('BEGIN');
+
+      let insertedCount = 0;
+      let updatedCount = 0;
+
+      for (const record of records) {
+        const query = `
+          INSERT INTO drivers_data (
+            driver_id, name, email, mobile, data_type, page_source, 
+            additional_data, data_hash, session_info, source, unique_id
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+          ON CONFLICT (data_type, driver_id, data_hash) 
+          DO UPDATE SET 
+            name = EXCLUDED.name,
+            email = EXCLUDED.email,
+            mobile = EXCLUDED.mobile,
+            additional_data = EXCLUDED.additional_data,
+            scraped_at = NOW(),
+            session_info = EXCLUDED.session_info,
+            source = EXCLUDED.source
+          RETURNING (xmax = 0) AS inserted
+        `;
+        
+        const result = await client.query(query, [
+          record.driver_id,
+          record.name,
+          record.email || null,
+          record.mobile || null,
+          record.data_type,
+          record.page_source,
+          JSON.stringify(record.additional_data || {}),
+          record.data_hash,
+          JSON.stringify(record.session_info || {}),
+          record.source || 'drivers-persistent-scraper',
+          record.unique_id
+        ]);
+
+        // xmax = 0 significa INSERT, xmax > 0 significa UPDATE
+        if (result.rows[0].inserted) {
+          insertedCount++;
+        } else {
+          updatedCount++;
+        }
+      }
+
+      await client.query('COMMIT');
+      console.log(`✅ Dados de drivers processados: ${insertedCount} inseridos, ${updatedCount} atualizados`);
+
+    } catch (error: any) {
+      await client.query('ROLLBACK');
+      console.error('❌ Erro ao inserir dados de drivers:', error.message);
       throw error;
     } finally {
       client.release();

@@ -125,34 +125,9 @@ RUN chmod +x /usr/local/bin/deploy-postgresql.sh /usr/local/bin/setup-postgresql
 # Expor portas (AI AGENT VERSION)
 EXPOSE 3040 6090 6091
 
-# Health check avançado para AI Agent
+# Health check avançado para versão com motoristas
 HEALTHCHECK --interval=30s --timeout=15s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:3040/api/status && curl -f http://localhost:3040/api/ai/status || exit 1
-RUN npm run build
-
-# Instalar navegadores do Playwright
-RUN npx playwright install chromium --with-deps
-
-# Criar diretórios necessários
-RUN mkdir -p /app/data /app/browser-data /app/cache /var/log/supervisor
-
-# Configurar Supervisor
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-
-# Script de inicialização VNC
-COPY docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-
-# Scripts de configuração PostgreSQL
-COPY deploy-postgresql.sh setup-postgresql.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/deploy-postgresql.sh /usr/local/bin/setup-postgresql.sh
-
-# Expor portas (NOVA VERSÃO COM POSTGRESQL)
-EXPOSE 3040 6090 6091
-
-# Health check (nova porta)
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD wget --quiet --tries=1 --spider http://localhost:3040/api/status || exit 1
+    CMD curl -f http://localhost:3040/api/status && curl -f http://localhost:3040/api/database/test-connection || exit 1
 
 # Comando padrão usando supervisor
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

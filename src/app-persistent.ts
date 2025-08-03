@@ -2,10 +2,13 @@ import dotenv from 'dotenv';
 dotenv.config();
 import express, { Request, Response } from 'express';
 import { getPersistentScraper, scrapeAllRidesDataPersistent } from './scraper/ridesPersistentScraper';
+import { scrapeAllDriversDataPersistent } from './scraper/driversPersistentScraper';
+import { MonitoringService } from './services/monitoringService';
 import { config } from './config';
 import axios from 'axios';
 import { DatabaseManager } from './services/databaseManager';
 import { DataTransformer } from './services/dataTransformer';
+import { DriversDataTransformer } from './services/driversDataTransformer';
 import { AIAgentController } from './api/aiAgentController';
 
 const app = express();
@@ -19,6 +22,9 @@ const scraper = getPersistentScraper();
 // 🗄️ Instâncias do banco de dados
 const databaseManager = DatabaseManager.getInstance();
 const dataTransformer = DataTransformer.getInstance();
+
+// 📊 Instância do MonitoringService (Rides + Drivers integrado)
+const monitoringService = new MonitoringService();
 
 // 🤖 Instância do AI Agent Controller
 const aiController = new AIAgentController();
@@ -269,7 +275,308 @@ app.get('/api/test', async (req: any, res: any) => {
   }
 });
 
-// 🗂️ ENDPOINT - Gerenciar cache de dados
+// � ================== ENDPOINTS DE DRIVERS ==================
+
+// 🚗 Endpoint para scraping de drivers
+app.get('/api/drivers/scrape', async (req: any, res: any) => {
+  try {
+    console.log('🎯 [API] Iniciando scraping de drivers...');
+    
+    const result = await scrapeAllDriversDataPersistent();
+    
+    if (result.success) {
+      // Transformar e salvar dados
+      const driversTransformer = DriversDataTransformer.getInstance();
+      const transformedData = await driversTransformer.transformAndSave(
+        result.data,
+        result.sessionInfo,
+        'api-request',
+        result.hasChanges || false
+      );
+
+      res.json({
+        success: true,
+        message: result.message,
+        data: {
+          totalTables: result.data.length,
+          totalRecords: transformedData.totalRecords,
+          newRecords: transformedData.newRecords,
+          hasChanges: result.hasChanges || false,
+          tables: result.data.map(table => ({
+            name: table.name,
+            recordCount: table.isEmpty ? 0 : table.rows.length,
+            isEmpty: table.isEmpty
+          }))
+        },
+        sessionInfo: result.sessionInfo,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: result.message,
+        sessionInfo: result.sessionInfo,
+        timestamp: new Date().toISOString()
+      });
+    }
+  } catch (error: any) {
+    console.error('❌ [API] Erro no scraping de drivers:', error.message);
+    res.status(500).json({
+      success: false,
+      message: `Erro no scraping de drivers: ${error.message}`,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// 🎯 Endpoint para teste específico da página Active Drivers
+app.get('/api/drivers/active/test', async (req: any, res: any) => {
+  try {
+    console.log('🎯 [API] Testando scraping de Active Drivers...');
+    
+    // Importar classe diretamente para teste
+    const { DriversPersistentScraper } = await import('./scraper/driversPersistentScraper');
+    const driverscraper = new DriversPersistentScraper();
+    
+    // Testar apenas a primeira página (Active Drivers)
+    const result = await driverscraper.scrapeAllDriversData();
+    
+    if (result.success && result.data.length > 0) {
+      const activeDriversData = result.data.find(table => table.name === 'Active Drivers');
+      
+      res.json({
+        success: true,
+        message: 'Teste de Active Drivers concluído',
+        data: {
+          tableName: activeDriversData?.name || 'Active Drivers',
+          headers: activeDriversData?.headers || [],
+          totalRecords: activeDriversData?.rows.length || 0,
+          sampleRecords: activeDriversData?.rows.slice(0, 3) || [], // Primeiros 3 registros como exemplo
+          isEmpty: activeDriversData?.isEmpty || true
+        },
+        sessionInfo: result.sessionInfo,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: result.message,
+        sessionInfo: result.sessionInfo,
+        timestamp: new Date().toISOString()
+      });
+    }
+  } catch (error: any) {
+    console.error('❌ [API] Erro no teste de Active Drivers:', error.message);
+    res.status(500).json({
+      success: false,
+      message: `Erro no teste: ${error.message}`,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// 🎯 Endpoint para teste específico da página Deactive Drivers
+app.get('/api/drivers/deactive/test', async (req: any, res: any) => {
+  try {
+    console.log('🎯 [API] Testando scraping de Deactive Drivers...');
+    
+    // Importar classe diretamente para teste
+    const { DriversPersistentScraper } = await import('./scraper/driversPersistentScraper');
+    const driverscraper = new DriversPersistentScraper();
+    
+    // Testar apenas a página Deactive Drivers
+    const result = await driverscraper.scrapeAllDriversData();
+    
+    if (result.success && result.data.length > 0) {
+      const deactiveDriversData = result.data.find(table => table.name === 'Deactive Drivers');
+      
+      res.json({
+        success: true,
+        message: 'Teste de Deactive Drivers concluído',
+        data: {
+          tableName: deactiveDriversData?.name || 'Deactive Drivers',
+          headers: deactiveDriversData?.headers || [],
+          totalRecords: deactiveDriversData?.rows.length || 0,
+          sampleRecords: deactiveDriversData?.rows.slice(0, 3) || [], // Primeiros 3 registros como exemplo
+          isEmpty: deactiveDriversData?.isEmpty || true
+        },
+        sessionInfo: result.sessionInfo,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: result.message,
+        sessionInfo: result.sessionInfo,
+        timestamp: new Date().toISOString()
+      });
+    }
+  } catch (error: any) {
+    console.error('❌ [API] Erro no teste de Deactive Drivers:', error.message);
+    res.status(500).json({
+      success: false,
+      message: `Erro no teste: ${error.message}`,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// 🎯 Endpoint para teste específico da página Enrollment Drivers
+app.get('/api/drivers/enrollment/test', async (req: any, res: any) => {
+  try {
+    console.log('🎯 [API] Testando scraping de Drivers Enrollment...');
+    
+    // Importar classe diretamente para teste
+    const { DriversPersistentScraper } = await import('./scraper/driversPersistentScraper');
+    const driverscraper = new DriversPersistentScraper();
+    
+    // Testar apenas a página Drivers Enrollment
+    const result = await driverscraper.scrapeAllDriversData();
+    
+    if (result.success && result.data.length > 0) {
+      const enrollmentData = result.data.find(table => table.name === 'Drivers Enrollment');
+      
+      res.json({
+        success: true,
+        message: 'Teste de Drivers Enrollment concluído',
+        data: {
+          tableName: enrollmentData?.name || 'Drivers Enrollment',
+          headers: enrollmentData?.headers || [],
+          totalRecords: enrollmentData?.rows.length || 0,
+          sampleRecords: enrollmentData?.rows.slice(0, 3) || [], // Primeiros 3 registros como exemplo
+          isEmpty: enrollmentData?.isEmpty || true
+        },
+        sessionInfo: result.sessionInfo,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: result.message,
+        sessionInfo: result.sessionInfo,
+        timestamp: new Date().toISOString()
+      });
+    }
+  } catch (error: any) {
+    console.error('❌ [API] Erro no teste de Drivers Enrollment:', error.message);
+    res.status(500).json({
+      success: false,
+      message: `Erro no teste: ${error.message}`,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// 🎯 Endpoint para teste específico da página Leaderboard
+app.get('/api/drivers/leaderboard/test', async (req: any, res: any) => {
+  try {
+    console.log('🎯 [API] Testando scraping de Leaderboard...');
+    
+    // Importar classe diretamente para teste
+    const { DriversPersistentScraper } = await import('./scraper/driversPersistentScraper');
+    const driverscraper = new DriversPersistentScraper();
+    
+    // Testar apenas a página Leaderboard
+    const result = await driverscraper.scrapeAllDriversData();
+    
+    if (result.success && result.data.length > 0) {
+      const leaderboardData = result.data.find(table => table.name === 'Leaderboard');
+      
+      res.json({
+        success: true,
+        message: 'Teste de Leaderboard concluído',
+        data: {
+          tableName: leaderboardData?.name || 'Leaderboard',
+          headers: leaderboardData?.headers || [],
+          totalRecords: leaderboardData?.rows.length || 0,
+          sampleRecords: leaderboardData?.rows.slice(0, 3) || [], // Primeiros 3 registros como exemplo
+          isEmpty: leaderboardData?.isEmpty || true
+        },
+        sessionInfo: result.sessionInfo,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: result.message,
+        sessionInfo: result.sessionInfo,
+        timestamp: new Date().toISOString()
+      });
+    }
+  } catch (error: any) {
+    console.error('❌ [API] Erro no teste de Leaderboard:', error.message);
+    res.status(500).json({
+      success: false,
+      message: `Erro no teste: ${error.message}`,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// 🎯 Endpoint para teste específico da página Driver Performance
+app.get('/api/drivers/performance/test', async (req: any, res: any) => {
+  try {
+    console.log('🎯 [API] Testando scraping de Driver Performance...');
+    
+    // Importar classe diretamente para teste
+    const { DriversPersistentScraper } = await import('./scraper/driversPersistentScraper');
+    const driverscraper = new DriversPersistentScraper();
+    
+    // Testar apenas a página Driver Performance
+    const result = await driverscraper.scrapeAllDriversData();
+    
+    if (result.success && result.data.length > 0) {
+      const performanceData = result.data.find(table => table.name === 'Driver Performance');
+      
+      res.json({
+        success: true,
+        message: 'Teste de Driver Performance concluído',
+        data: {
+          tableName: performanceData?.name || 'Driver Performance',
+          headers: performanceData?.headers || [],
+          totalRecords: performanceData?.rows.length || 0,
+          sampleRecords: performanceData?.rows.slice(0, 3) || [], // Primeiros 3 registros como exemplo
+          isEmpty: performanceData?.isEmpty || true
+        },
+        sessionInfo: result.sessionInfo,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: result.message,
+        sessionInfo: result.sessionInfo,
+        timestamp: new Date().toISOString()
+      });
+    }
+  } catch (error: any) {
+    console.error('❌ [API] Erro no teste de Driver Performance:', error.message);
+    res.status(500).json({
+      success: false,
+      message: `Erro no teste: ${error.message}`,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// 📋 Endpoint para listar páginas de drivers disponíveis
+app.get('/api/drivers/pages', (req: any, res: any) => {
+  const driversPages = [
+    { name: 'Active Drivers', url: '#/app/active-drivers/' },
+    { name: 'Deactive Drivers', url: '#/app/deactivated-drivers/' },
+    { name: 'Drivers Enrollment', url: '#/app/selfEnrolled-driver/' },
+    { name: 'Leaderboard', url: '#/app/driver-leaderboard/' },
+    { name: 'Driver Performance', url: '#/app/high-cancellations/' }
+  ];
+  
+  res.json({
+    success: true,
+    pages: driversPages,
+    message: 'Lista de páginas de drivers disponíveis para scraping'
+  });
+});
+
+// �🗂️ ENDPOINT - Gerenciar cache de dados
 app.get('/api/cache/stats', async (req: any, res: any) => {
   try {
     const stats = await scraper.getCacheStats();
@@ -767,45 +1074,36 @@ app.listen(PORT, async () => {
           return;
         }
         
-        // Executar primeiro scraping
-        const result = await scrapeAllRidesDataPersistent();
+        // ✅ NOVA IMPLEMENTAÇÃO: Usar MonitoringService para Rides + Drivers
+        console.log('🔄 Iniciando MonitoringService (Rides + Drivers integrado)...');
         
-        if (result.success) {
-          console.log('✅ Auto-execução inicial concluída com sucesso!');
+        try {
+          // Executar uma vez imediatamente
+          await monitoringService.runOnce();
+          console.log('✅ Execução inicial de Rides + Drivers concluída!');
           
-          // ⭐ PROCESSAR WEBHOOK TAMBÉM NA PRIMEIRA EXECUÇÃO!
-          await processScrapingResult(result, 'initial-execution');
+          // 🔄 Iniciar monitoramento automático (substitui o setInterval antigo)
+          monitoringService.startMonitoring();
+          console.log('✅ Monitoramento automático (Rides + Drivers) iniciado!');
+          console.log('⏰ Frequência: A cada 2,5 minutos');
+          console.log('🚗 Incluindo scraping de todas as 5 páginas de drivers');
           
-          // 🔄 Programar execução periódica a cada intervalo configurado
-          const intervalMinutes = parseInt(process.env.SCRAPE_INTERVAL || '15');
-          console.log(`🔄 Programando execução automática a cada ${intervalMinutes} minutos...`);
+        } catch (error) {
+          console.error('❌ Erro na execução inicial integrada:', error);
+          console.log('💡 Tentando fallback para método tradicional...');
           
-          setInterval(async () => {
-            try {
-              console.log('🔄 Executando scraping automático...');
-              const autoResult = await scrapeAllRidesDataPersistent();
-              
-              // ⭐ AGORA PROCESSA WEBHOOK TAMBÉM NO SCHEDULER!
-              await processScrapingResult(autoResult, 'scheduler');
-              
-              if (autoResult.success) {
-                console.log('✅ Scraping automático concluído');
-                if (autoResult.hasChanges) {
-                  console.log(`📊 ${autoResult.differences?.reduce((sum: any, diff: any) => sum + diff.totalNewRecords, 0) || 0} novos registros encontrados`);
-                } else {
-                  console.log('ℹ️ Nenhuma mudança detectada');
-                }
-              } else {
-                console.log('❌ Erro no scraping automático:', autoResult.message);
-              }
-            } catch (error) {
-              console.error('❌ Erro na execução automática:', error);
+          // Fallback para método antigo se o novo falhar
+          try {
+            const result = await scrapeAllRidesDataPersistent();
+            if (result.success) {
+              console.log('✅ Fallback concluído com sucesso!');
+              await processScrapingResult(result, 'initial-execution');
+            } else {
+              console.log('❌ Falha no fallback:', result.message);
             }
-          }, intervalMinutes * 60 * 1000);
-          
-        } else {
-          console.log('❌ Falha na auto-execução inicial:', result.message);
-          console.log('💡 Use o VNC para resolver problemas manualmente');
+          } catch (fallbackError) {
+            console.error('❌ Erro no fallback:', fallbackError);
+          }
         }
         
       } catch (error) {
