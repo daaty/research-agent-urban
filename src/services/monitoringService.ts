@@ -5,6 +5,7 @@ import path from 'path';
 import { scrapeAllRidesDataPersistent } from '../scraper/ridesPersistentScraper';
 import { scrapeAllDriversDataPersistent } from '../scraper/driversPersistentScraper';
 import { DriversDataTransformer } from './driversDataTransformer';
+import { DataCacheManager } from './dataCacheManager'; // ⭐ INTEGRAR SISTEMA DE CACHE SOFISTICADO
 
 interface RideData {
   id: string;
@@ -38,20 +39,23 @@ class MonitoringService {
   private dataFilePath: string;
   private isRunning: boolean = false;
   private cronTasks: any[] = [];
+  private cacheManager: DataCacheManager; // ⭐ USAR SISTEMA DE CACHE SOFISTICADO
 
   constructor() {
     this.dataFilePath = path.join(__dirname, '../../data/previous-rides-data.json');
+    this.cacheManager = DataCacheManager.getInstance(); // ⭐ INICIALIZAR CACHE MANAGER
     this.loadPreviousData();
   }
 
   private loadPreviousData(): void {
+    // ⭐ MÉTODO MANTIDO POR COMPATIBILIDADE - CACHE REAL É GERENCIADO PELO DataCacheManager
     try {
       if (fs.existsSync(this.dataFilePath)) {
         const data = fs.readFileSync(this.dataFilePath, 'utf-8');
         this.previousData = JSON.parse(data);
-        console.log(`✅ Dados anteriores carregados: ${this.previousData.length} registros`);
+        console.log(`✅ Dados anteriores carregados: ${this.previousData.length} registros (compatibilidade)`);
       } else {
-        console.log('📁 Nenhum dado anterior encontrado. Iniciando do zero.');
+        console.log('📁 Sistema de cache sofisticado ativo - DataCacheManager em uso');
         // Criar diretório se não existir
         const dir = path.dirname(this.dataFilePath);
         if (!fs.existsSync(dir)) {
@@ -65,9 +69,10 @@ class MonitoringService {
   }
 
   private savePreviousData(data: RideData[]): void {
+    // ⭐ MÉTODO MANTIDO POR COMPATIBILIDADE - CACHE REAL É GERENCIADO PELO DataCacheManager
     try {
       fs.writeFileSync(this.dataFilePath, JSON.stringify(data, null, 2));
-      console.log(`💾 Dados salvos: ${data.length} registros`);
+      console.log(`💾 Dados salvos: ${data.length} registros (compatibilidade)`);
     } catch (error) {
       console.error('❌ Erro ao salvar dados:', error);
     }
@@ -93,41 +98,45 @@ class MonitoringService {
     }));
   }
 
-  private detectChanges(currentData: RideData[], previousData: RideData[]): MonitoringResult {
+  private detectChanges(scrapingData: any[]): MonitoringResult {
     const timestamp = new Date().toISOString();
+    
+    // ⭐ USAR SISTEMA DE CACHE SOFISTICADO PARA DETECTAR MUDANÇAS
+    const cacheResult = this.cacheManager.compareAndGetDifferences(scrapingData);
+    
+    // Converter para formato compatível com MonitoringResult
     const newRecords: RideData[] = [];
     const updatedRecords: RideData[] = [];
     const cancelledRecords: RideData[] = [];
     const completedRecords: RideData[] = [];
-
-    // Mapear dados anteriores por ID (verificar se é array)
-    const previousArray = Array.isArray(previousData) ? previousData : [];
-    const previousMap = new Map(previousArray.map(ride => [ride.id, ride]));
-
-    // Verificar registros atuais
-    for (const currentRide of currentData) {
-      const previousRide = previousMap.get(currentRide.id);
-
-      if (!previousRide) {
-        // Novo registro
-        newRecords.push(currentRide);
-      } else if (previousRide.status !== currentRide.status) {
-        // Status mudou
-        updatedRecords.push(currentRide);
+    
+    // Processar diferenças do cache manager
+    cacheResult.differences.forEach(diff => {
+      diff.newRecords.forEach(row => {
+        const ride = this.convertRowToRideData(row, diff.tableName);
+        newRecords.push(ride);
         
-        // Verificar se foi cancelado ou concluído
-        if (currentRide.status.toLowerCase().includes('cancel')) {
-          cancelledRecords.push(currentRide);
-        } else if (currentRide.status.toLowerCase().includes('concluí') || 
-                   currentRide.status.toLowerCase().includes('finaliz')) {
-          completedRecords.push(currentRide);
+        // Verificar se é cancelamento ou conclusão baseado no status
+        if (ride.status.toLowerCase().includes('cancel')) {
+          cancelledRecords.push(ride);
+        } else if (ride.status.toLowerCase().includes('concluí') || 
+                   ride.status.toLowerCase().includes('finaliz')) {
+          completedRecords.push(ride);
         }
-      }
-    }
+      });
+      
+      diff.updatedRecords.forEach(row => {
+        const ride = this.convertRowToRideData(row, diff.tableName);
+        updatedRecords.push(ride);
+      });
+    });
+    
+    // Calcular total de registros atuais
+    const totalRecords = scrapingData.reduce((sum, table) => sum + table.rows.length, 0);
 
     return {
       timestamp,
-      totalRecords: currentData.length,
+      totalRecords,
       newRecords,
       updatedRecords,
       cancelledRecords,
@@ -138,6 +147,37 @@ class MonitoringService {
         cancelledCount: cancelledRecords.length,
         completedCount: completedRecords.length
       }
+    };
+  }
+
+  // ⭐ NOVO MÉTODO: Converter linha de tabela para RideData
+  private convertRowToRideData(row: string[], tableName: string): RideData {
+    // Mapear colunas baseado no nome da tabela ou assumir formato padrão
+    const rideData: any = {
+      table_name: tableName
+    };
+    
+    // Assumir formato padrão das colunas (ajustar conforme necessário)
+    if (row.length >= 4) {
+      rideData.driver = row[0] || '';
+      rideData.passenger = row[1] || '';
+      rideData.route = row[2] || '';
+      rideData.status = row[3] || '';
+      rideData.date = row[4] || '';
+      rideData.time = row[5] || '';
+      rideData.price = row[6] || '';
+    }
+    
+    return {
+      id: this.generateRideId(rideData),
+      driver: rideData.driver || rideData.motorista || '',
+      passenger: rideData.passenger || rideData.passageiro || '',
+      status: rideData.status || rideData.situacao || '',
+      date: rideData.date || rideData.data || '',
+      time: rideData.time || rideData.hora || '',
+      route: rideData.route || rideData.rota || rideData.origem_destino || '',
+      price: rideData.price || rideData.preco || rideData.valor || '',
+      ...rideData
     };
   }
   private async sendToN8n(result: MonitoringResult): Promise<void> {
@@ -155,15 +195,16 @@ class MonitoringService {
                    result.summary.cancelledCount > 0 || 
                    result.summary.completedCount > 0,
         metadata: {
-          scraperVersion: '1.0.0',
-          source: 'rides-dashboard',
-          environment: process.env.NODE_ENV || 'development'
+          scraperVersion: '3.0.0', // ⭐ ATUALIZAR VERSÃO
+          source: 'rides-dashboard-monitoring-v3',
+          environment: process.env.NODE_ENV || 'development',
+          cacheSystemEnabled: true // ⭐ INDICAR QUE USA SISTEMA DE CACHE
         }
       };
 
       // ⭐ LÓGICA CORRETA: Só enviar se há mudanças (sem spam de requests)
       if (!payload.hasChanges) {
-        console.log('⏭️ Pulando envio para n8n (sem mudanças detectadas)');
+        console.log('⏭️ Pulando envio para n8n (sem mudanças detectadas pelo sistema de cache)');
         return;
       }
 
@@ -172,7 +213,7 @@ class MonitoringService {
       const response = await axios.post(webhookUrl, payload, {
         headers: {
           'Content-Type': 'application/json',
-          'User-Agent': 'Rides-Scraper-Bot/1.0'
+          'User-Agent': 'Rides-Scraper-Bot/3.0.0'
         },
         timeout: 30000
       });
@@ -220,9 +261,8 @@ class MonitoringService {
         }
       });
 
-      // Normalizar dados de rides
-      const currentData = this.normalizeRideData(rawData);
-      console.log(`📊 Dados de rides extraídos: ${currentData.length} registros`);
+      // ⭐ USAR SISTEMA DE CACHE SOFISTICADO - detectar mudanças nos dados de tabela originais
+      const changes = this.detectChanges(scrapingResult.data);
 
       // 2. EXECUTAR SCRAPING DE DRIVERS (usando a mesma sessão do browser)
       console.log('👥 Executando scraping de drivers...');
@@ -244,9 +284,6 @@ class MonitoringService {
         console.log('⚠️ Nenhum dado de drivers extraído:', driversResult.message);
       }
 
-      // 3. DETECTAR MUDANÇAS (RIDES)
-      const changes = this.detectChanges(currentData, this.previousData);
-      
       // Log das mudanças (rides)
       if (changes.summary.newCount > 0) {
         console.log(`🆕 Novos registros de rides: ${changes.summary.newCount}`);
@@ -271,10 +308,6 @@ class MonitoringService {
 
       // Enviar para n8n (apenas quando há mudanças - evita spam)
       await this.sendToN8n(changes);
-
-      // Salvar dados atuais de rides
-      this.savePreviousData(currentData);
-      this.previousData = currentData;
 
       console.log(`✅ [${new Date().toLocaleString()}] Scraping concluído (rides + drivers)`);
     } catch (error) {
