@@ -161,9 +161,9 @@ class MonitoringService {
         }
       };
 
-      // Só enviar se há dados ou mudanças (para evitar spam de requests vazios)
-      if (result.totalRecords === 0 && !payload.hasChanges) {
-        console.log('⏭️ Pulando envio para n8n (sem dados e sem mudanças)');
+      // ⭐ LÓGICA CORRETA: Só enviar se há mudanças (sem spam de requests)
+      if (!payload.hasChanges) {
+        console.log('⏭️ Pulando envio para n8n (sem mudanças detectadas)');
         return;
       }
 
@@ -269,7 +269,7 @@ class MonitoringService {
         }
       }
 
-      // Enviar para n8n (sempre, mesmo sem mudanças para heartbeat)
+      // Enviar para n8n (apenas quando há mudanças - evita spam)
       await this.sendToN8n(changes);
 
       // Salvar dados atuais de rides
