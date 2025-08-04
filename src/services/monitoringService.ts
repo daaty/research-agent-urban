@@ -43,6 +43,7 @@ class MonitoringService {
   private cronTasks: any[] = [];
   private cacheManager: DataCacheManager; // ⭐ USAR SISTEMA DE CACHE SOFISTICADO
   private databaseManager: DatabaseManager; // ⭐ INTEGRAR SALVAMENTO NO BANCO
+  private lastRawData: any[] = []; // ⭐ ARMAZENAR ÚLTIMOS DADOS PARA WEBHOOK
 
   constructor() {
     this.dataFilePath = path.join(__dirname, '../../data/previous-rides-data.json');
@@ -228,10 +229,16 @@ class MonitoringService {
         }
       };
 
-      // ⭐ LÓGICA CORRETA: Só enviar se há mudanças (sem spam de requests)
-      if (!payload.hasChanges) {
+      // ⭐ LÓGICA CORRETA: Enviar sempre se há dados, ou se há mudanças detectadas
+      if (!payload.hasChanges && this.lastRawData.length === 0) {
         console.log('⏭️ Pulando envio para n8n (sem mudanças detectadas pelo sistema de cache)');
         return;
+      }
+      
+      // ⭐ FORÇAR ENVIO se há dados mas cache não detectou mudanças (primeira execução)
+      if (!payload.hasChanges && this.lastRawData.length > 0) {
+        console.log('🔄 Forçando envio para n8n (primeira execução com dados)');
+        payload.hasChanges = true;
       }
 
       console.log(`🚀 Enviando para n8n: ${JSON.stringify(result.summary)}`);
@@ -292,11 +299,14 @@ class MonitoringService {
           });
         }
       });
+      
+      // ⭐ ARMAZENAR DADOS PARA WEBHOOK
+      this.lastRawData = rawData;
 
       // ⭐ USAR SISTEMA DE CACHE SOFISTICADO - detectar mudanças nos dados de tabela originais
       const changes = this.detectChanges(scrapingResult.data);
 
-      // ⭐ SALVAR DADOS DE RIDES NO BANCO DE DADOS
+      // ⭐ SALVAR DADOS DE RIDES NO BANCO DE DADOS (SEMPRE, INDEPENDENTE DO CACHE)
       if (rawData.length > 0) {
         console.log(`💾 Salvando ${rawData.length} registros de rides no banco de dados...`);
         
@@ -312,6 +322,14 @@ class MonitoringService {
           
           await this.databaseManager.insertRideData(rideRecords);
           console.log(`✅ Dados de rides salvos no banco de dados`);
+          
+          // ⭐ FORÇAR hasChanges se há dados para salvar na primeira execução
+          if (changes.summary.newCount === 0 && changes.summary.updatedCount === 0) {
+            console.log(`🔄 Primeira execução detectada - forçando mudanças para webhook`);
+            changes.summary.newCount = rawData.length;
+            changes.newRecords = this.normalizeRideData(rawData);
+          }
+          
         } catch (ridesError) {
           console.error('❌ Erro ao salvar dados de rides:', ridesError);
           // Continuar execução mesmo se rides falharem
