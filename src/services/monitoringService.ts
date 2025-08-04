@@ -99,6 +99,33 @@ class MonitoringService {
     return Buffer.from(key).toString('base64').substring(0, 16);
   }
 
+  // ⭐ NOVO MÉTODO: Extrair ID único como o DataTransformer
+  private extractRideId(ride: any): string {
+    // Se o ride já tem um formato estruturado (com campos separados)
+    if (ride.driver || ride.passenger || ride.date) {
+      const idComponents: string[] = [];
+      
+      if (ride.driver) idComponents.push(`driver:${ride.driver}`);
+      if (ride.passenger) idComponents.push(`passenger:${ride.passenger}`);
+      if (ride.date) idComponents.push(`date:${ride.date}`);
+      if (ride.time) idComponents.push(`time:${ride.time}`);
+      if (ride.route) idComponents.push(`route:${ride.route}`);
+      
+      if (idComponents.length >= 2) {
+        const combinedKey = idComponents.join('|');
+        return createHash('md5').update(combinedKey).digest('hex').substring(0, 16);
+      }
+    }
+    
+    // Fallback: usar hash do objeto inteiro (excluindo timestamp)
+    const cleanRide = { ...ride };
+    delete cleanRide.scraped_at;
+    delete cleanRide.timestamp;
+    
+    const fallbackKey = JSON.stringify(cleanRide);
+    return createHash('md5').update(fallbackKey).digest('hex').substring(0, 16);
+  }
+
   private generateDataHash(rideData: any): string {
     // Gerar hash baseado APENAS nos dados da corrida (SEM timestamp para evitar duplicação)
     const hashData = {
@@ -323,14 +350,24 @@ class MonitoringService {
         console.log(`💾 Salvando ${rawData.length} registros de rides no banco de dados...`);
         
         try {
-          // Transformar rawData para formato RideRecord
-          const rideRecords = rawData.map(ride => ({
-            table_name: ride.table_name || 'unknown',
-            data_hash: this.generateDataHash(ride),
-            ride_data: ride,
-            session_info: scrapingResult.sessionInfo || {},
-            source: 'monitoring-service'
-          }));
+          // ⭐ USAR MESMA LÓGICA DO DATATRANSFORMER QUE FUNCIONOU NOS TESTES
+          const rideRecords = rawData.map(ride => {
+            // Extrair ID único da corrida (mesmo método do DataTransformer)
+            const rideId = this.extractRideId(ride);
+            
+            // Hash baseado em table_name + rideId (SEM dados completos)
+            const uniqueHash = createHash('md5')
+              .update(`${ride.table_name || 'unknown'}|${rideId}`)
+              .digest('hex');
+            
+            return {
+              table_name: ride.table_name || 'unknown',
+              data_hash: uniqueHash,
+              ride_data: ride,
+              session_info: scrapingResult.sessionInfo || {},
+              source: 'monitoring-service'
+            };
+          });
           
           console.log(`🔍 Debug - Primeiro record: ${JSON.stringify(rideRecords[0], null, 2)}`);
           
