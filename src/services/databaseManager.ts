@@ -406,27 +406,41 @@ export class DatabaseManager {
 
     try {
       const totalRecordsQuery = 'SELECT COUNT(*) as total FROM rides_data';
+      const totalDriversQuery = 'SELECT COUNT(*) as total FROM drivers_data';
       const totalSessionsQuery = 'SELECT COUNT(*) as total FROM scraping_sessions';
       const lastScrapingQuery = 'SELECT MAX(scraped_at) as last_scraping FROM rides_data';
+      const lastDriversScrapingQuery = 'SELECT MAX(scraped_at) as last_scraping FROM drivers_data';
       const tableStatsQuery = `
         SELECT table_name, COUNT(*) as count 
         FROM rides_data 
         GROUP BY table_name 
         ORDER BY count DESC
       `;
+      const driversStatsQuery = `
+        SELECT data_type, COUNT(*) as count 
+        FROM drivers_data 
+        GROUP BY data_type 
+        ORDER BY count DESC
+      `;
 
-      const [totalRecords, totalSessions, lastScraping, tableStats] = await Promise.all([
+      const [totalRecords, totalDrivers, totalSessions, lastScraping, lastDriversScraping, tableStats, driversStats] = await Promise.all([
         this.pool.query(totalRecordsQuery),
+        this.pool.query(totalDriversQuery),
         this.pool.query(totalSessionsQuery),
         this.pool.query(lastScrapingQuery),
-        this.pool.query(tableStatsQuery)
+        this.pool.query(lastDriversScrapingQuery),
+        this.pool.query(tableStatsQuery),
+        this.pool.query(driversStatsQuery)
       ]);
 
       return {
         totalRecords: parseInt(totalRecords.rows[0].total),
+        totalDrivers: parseInt(totalDrivers.rows[0].total),
         totalSessions: parseInt(totalSessions.rows[0].total),
         lastScraping: lastScraping.rows[0].last_scraping,
+        lastDriversScraping: lastDriversScraping.rows[0].last_scraping,
         tableStats: tableStats.rows,
+        driversStats: driversStats.rows,
         isConnected: this.isConnected
       };
 

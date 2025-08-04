@@ -2,10 +2,12 @@ import * as cron from 'node-cron';
 import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
+import { createHash } from 'crypto';
 import { scrapeAllRidesDataPersistent } from '../scraper/ridesPersistentScraper';
 import { scrapeAllDriversDataPersistent } from '../scraper/driversPersistentScraper';
 import { DriversDataTransformer } from './driversDataTransformer';
 import { DataCacheManager } from './dataCacheManager'; // ⭐ INTEGRAR SISTEMA DE CACHE SOFISTICADO
+import { DatabaseManager } from './databaseManager'; // ⭐ INTEGRAR SALVAMENTO NO BANCO
 
 interface RideData {
   id: string;
@@ -40,11 +42,23 @@ class MonitoringService {
   private isRunning: boolean = false;
   private cronTasks: any[] = [];
   private cacheManager: DataCacheManager; // ⭐ USAR SISTEMA DE CACHE SOFISTICADO
+  private databaseManager: DatabaseManager; // ⭐ INTEGRAR SALVAMENTO NO BANCO
 
   constructor() {
     this.dataFilePath = path.join(__dirname, '../../data/previous-rides-data.json');
     this.cacheManager = DataCacheManager.getInstance(); // ⭐ INICIALIZAR CACHE MANAGER
+    this.databaseManager = DatabaseManager.getInstance(); // ⭐ INICIALIZAR DATABASE MANAGER
     this.loadPreviousData();
+    this.initializeDatabase(); // ⭐ INICIALIZAR CONEXÃO COM BANCO
+  }
+
+  private async initializeDatabase(): Promise<void> {
+    try {
+      await this.databaseManager.initialize();
+      console.log('✅ DatabaseManager inicializado no MonitoringService');
+    } catch (error) {
+      console.error('❌ Erro ao inicializar DatabaseManager no MonitoringService:', error);
+    }
   }
 
   private loadPreviousData(): void {
@@ -82,6 +96,18 @@ class MonitoringService {
     // Gera um ID único baseado nos dados da corrida
     const key = `${ride.driver || ''}_${ride.passenger || ''}_${ride.date || ''}_${ride.time || ''}_${ride.route || ''}`;
     return Buffer.from(key).toString('base64').substring(0, 16);
+  }
+
+  private generateDataHash(rideData: any): string {
+    // Gerar hash baseado APENAS nos dados da corrida (SEM timestamp para evitar duplicação)
+    const hashData = {
+      table_name: rideData.table_name || 'unknown',
+      data: JSON.stringify(rideData)
+      // ⭐ REMOVIDO TIMESTAMP - estava causando duplicações na DB
+    };
+    
+    const dataString = JSON.stringify(hashData);
+    return createHash('md5').update(dataString).digest('hex');
   }
 
   private normalizeRideData(rawData: any[]): RideData[] {
@@ -237,6 +263,12 @@ class MonitoringService {
     console.log(`🕐 [${new Date().toLocaleString()}] Iniciando scraping (rides + drivers)...`);
     
     try {
+      // ⭐ VERIFICAR SE O BANCO ESTÁ CONECTADO
+      if (!this.databaseManager.isConnectedToDatabase()) {
+        console.log('⚠️ Banco de dados não conectado, tentando reconectar...');
+        await this.databaseManager.initialize();
+      }
+
       // 1. EXECUTAR SCRAPING DE RIDES
       console.log('🚗 Executando scraping de rides...');
       const scrapingResult = await scrapeAllRidesDataPersistent();
@@ -264,6 +296,30 @@ class MonitoringService {
       // ⭐ USAR SISTEMA DE CACHE SOFISTICADO - detectar mudanças nos dados de tabela originais
       const changes = this.detectChanges(scrapingResult.data);
 
+      // ⭐ SALVAR DADOS DE RIDES NO BANCO DE DADOS
+      if (rawData.length > 0) {
+        console.log(`💾 Salvando ${rawData.length} registros de rides no banco de dados...`);
+        
+        try {
+          // Transformar rawData para formato RideRecord
+          const rideRecords = rawData.map(ride => ({
+            table_name: ride.table_name || 'unknown',
+            data_hash: this.generateDataHash(ride),
+            ride_data: ride,
+            session_info: scrapingResult.sessionInfo || {},
+            source: 'monitoring-service'
+          }));
+          
+          await this.databaseManager.insertRideData(rideRecords);
+          console.log(`✅ Dados de rides salvos no banco de dados`);
+        } catch (ridesError) {
+          console.error('❌ Erro ao salvar dados de rides:', ridesError);
+          // Continuar execução mesmo se rides falharem
+        }
+      } else {
+        console.log('⚠️ Nenhum dado de rides para salvar no banco');
+      }
+
       // 2. EXECUTAR SCRAPING DE DRIVERS (usando a mesma sessão do browser)
       console.log('👥 Executando scraping de drivers...');
       const driversResult = await scrapeAllDriversDataPersistent();
@@ -272,14 +328,20 @@ class MonitoringService {
       if (driversResult.success && driversResult.data && driversResult.data.length > 0) {
         console.log(`📊 Dados de drivers extraídos: ${driversResult.data.reduce((sum, table) => sum + table.rows.length, 0)} registros`);
         
-        // Transformar e salvar dados de drivers (usando sessionInfo das rides)
-        const driversTransformer = DriversDataTransformer.getInstance();
-        driversTransformed = await driversTransformer.transformAndSave(
-          driversResult.data,
-          scrapingResult.sessionInfo || driversResult.sessionInfo, // Usar sessionInfo das rides preferencialmente
-          'drivers-monitoring-service',
-          driversResult.hasChanges || false
-        );
+        try {
+          // Transformar e salvar dados de drivers (usando sessionInfo das rides)
+          const driversTransformer = DriversDataTransformer.getInstance();
+          driversTransformed = await driversTransformer.transformAndSave(
+            driversResult.data,
+            scrapingResult.sessionInfo || driversResult.sessionInfo, // Usar sessionInfo das rides preferencialmente
+            'drivers-monitoring-service',
+            driversResult.hasChanges || false
+          );
+          console.log(`✅ Dados de drivers processados com sucesso`);
+        } catch (driversError) {
+          console.error('❌ Erro ao processar dados de drivers:', driversError);
+          // Continuar execução mesmo se drivers falharem
+        }
       } else {
         console.log('⚠️ Nenhum dado de drivers extraído:', driversResult.message);
       }

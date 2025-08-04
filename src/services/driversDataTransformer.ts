@@ -253,15 +253,12 @@ export class DriversDataTransformer {
    * Gera hash para detecção de duplicatas
    */
   private generateDataHash(uniqueId: string, row: string[], tableName: string): string {
-    // Combinar ID único + dados da linha + timestamp sem segundos (para agrupar por minuto)
-    const timestamp = new Date();
-    timestamp.setSeconds(0, 0); // Zerar segundos e milissegundos
-    
+    // Gerar hash baseado APENAS nos dados (SEM timestamp para evitar duplicação)
     const hashData = {
       unique_id: uniqueId,
       table_name: tableName,
-      data: row.join('|'),
-      timestamp_minute: timestamp.toISOString()
+      data: row.join('|')
+      // ⭐ REMOVIDO TIMESTAMP - estava causando duplicações na DB
     };
     
     const dataString = JSON.stringify(hashData);
