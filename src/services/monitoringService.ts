@@ -287,8 +287,14 @@ class MonitoringService {
 
       // Converter dados de tabelas para array plano
       const rawData: any[] = [];
+      console.log(`📊 Processando ${scrapingResult.data.length} tabelas de dados...`);
+      
       scrapingResult.data.forEach((table: any) => {
-        if (!table.isEmpty && table.rows.length > 0) {
+        console.log(`📋 Tabela: ${table.name}, Rows: ${table.rows?.length || 0}, isEmpty: ${table.isEmpty}`);
+        
+        // ⭐ FIX: IGNORAR isEmpty - só verificar se há rows
+        if (table.rows && table.rows.length > 0) {
+          console.log(`✅ Processando ${table.rows.length} registros da tabela ${table.name}`);
           table.rows.forEach((row: any) => {
             const rowData: any = {};
             table.headers.forEach((header: any, index: number) => {
@@ -297,8 +303,12 @@ class MonitoringService {
             rowData.table_name = table.name;
             rawData.push(rowData);
           });
+        } else {
+          console.log(`⚠️ Tabela ${table.name} vazia ou sem rows`);
         }
       });
+      
+      console.log(`📊 Total de registros convertidos: ${rawData.length}`);
       
       // ⭐ ARMAZENAR DADOS PARA WEBHOOK
       this.lastRawData = rawData;
@@ -307,6 +317,8 @@ class MonitoringService {
       const changes = this.detectChanges(scrapingResult.data);
 
       // ⭐ SALVAR DADOS DE RIDES NO BANCO DE DADOS (SEMPRE, INDEPENDENTE DO CACHE)
+      console.log(`🔍 Debug - rawData.length: ${rawData.length}, changes: ${JSON.stringify(changes.summary)}`);
+      
       if (rawData.length > 0) {
         console.log(`💾 Salvando ${rawData.length} registros de rides no banco de dados...`);
         
@@ -320,6 +332,8 @@ class MonitoringService {
             source: 'monitoring-service'
           }));
           
+          console.log(`🔍 Debug - Primeiro record: ${JSON.stringify(rideRecords[0], null, 2)}`);
+          
           await this.databaseManager.insertRideData(rideRecords);
           console.log(`✅ Dados de rides salvos no banco de dados`);
           
@@ -332,10 +346,12 @@ class MonitoringService {
           
         } catch (ridesError) {
           console.error('❌ Erro ao salvar dados de rides:', ridesError);
+          console.error('❌ Stack trace:', (ridesError as Error).stack);
           // Continuar execução mesmo se rides falharem
         }
       } else {
         console.log('⚠️ Nenhum dado de rides para salvar no banco');
+        console.log(`⚠️ Debug - scrapingResult.data: ${JSON.stringify(scrapingResult.data.map(t => ({name: t.name, rows: t.rows?.length, isEmpty: t.isEmpty})))}`);
       }
 
       // 2. EXECUTAR SCRAPING DE DRIVERS (usando a mesma sessão do browser)
