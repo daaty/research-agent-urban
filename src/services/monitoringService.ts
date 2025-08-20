@@ -312,16 +312,37 @@ class MonitoringService {
         return;
       }
 
-      // Converter dados de tabelas para array plano
-      const rawData: any[] = [];
-      console.log(`📊 Processando ${scrapingResult.data.length} tabelas de dados...`);
+      // 🔧 ADAPTAÇÃO PARA ESTRUTURA ATUAL DO BANCO
+      // Processar dados para formato compatível: {tableName, newRecords}
+      const adaptedData: any[] = [];
+      const rawData: any[] = []; // Para compatibilidade com cache/webhook
+      console.log(`📊 Processando ${scrapingResult.data.length} tabelas de dados para estrutura compatível...`);
       
       scrapingResult.data.forEach((table: any) => {
         console.log(`📋 Tabela: ${table.name}, Rows: ${table.rows?.length || 0}, isEmpty: ${table.isEmpty}`);
         
-        // ⭐ FIX: IGNORAR isEmpty - só verificar se há rows
+        // ⭐ ADAPTAÇÃO: Ignorar isEmpty - só verificar se há rows
         if (table.rows && table.rows.length > 0) {
           console.log(`✅ Processando ${table.rows.length} registros da tabela ${table.name}`);
+          
+          // 🔧 NOVO FORMATO: Estrutura compatível com dados existentes
+          const adaptedTableData = {
+            tableName: table.name,  // Nome da página/aba
+            newRecords: table.rows.map((row: any[]) => {
+              // 🚫 FILTRAR VALORES INVÁLIDOS (NaN, null, undefined)
+              return row.map(cell => {
+                if (cell === null || cell === undefined || 
+                    (typeof cell === 'number' && Number.isNaN(cell))) {
+                  return '';  // Substituir por string vazia
+                }
+                return cell;
+              });
+            })
+          };
+          
+          adaptedData.push(adaptedTableData);
+          
+          // Converter para formato plano para compatibilidade com cache/webhook
           table.rows.forEach((row: any) => {
             const rowData: any = {};
             table.headers.forEach((header: any, index: number) => {
@@ -336,6 +357,7 @@ class MonitoringService {
       });
       
       console.log(`📊 Total de registros convertidos: ${rawData.length}`);
+      console.log(`📊 Total de tabelas adaptadas: ${adaptedData.length}`);
       
       // ⭐ ARMAZENAR DADOS PARA WEBHOOK
       this.lastRawData = rawData;
@@ -343,36 +365,35 @@ class MonitoringService {
       // ⭐ USAR SISTEMA DE CACHE SOFISTICADO - detectar mudanças nos dados de tabela originais
       const changes = this.detectChanges(scrapingResult.data);
 
-      // ⭐ SALVAR DADOS DE RIDES NO BANCO DE DADOS (SEMPRE, INDEPENDENTE DO CACHE)
-      console.log(`🔍 Debug - rawData.length: ${rawData.length}, changes: ${JSON.stringify(changes.summary)}`);
+      // 🔧 SALVAR DADOS ADAPTADOS NO BANCO DE DADOS
+      console.log(`🔍 Debug - adaptedData.length: ${adaptedData.length}, rawData.length: ${rawData.length}, changes: ${JSON.stringify(changes.summary)}`);
       
-      if (rawData.length > 0) {
-        console.log(`💾 Salvando ${rawData.length} registros de rides no banco de dados...`);
+      if (adaptedData.length > 0) {
+        console.log(`💾 Salvando ${adaptedData.length} tabelas de dados no banco...`);
         
         try {
-          // ⭐ USAR MESMA LÓGICA DO DATATRANSFORMER QUE FUNCIONOU NOS TESTES
-          const rideRecords = rawData.map(ride => {
-            // Extrair ID único da corrida (mesmo método do DataTransformer)
-            const rideId = this.extractRideId(ride);
+          // 🔧 SALVAR CADA TABELA COM ESTRUTURA ADAPTADA
+          for (const tableData of adaptedData) {
+            const rideId = this.extractRideId(tableData);
             
-            // Hash baseado em table_name + rideId (SEM dados completos)
+            // Hash baseado em table_name + rideId
             const uniqueHash = createHash('md5')
-              .update(`${ride.table_name || 'unknown'}|${rideId}`)
+              .update(`${tableData.tableName || 'unknown'}|${rideId}`)
               .digest('hex');
             
-            return {
-              table_name: ride.table_name || 'unknown',
+            const rideRecord = {
+              table_name: tableData.tableName, // Nome da página como table_name
               data_hash: uniqueHash,
-              ride_data: ride,
+              ride_data: tableData, // Estrutura completa {tableName, newRecords}
               session_info: scrapingResult.sessionInfo || {},
-              source: 'monitoring-service'
+              source: 'monitoring-service-adapted'
             };
-          });
+            
+            console.log(`� Salvando tabela: ${tableData.tableName} com ${tableData.newRecords.length} registros`);
+            await this.databaseManager.insertRideData([rideRecord]);
+          }
           
-          console.log(`🔍 Debug - Primeiro record: ${JSON.stringify(rideRecords[0], null, 2)}`);
-          
-          await this.databaseManager.insertRideData(rideRecords);
-          console.log(`✅ Dados de rides salvos no banco de dados`);
+          console.log(`✅ Dados adaptados salvos no banco de dados`);
           
           // ⭐ FORÇAR hasChanges se há dados para salvar na primeira execução
           if (changes.summary.newCount === 0 && changes.summary.updatedCount === 0) {
@@ -382,12 +403,12 @@ class MonitoringService {
           }
           
         } catch (ridesError) {
-          console.error('❌ Erro ao salvar dados de rides:', ridesError);
+          console.error('❌ Erro ao salvar dados adaptados:', ridesError);
           console.error('❌ Stack trace:', (ridesError as Error).stack);
           // Continuar execução mesmo se rides falharem
         }
       } else {
-        console.log('⚠️ Nenhum dado de rides para salvar no banco');
+        console.log('⚠️ Nenhum dado adaptado para salvar no banco');
         console.log(`⚠️ Debug - scrapingResult.data: ${JSON.stringify(scrapingResult.data.map(t => ({name: t.name, rows: t.rows?.length, isEmpty: t.isEmpty})))}`);
       }
 
