@@ -9,6 +9,30 @@ export interface DriverTableData {
   isEmpty: boolean;
 }
 
+export interface DriverPerformanceData {
+  driver_id: string;
+  driver_name: string;
+  phone_number: string;
+  request_sent: number;
+  requests_received: number;
+  user_cancelled_rides: number;
+  user_cancelled_ride_cash: number;
+  user_cancelled_ride_wallet: number;
+  driver_cancelled_rides: number;
+  driver_cancelled_ride_cash: number;
+  driver_cancelled_ride_wallet: number;
+  rejected_rides: number;
+  success_rides: number;
+  missed_rides: number;
+  active_days: number;
+  online_hours: number;
+  d2c_referral: number;
+  d2d_referral: number;
+  start_end_cheating_rides: number;
+  manual_start_end_cheating_rides: number;
+  vehicle: string;
+}
+
 export interface DriverScrapeResult {
   success: boolean;
   data: DriverTableData[];
@@ -42,9 +66,8 @@ export class DriversPersistentScraper {
       { name: 'Active Drivers', url: `${this.baseUrl}/#/app/active-drivers//` },
       { name: 'Deactive Drivers', url: `${this.baseUrl}/#/app/deactivated-drivers/` },
       { name: 'Drivers Enrollment', url: `${this.baseUrl}#/app/selfEnrolled-driver//` },
-      { name: 'Leaderboard', url: `${this.baseUrl}#/app/driver-leaderboard/` }
-      // DESABILITADO TEMPORARIAMENTE: Driver Performance tem problemas no carregamento da tabela
-      // { name: 'Driver Performance', url: `${this.baseUrl}#/app/high-cancellations/` }
+      { name: 'Leaderboard', url: `${this.baseUrl}#/app/driver-leaderboard/` },
+      { name: 'Driver Performance', url: `${this.baseUrl}#/app/high-cancellations/` }
     ];
   }
 
@@ -81,8 +104,13 @@ export class DriversPersistentScraper {
           // Navegar diretamente para a página (sem verificações de login)
           await this.navigateDirectly(driverPage.url);
           
-          // Aguardar página carregar (reduzido para otimizar velocidade)
-          await this.delay(1500);
+          // Aguardar página carregar
+          if (driverPage.name.includes('Performance')) {
+            console.log(`⏳ Driver Performance detectado - será necessário clicar no Search...`);
+            await this.delay(2000); // Tempo básico para Performance
+          } else {
+            await this.delay(1500);
+          }
           
           // Aguardar especificamente elementos Angular carregarem
           await this.waitForAngularLoad();
@@ -179,8 +207,9 @@ export class DriversPersistentScraper {
         tableSelector = '#datatable2';
         rowSelector = '#datatable2 tbody tr[ng-repeat*="data in TableData"]';
       } else if (tableName.includes('Performance')) {
-        tableSelector = '#datatable2';
-        rowSelector = '#datatable2 tbody tr[ng-repeat*="data in TableData"]';
+        // Driver Performance pode usar seletor diferente
+        tableSelector = '#datatable2, table.t-fancy-table, .dataTables_wrapper table';
+        rowSelector = '#datatable2 tbody tr[ng-repeat*="data in TableData"], table.t-fancy-table tbody tr[ng-repeat*="data"]';
       } else {
         // Fallback genérico para outras páginas
         tableSelector = 'table.t-fancy-table';
@@ -188,6 +217,11 @@ export class DriversPersistentScraper {
       }
       
       console.log(`🔍 Usando seletor: ${tableSelector} para ${tableName}`);
+      
+      // Tratamento especial para Driver Performance
+      if (tableName.includes('Performance')) {
+        return await this.extractPerformanceTableData(tableName, currentUrl);
+      }
       
       // Aguardar a tabela específica de drivers carregar (timeout otimizado)
       await page.waitForSelector(tableSelector, { timeout: 5000 });
@@ -371,6 +405,328 @@ export class DriversPersistentScraper {
     } catch (error) {
       console.log('⚠️ Timeout aguardando Angular - continuando...');
     }
+  }
+
+  /**
+   * Aguarda carregamento específico da página Driver Performance
+   */
+  /**
+   * Extração específica para página Driver Performance
+   */
+  private async extractPerformanceTableData(tableName: string, currentUrl: string): Promise<DriverTableData> {
+    const page = this.sessionManager.getPage();
+    if (!page) {
+      throw new Error('Browser não está inicializado');
+    }
+
+    try {
+      console.log('🎯 Iniciando extração específica para Driver Performance...');
+      
+      // 🔍 PRIMEIRO: Procurar e clicar no botão Search para carregar os dados
+      console.log('🔍 Procurando botão Search para carregar dados...');
+      
+      const searchButtonSelectors = [
+        'button.fancyButton[ng-click="High_Cancellation()"]',
+        'button[ng-click="High_Cancellation()"]',
+        'button.fancyButton:has-text("Search")',
+        'button:has-text("Search")',
+        '.fancyButton:has-text("Search")'
+      ];
+      
+      let searchButtonFound = false;
+      
+      for (const selector of searchButtonSelectors) {
+        try {
+          const button = await page.$(selector);
+          if (button) {
+            console.log(`🔍 Botão Search encontrado: ${selector}`);
+            console.log('⚡ Clicando no botão Search para carregar dados...');
+            await button.click();
+            searchButtonFound = true;
+            
+            // Aguardar dados carregarem após o clique
+            console.log('⏳ Aguardando carregamento dos dados após clique...');
+            await this.delay(3000); // Aguardar 3 segundos para carregar
+            break;
+          }
+        } catch (error) {
+          console.log(`⚠️ Seletor de botão ${selector} não funcionou`);
+        }
+      }
+      
+      if (!searchButtonFound) {
+        console.log('⚠️ Botão Search não encontrado - tentando aguardar dados direto...');
+      } else {
+        console.log('✅ Botão Search clicado com sucesso!');
+      }
+      
+      // 🔍 SEGUNDO: Aguardar elementos da tabela carregarem
+      console.log('🔍 Aguardando tabela Driver Performance carregar...');
+      
+      // Seletores específicos para Driver Performance baseado no HTML real
+      const possibleSelectors = [
+        '#datatable2', // ID principal da tabela
+        'table#datatable2.table.t-fancy-table.table-striped', // Seletor completo
+        '.dataTables_wrapper table#datatable2', // Dentro do wrapper do DataTables
+        'table.t-fancy-table.table-striped.dataTable', // Classes da tabela
+        '.dataTables_scrollBody table', // Tabela dentro do scroll
+        'table[aria-describedby="datatable2_info"]' // Por atributo aria
+      ];
+      
+      let workingSelector = '';
+      let tableElement = null;
+      
+      // Aguardar especificamente elementos da Driver Performance
+      try {
+        console.log('🔍 Aguardando wrapper da tabela...');
+        await page.waitForSelector('#datatable2_wrapper', { timeout: 10000 });
+        console.log('✅ Driver Performance: wrapper da tabela encontrado');
+        
+        // Aguardar dados carregarem (tempo maior após o clique)
+        console.log('🔍 Aguardando dados da tabela...');
+        await page.waitForSelector('#datatable2 tbody tr', { timeout: 8000 });
+        console.log('✅ Driver Performance: dados da tabela carregados');
+      } catch (error) {
+        console.log('⚠️ Driver Performance: timeout aguardando carregamento, tentando continuar...');
+      }
+      
+      // 🔍 TERCEIRO: Encontrar qual seletor funciona
+      for (const selector of possibleSelectors) {
+        try {
+          await page.waitForSelector(selector, { timeout: 3000 });
+          tableElement = await page.$(selector);
+          if (tableElement) {
+            workingSelector = selector;
+            console.log(`✅ Driver Performance: usando seletor ${selector}`);
+            break;
+          }
+        } catch (error) {
+          console.log(`⚠️ Seletor ${selector} não encontrado`);
+        }
+      }
+      
+      if (!workingSelector || !tableElement) {
+        console.log('❌ Nenhuma tabela encontrada na página Driver Performance');
+        console.log('🔄 Tentando recarregar a página e repetir o processo...');
+        
+        try {
+          // Usar método reload() nativo do Playwright que é mais confiável
+          console.log('⚡ Executando reload forçado da página...');
+          await page.reload({ waitUntil: 'networkidle' });
+          
+          // Aguardar um pouco após o reload
+          console.log('⏳ Aguardando página recarregar completamente...');
+          await this.delay(4000);
+          
+          // Verificar se ainda estamos na página correta, se não, navegar novamente
+          const reloadUrl = page.url();
+          console.log(`🔍 URL após reload: ${reloadUrl}`);
+          
+          if (!reloadUrl.includes('high-cancellations')) {
+            console.log('📍 Navegando novamente para Driver Performance...');
+            await page.goto('https://rides.ec2dashboard.com/#/app/high-cancellations/', { waitUntil: 'networkidle' });
+            await this.delay(2000);
+          }
+          
+          // SEGUNDA TENTATIVA: Procurar e clicar no botão Search novamente
+          console.log('🔍 SEGUNDA TENTATIVA: Procurando botão Search...');
+          let searchButtonFound = false;
+          
+          for (const selector of searchButtonSelectors) {
+            try {
+              const button = await page.$(selector);
+              if (button) {
+                console.log(`🔍 Botão Search encontrado (2ª tentativa): ${selector}`);
+                console.log('⚡ Clicando no botão Search novamente...');
+                await button.click();
+                searchButtonFound = true;
+                
+                // Aguardar dados carregarem após o clique
+                console.log('⏳ Aguardando carregamento dos dados (2ª tentativa)...');
+                await this.delay(5000); // Mais tempo na segunda tentativa
+                break;
+              }
+            } catch (error) {
+              console.log(`⚠️ Seletor de botão ${selector} não funcionou (2ª tentativa)`);
+            }
+          }
+          
+          if (searchButtonFound) {
+            console.log('✅ Botão Search clicado na segunda tentativa!');
+            
+            // Tentar encontrar a tabela novamente
+            for (const selector of possibleSelectors) {
+              try {
+                await page.waitForSelector(selector, { timeout: 5000 });
+                tableElement = await page.$(selector);
+                if (tableElement) {
+                  workingSelector = selector;
+                  console.log(`✅ Driver Performance: tabela encontrada na 2ª tentativa com seletor ${selector}`);
+                  break;
+                }
+              } catch (error) {
+                console.log(`⚠️ Seletor ${selector} não encontrado (2ª tentativa)`);
+              }
+            }
+          }
+          
+        } catch (reloadError: any) {
+          console.log('⚠️ Erro durante reload da página:', reloadError.message || reloadError);
+        }
+        
+        // Se ainda não encontrou a tabela após a segunda tentativa
+        if (!workingSelector || !tableElement) {
+          console.log('❌ Driver Performance: tabela não encontrada mesmo após reload');
+          return {
+            name: tableName,
+            url: currentUrl,
+            headers: [],
+            rows: [],
+            isEmpty: true
+          };
+        }
+      }
+      
+      // Aguardar dados carregarem especificamente
+      await this.delay(2000);
+      
+      // Extrair headers
+      const headers = await page.$$eval(`${workingSelector} thead th, ${workingSelector} th`, ths => 
+        ths.map(th => {
+          const text = th.textContent?.trim() || '';
+          return text.replace(/\s+/g, ' ').replace(/\n/g, ' ');
+        }).filter(text => text.length > 0)
+      ).catch(() => {
+        console.log('⚠️ Headers não encontrados para Driver Performance');
+        return [];
+      });
+      
+      // Extrair dados das linhas usando múltiplos seletores
+      const rowSelectors = [
+        `${workingSelector} tbody tr[ng-repeat*="data"]`,
+        `${workingSelector} tbody tr[ng-repeat*="TableData"]`,
+        `${workingSelector} tbody tr`,
+        `${workingSelector} tr:not(:first-child)` // fallback
+      ];
+      
+      let rows: string[][] = [];
+      
+      for (const rowSelector of rowSelectors) {
+        try {
+          rows = await page.$$eval(rowSelector, trs => 
+            trs.map(tr => {
+              const cells = tr.querySelectorAll('td');
+              return Array.from(cells).map(td => {
+                const text = td.textContent?.trim() || '';
+                return text.replace(/\s+/g, ' ').replace(/\n/g, ' ');
+              }).filter(text => text.length > 0);
+            }).filter(row => row.length > 0)
+          );
+          
+          if (rows.length > 0) {
+            console.log(`✅ Driver Performance: ${rows.length} linhas extraídas com seletor ${rowSelector}`);
+            break;
+          }
+        } catch (error) {
+          console.log(`⚠️ Erro com seletor de linhas ${rowSelector}`);
+        }
+      }
+      
+      console.log(`📊 Driver Performance - Headers: ${headers.length}, Rows: ${rows.length}`);
+      
+      return {
+        name: tableName,
+        url: currentUrl,
+        headers: headers,
+        rows: rows,
+        isEmpty: rows.length === 0
+      };
+      
+    } catch (error: any) {
+      console.error(`❌ Erro na extração específica da Driver Performance:`, error.message);
+      return {
+        name: tableName,
+        url: currentUrl,
+        headers: [],
+        rows: [],
+        isEmpty: true
+      };
+    }
+  }
+
+  /**
+   * Processa dados de Driver Performance em formato estruturado
+   */
+  public processDriverPerformanceData(tableData: DriverTableData): DriverPerformanceData[] {
+    const performanceData: DriverPerformanceData[] = [];
+    
+    if (!tableData || tableData.isEmpty || tableData.rows.length === 0) {
+      console.log('⚠️ Nenhum dado de performance para processar');
+      return performanceData;
+    }
+
+    console.log(`🔄 Processando ${tableData.rows.length} registros de Driver Performance...`);
+    
+    // Headers esperados da tabela Driver Performance (baseado no HTML fornecido)
+    const expectedHeaders = [
+      'Driver ID', 'Driver Name', 'Phone Number', 'Request Sent', 'Requests Received',
+      'User Cancelled Rides', 'User Cancelled Ride (cash)', 'User Cancelled Ride (wallet)',
+      'Driver Cancelled Rides', 'Driver Cancelled Ride (cash)', 'Driver Cancelled Ride (wallet)',
+      'Rejected Rides', 'Success Rides', 'Missed Rides', 'Active Days', 'Online Hours',
+      'D2C Referral', 'D2D Referral', 'Start End Cheating Rides', 'Manual Start End Cheating Rides',
+      'Vehicle'
+    ];
+
+    // Verificar se headers correspondem
+    console.log(`📋 Headers encontrados: ${tableData.headers.length}`);
+    console.log(`📋 Headers esperados: ${expectedHeaders.length}`);
+    
+    for (const row of tableData.rows) {
+      try {
+        // Garantir que temos pelo menos os dados mínimos (primeiros 3 campos)
+        if (row.length < 3) {
+          console.log('⚠️ Linha com dados insuficientes ignorada:', row);
+          continue;
+        }
+
+        const performance: DriverPerformanceData = {
+          driver_id: row[0] || '',
+          driver_name: row[1] || '',
+          phone_number: row[2] || '',
+          request_sent: parseInt(row[3]) || 0,
+          requests_received: parseInt(row[4]) || 0,
+          user_cancelled_rides: parseInt(row[5]) || 0,
+          user_cancelled_ride_cash: parseInt(row[6]) || 0,
+          user_cancelled_ride_wallet: parseInt(row[7]) || 0,
+          driver_cancelled_rides: parseInt(row[8]) || 0,
+          driver_cancelled_ride_cash: parseInt(row[9]) || 0,
+          driver_cancelled_ride_wallet: parseInt(row[10]) || 0,
+          rejected_rides: parseInt(row[11]) || 0,
+          success_rides: parseInt(row[12]) || 0,
+          missed_rides: parseInt(row[13]) || 0,
+          active_days: parseInt(row[14]) || 0,
+          online_hours: parseFloat(row[15]) || 0,
+          d2c_referral: parseInt(row[16]) || 0,
+          d2d_referral: parseInt(row[17]) || 0,
+          start_end_cheating_rides: parseInt(row[18]) || 0,
+          manual_start_end_cheating_rides: parseInt(row[19]) || 0,
+          vehicle: row[20] || ''
+        };
+
+        // Validar dados mínimos
+        if (performance.driver_id && performance.driver_name) {
+          performanceData.push(performance);
+        } else {
+          console.log('⚠️ Registro inválido ignorado - falta ID ou nome:', performance);
+        }
+
+      } catch (error: any) {
+        console.log('❌ Erro processando linha de performance:', error.message, row);
+      }
+    }
+
+    console.log(`✅ ${performanceData.length} registros de Driver Performance processados`);
+    return performanceData;
   }
 
   /**

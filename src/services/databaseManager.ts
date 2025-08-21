@@ -1,4 +1,8 @@
 import { Pool, PoolClient, QueryResult } from 'pg';
+import dotenv from 'dotenv';
+
+// Carregar variáveis de ambiente
+dotenv.config();
 
 export interface DatabaseConfig {
   host: string;
@@ -304,6 +308,126 @@ export class DatabaseManager {
     } catch (error: any) {
       await client.query('ROLLBACK');
       console.error('❌ Erro ao inserir dados de drivers:', error.message);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Salva dados específicos de Driver Performance de forma estruturada
+   */
+  public async saveDriverPerformanceData(performanceData: any[]): Promise<void> {
+    if (!this.pool || !this.isConnected) {
+      throw new Error('Banco de dados não conectado');
+    }
+
+    if (!performanceData || performanceData.length === 0) {
+      console.log('⚠️ Nenhum dado de Driver Performance para salvar');
+      return;
+    }
+
+    console.log(`💾 Salvando ${performanceData.length} registros de Driver Performance...`);
+
+    const client = await this.pool.connect();
+    
+    try {
+      await client.query('BEGIN');
+
+      let insertedCount = 0;
+      let updatedCount = 0;
+
+      for (const data of performanceData) {
+        // Criar hash único baseado nos dados principais
+        const hashData = `${data.driver_id}-${data.driver_name}-${data.phone_number}-${data.request_sent}-${data.success_rides}`;
+        const dataHash = require('crypto').createHash('md5').update(hashData).digest('hex');
+        
+        // Estruturar dados para salvar
+        const driverRecord = {
+          driver_id: data.driver_id,
+          name: data.driver_name,
+          email: null, // Driver Performance não tem email
+          mobile: data.phone_number,
+          data_type: 'performance',
+          page_source: 'Driver Performance',
+          additional_data: {
+            request_sent: data.request_sent,
+            requests_received: data.requests_received,
+            user_cancelled_rides: data.user_cancelled_rides,
+            user_cancelled_ride_cash: data.user_cancelled_ride_cash,
+            user_cancelled_ride_wallet: data.user_cancelled_ride_wallet,
+            driver_cancelled_rides: data.driver_cancelled_rides,
+            driver_cancelled_ride_cash: data.driver_cancelled_ride_cash,
+            driver_cancelled_ride_wallet: data.driver_cancelled_ride_wallet,
+            rejected_rides: data.rejected_rides,
+            success_rides: data.success_rides,
+            missed_rides: data.missed_rides,
+            active_days: data.active_days,
+            online_hours: data.online_hours,
+            d2c_referral: data.d2c_referral,
+            d2d_referral: data.d2d_referral,
+            start_end_cheating_rides: data.start_end_cheating_rides,
+            manual_start_end_cheating_rides: data.manual_start_end_cheating_rides,
+            vehicle: data.vehicle,
+            // Métricas calculadas
+            success_rate: data.requests_received > 0 ? (data.success_rides / data.requests_received * 100).toFixed(2) : 0,
+            cancellation_rate: data.requests_received > 0 ? ((data.user_cancelled_rides + data.driver_cancelled_rides) / data.requests_received * 100).toFixed(2) : 0,
+            rejection_rate: data.requests_received > 0 ? (data.rejected_rides / data.requests_received * 100).toFixed(2) : 0
+          },
+          data_hash: dataHash,
+          session_info: {
+            extracted_at: new Date().toISOString(),
+            source_page: 'high-cancellations',
+            data_type: 'driver-performance'
+          },
+          source: 'drivers-performance-scraper',
+          unique_id: `performance-${data.driver_id}-${Date.now()}`
+        };
+
+        const query = `
+          INSERT INTO drivers_data (
+            driver_id, name, email, mobile, data_type, page_source, 
+            additional_data, data_hash, session_info, source, unique_id
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+          ON CONFLICT (data_type, driver_id, data_hash) 
+          DO UPDATE SET 
+            name = EXCLUDED.name,
+            mobile = EXCLUDED.mobile,
+            additional_data = EXCLUDED.additional_data,
+            scraped_at = NOW(),
+            session_info = EXCLUDED.session_info,
+            source = EXCLUDED.source
+          RETURNING (xmax = 0) AS inserted
+        `;
+        
+        const result = await client.query(query, [
+          driverRecord.driver_id,
+          driverRecord.name,
+          driverRecord.email,
+          driverRecord.mobile,
+          driverRecord.data_type,
+          driverRecord.page_source,
+          JSON.stringify(driverRecord.additional_data),
+          driverRecord.data_hash,
+          JSON.stringify(driverRecord.session_info),
+          driverRecord.source,
+          driverRecord.unique_id
+        ]);
+
+        if (result.rows[0].inserted) {
+          insertedCount++;
+        } else {
+          updatedCount++;
+        }
+      }
+
+      await client.query('COMMIT');
+      console.log(`✅ Driver Performance processado: ${insertedCount} inseridos, ${updatedCount} atualizados`);
+
+    } catch (error: any) {
+      await client.query('ROLLBACK');
+      console.error('❌ Erro ao inserir dados de Driver Performance:', error.message);
       throw error;
     } finally {
       client.release();

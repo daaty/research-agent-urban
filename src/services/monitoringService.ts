@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { createHash } from 'crypto';
 import { scrapeAllRidesDataPersistent } from '../scraper/ridesPersistentScraper';
-import { scrapeAllDriversDataPersistent } from '../scraper/driversPersistentScraper';
+import { scrapeAllDriversDataPersistent, DriversPersistentScraper } from '../scraper/driversPersistentScraper';
 import { DriversDataTransformer } from './driversDataTransformer';
 import { DataCacheManager } from './dataCacheManager'; // ⭐ INTEGRAR SISTEMA DE CACHE SOFISTICADO
 import { DatabaseManager } from './databaseManager'; // ⭐ INTEGRAR SALVAMENTO NO BANCO
@@ -430,6 +430,29 @@ class MonitoringService {
             driversResult.hasChanges || false
           );
           console.log(`✅ Dados de drivers processados com sucesso`);
+
+          // 🎯 PROCESSAMENTO ESPECÍFICO PARA DRIVER PERFORMANCE
+          const performanceData = driversResult.data.find(table => table.name === 'Driver Performance');
+          if (performanceData && !performanceData.isEmpty) {
+            console.log('🏆 Processando dados específicos de Driver Performance...');
+            
+            try {
+              const scraper = new DriversPersistentScraper();
+              const processedPerformance = scraper.processDriverPerformanceData(performanceData);
+              
+              if (processedPerformance.length > 0) {
+                await this.databaseManager.saveDriverPerformanceData(processedPerformance);
+                console.log(`✅ ${processedPerformance.length} registros de Driver Performance salvos`);
+              } else {
+                console.log('⚠️ Nenhum dado de Driver Performance válido para salvar');
+              }
+            } catch (performanceError) {
+              console.error('❌ Erro ao processar Driver Performance:', performanceError);
+            }
+          } else {
+            console.log('ℹ️ Dados de Driver Performance não encontrados nesta execução');
+          }
+
         } catch (driversError) {
           console.error('❌ Erro ao processar dados de drivers:', driversError);
           // Continuar execução mesmo se drivers falharem
