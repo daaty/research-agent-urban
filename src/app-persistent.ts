@@ -1083,14 +1083,54 @@ app.post('/api/hybrid/start', async (req, res) => {
     console.log('🚀 Iniciando Sistema Híbrido via API...');
     await hybridService.start();
     
+    // 🪟 Organizar janelas automaticamente após inicialização
+    console.log('🪟 Organizando janelas dos browsers...');
+    try {
+      // Aguardar browsers abrirem
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      
+      const { WindowPositioner } = await import('./utils/windowPositioner');
+      const positioner = new WindowPositioner();
+      
+      await positioner.arrangeAllWindows();
+      console.log('✅ Janelas organizadas em split-screen');
+    } catch (windowError) {
+      console.error('❌ Erro ao organizar janelas:', windowError);
+    }
+    
     res.json({
       success: true,
-      message: 'Sistema híbrido iniciado com sucesso',
+      message: 'Sistema híbrido iniciado com sucesso (janelas organizadas automaticamente)',
       status: hybridService.getStats(),
       timestamp: new Date().toISOString()
     });
   } catch (error: any) {
     console.error('❌ Erro ao iniciar sistema híbrido:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// 🪟 Organizar Janelas em Split-Screen (Endpoint Manual)
+app.post('/api/windows/arrange', async (req, res) => {
+  try {
+    console.log('🪟 Organizando janelas em split-screen via API...');
+    
+    const { WindowPositioner } = await import('./utils/windowPositioner');
+    const positioner = new WindowPositioner();
+    
+    await positioner.arrangeAllWindows();
+    
+    res.json({
+      success: true,
+      message: 'Janelas organizadas em split-screen com sucesso',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    console.error('❌ Erro ao organizar janelas:', error);
     res.status(500).json({
       success: false,
       error: error.message,
@@ -1394,6 +1434,22 @@ app.listen(PORT, async () => {
           // Executar uma vez imediatamente
           await monitoringService.runOnce();
           logger.success('MONITORING', 'Execução inicial de Rides + Drivers concluída');
+          
+          // 🪟 Organizar janelas automaticamente após abertura dos browsers
+          logger.info('WINDOWS', 'Organizando janelas dos browsers em split-screen...');
+          try {
+            // Aguardar 3 segundos para browsers terminarem inicialização
+            await new Promise(resolve => setTimeout(resolve, 3000));
+            
+            // Importar e usar WindowPositioner
+            const { WindowPositioner } = await import('./utils/windowPositioner');
+            const positioner = new WindowPositioner();
+            
+            await positioner.arrangeAllWindows();
+            logger.success('WINDOWS', 'Janelas organizadas em split-screen automaticamente');
+          } catch (windowError: any) {
+            logger.error('WINDOWS', 'Erro ao organizar janelas', windowError);
+          }
 
           // 🔄 Iniciar monitoramento automático
           monitoringService.startMonitoring();

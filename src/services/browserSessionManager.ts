@@ -4,6 +4,7 @@ import * as path from 'path';
 import { EnvironmentDetector } from '../config/environmentDetector';
 import { Logger } from '../utils/logger';
 import { WindowManager } from './windowManager';
+import WindowPositioner from '../utils/windowPositioner';
 
 export interface SessionData {
   isLoggedIn: boolean;
@@ -103,7 +104,20 @@ export class BrowserSessionManager {
   }
 
   /**
-   * 🆕 Obtém instância nomeada do BrowserSessionManager
+   * � Organiza todas as janelas em split-screen (função estática)
+   */
+  public static async arrangeAllWindows(): Promise<void> {
+    try {
+      console.log('🎯 [BROWSER] Organizando todas as janelas em split-screen...');
+      const positioner = WindowPositioner.getInstance();
+      await positioner.arrangeAllWindows();
+    } catch (error) {
+      console.error('❌ [BROWSER] Erro ao organizar janelas:', error);
+    }
+  }
+
+  /**
+   * �🆕 Obtém instância nomeada do BrowserSessionManager
    */
   public static getInstance(instanceName: string = 'default'): BrowserSessionManager {
     if (!BrowserSessionManager.instances.has(instanceName)) {
@@ -358,11 +372,15 @@ export class BrowserSessionManager {
         // Aguardar janela aparecer e tentar posicionar
         setTimeout(async () => {
           try {
-            await this.windowManager.moveWindowByInstance(this.instanceName);
+            const positioner = WindowPositioner.getInstance();
+            const success = await positioner.moveWindow(this.instanceName, windowPosition);
+            if (!success) {
+              this.logger.warn('BROWSER', `Falha no posicionamento de ${this.instanceName}`);
+            }
           } catch (error) {
             this.logger.warn('BROWSER', `Falha no posicionamento automático: ${error}`);
           }
-        }, 2000);
+        }, 3000); // Aumentar tempo para garantir que janela esteja visível
       }
       
       console.log(`🎯 [${this.instanceName}] Browser inicializado com posicionamento automático`);
