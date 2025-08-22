@@ -28,6 +28,17 @@ export class BrowserSessionManager {
     lockedBy: null,
     lockTimestamp: 0
   };
+
+  // 🔒 PROTEÇÃO CONTRA MÚLTIPLAS INICIALIZAÇÕES
+  private static browserInitLock: { 
+    isInitializing: boolean, 
+    initializingInstance: string | null,
+    initTimestamp: number 
+  } = { 
+    isInitializing: false, 
+    initializingInstance: null,
+    initTimestamp: 0
+  };
   
   private browser: Browser | null = null;
   private context: BrowserContext | null = null;
@@ -186,6 +197,36 @@ export class BrowserSessionManager {
   }
 
   /**
+   * 🔒 SINGLETON: Verificar se outro está inicializando browser
+   */
+  private static isAnotherInstanceInitializing(currentInstance: string): boolean {
+    return BrowserSessionManager.browserInitLock.isInitializing && 
+           BrowserSessionManager.browserInitLock.initializingInstance !== currentInstance;
+  }
+
+  /**
+   * 🔒 SINGLETON: Marcar início de inicialização
+   */
+  private static startBrowserInit(instanceName: string): void {
+    console.log(`🔒 [${instanceName}] Iniciando inicialização do browser (bloqueando outras)`);
+    BrowserSessionManager.browserInitLock.isInitializing = true;
+    BrowserSessionManager.browserInitLock.initializingInstance = instanceName;
+    BrowserSessionManager.browserInitLock.initTimestamp = Date.now();
+  }
+
+  /**
+   * 🔓 SINGLETON: Finalizar inicialização
+   */
+  private static endBrowserInit(instanceName: string): void {
+    if (BrowserSessionManager.browserInitLock.initializingInstance === instanceName) {
+      console.log(`🔓 [${instanceName}] Finalizando inicialização do browser`);
+      BrowserSessionManager.browserInitLock.isInitializing = false;
+      BrowserSessionManager.browserInitLock.initializingInstance = null;
+      BrowserSessionManager.browserInitLock.initTimestamp = 0;
+    }
+  }
+
+  /**
    * 🆕 Lista todas as instâncias ativas
    */
   public static getActiveInstances(): string[] {
@@ -331,7 +372,10 @@ export class BrowserSessionManager {
         
         // Aguardar um pouco para elementos carregarem (apenas se verbose)
         if (verbose) {
-          await this.page.waitForTimeout(3000);
+          // 🔒 VERIFICAÇÃO CRÍTICA: Verificar se page ainda é válida antes de waitForTimeout
+          if (this.page && !this.page.isClosed()) {
+            await this.page.waitForTimeout(3000);
+          }
         }
         
         // Verificações específicas para o site rides.ec2dashboard.com
@@ -416,6 +460,35 @@ export class BrowserSessionManager {
    * Inicializa o navegador com dados persistentes
    */
   public async initializeBrowser(): Promise<void> {
+    // 🔒 VERIFICAR SE OUTRA INSTÂNCIA ESTÁ INICIALIZANDO
+    if (BrowserSessionManager.isAnotherInstanceInitializing(this.instanceName)) {
+      console.log(`⏳ [${this.instanceName}] Aguardando outra instância terminar inicialização...`);
+      
+      // Aguardar até a outra instância terminar
+      while (BrowserSessionManager.isAnotherInstanceInitializing(this.instanceName)) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        console.log(`⏳ [${this.instanceName}] Ainda aguardando inicialização de ${BrowserSessionManager.browserInitLock.initializingInstance}...`);
+        
+        // Verificar se não está preso há muito tempo (mais de 2 minutos)
+        if (Date.now() - BrowserSessionManager.browserInitLock.initTimestamp > 120000) {
+          console.log(`⚠️ [${this.instanceName}] Inicialização presa há muito tempo, forçando liberação...`);
+          BrowserSessionManager.endBrowserInit(BrowserSessionManager.browserInitLock.initializingInstance || '');
+          break;
+        }
+      }
+      
+      // Verificar se agora temos context ativo (foi criado pela outra instância)
+      if (this.context && this.page) {
+        try {
+          await this.page.title();
+          console.log(`✅ [${this.instanceName}] Browser foi inicializado pela outra instância!`);
+          return;
+        } catch (error) {
+          console.log(`⚠️ [${this.instanceName}] Context da outra instância não é válido, continuando...`);
+        }
+      }
+    }
+
     if (this.context && this.page) {
       // Verificar se o context ainda está ativo
       try {
@@ -427,6 +500,9 @@ export class BrowserSessionManager {
         console.log('⚠️ Sessão anterior inválida, reinicializando...');
       }
     }
+
+    // 🔒 MARCAR INÍCIO DA INICIALIZAÇÃO
+    BrowserSessionManager.startBrowserInit(this.instanceName);
 
     this.logger.info('BROWSER', 'Inicializando browser com persistência...');
     
@@ -502,6 +578,9 @@ export class BrowserSessionManager {
     } catch (error) {
       console.error('❌ Erro ao inicializar browser:', error);
       throw error;
+    } finally {
+      // 🔓 SEMPRE liberar inicialização
+      BrowserSessionManager.endBrowserInit(this.instanceName);
     }
   }
   /**
@@ -685,6 +764,12 @@ export class BrowserSessionManager {
     BrowserSessionManager.startLoginProcess(this.instanceName);
     
     try {
+      // 🔒 VERIFICAÇÃO CRÍTICA: Garantir que page não é null
+      if (!this.page) {
+        console.log(`❌ [${this.instanceName}] Página não disponível para aguardar login manual`);
+        return false;
+      }
+
       console.log(`⏳ [${this.instanceName}] Aguardando login manual via VNC...`);
       console.log('💡 Acesse o VNC em http://localhost:6080 para resolver o captcha');
       console.log('🔄 O sistema detectará automaticamente quando você fizer login...');
@@ -695,7 +780,13 @@ export class BrowserSessionManager {
       
       while ((Date.now() - startTime) < maxWaitTime) {
         try {
-          const currentUrl = this.page!.url();
+          // 🔒 VERIFICAÇÃO CRÍTICA: Verificar se page ainda é válida
+          if (!this.page) {
+            console.log(`❌ [${this.instanceName}] Página tornou-se null durante aguardo`);
+            break;
+          }
+
+          const currentUrl = this.page.url();
           console.log(`🔍 [${this.instanceName}] Verificando URL: ${currentUrl.substring(0, 50)}...`);
         
         // Verificar se saiu da página de login OU se está logado
@@ -704,7 +795,14 @@ export class BrowserSessionManager {
         
         if (notInLogin || isLoggedIn) {
           console.log('🔍 Mudança detectada, verificando login completo...');
-          await this.page!.waitForTimeout(3000); // Aguardar carregamento completo
+          
+          // 🔒 VERIFICAÇÃO CRÍTICA: Verificar se page ainda é válida antes de waitForTimeout
+          if (this.page) {
+            await this.page.waitForTimeout(3000); // Aguardar carregamento completo
+          } else {
+            console.log(`⚠️ [${this.instanceName}] Página não disponível para timeout`);
+            await new Promise(resolve => setTimeout(resolve, 3000)); // Fallback com setTimeout
+          }
           
           // Verificação dupla mais robusta
           const finalLoginCheck = await this.isCurrentlyLoggedIn(true);
@@ -905,7 +1003,10 @@ export class BrowserSessionManager {
       });
     }
     
-    await this.page.waitForTimeout(3000);
+    // 🔒 VERIFICAÇÃO CRÍTICA: Verificar se page ainda é válida antes de waitForTimeout
+    if (this.page && !this.page.isClosed()) {
+      await this.page.waitForTimeout(3000);
+    }
   }
 
   /**
@@ -1045,7 +1146,10 @@ export class BrowserSessionManager {
           // Se não está na página de login, pode ter feito login manual
           if (!currentUrl.includes('login') && (currentUrl.includes('dashboard') || currentUrl.includes('app/'))) {
             console.log('🔍 URL sugere login manual, verificando...');
-            await this.page.waitForTimeout(2000); // Aguardar carregamento
+            // 🔒 VERIFICAÇÃO CRÍTICA: Verificar se page ainda é válida antes de waitForTimeout
+            if (this.page && !this.page.isClosed()) {
+              await this.page.waitForTimeout(2000); // Aguardar carregamento
+            }
             currentlyLoggedIn = await this.isCurrentlyLoggedIn(true); // Verificação detalhada
             
             if (currentlyLoggedIn) {
