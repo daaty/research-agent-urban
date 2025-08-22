@@ -69,17 +69,17 @@ export class DriverIdProvider {
       this.cityConfig = {
         name: process.env.CITY_NAME || 'Cidade Padrão',
         apiUrl: process.env.CITY_API_URL || 'https://api.exemplo.com/drivers',
-        enabled: process.env.CITY_ENABLED !== 'false'
+        enabled: false // FORÇADO PARA FALSE - usamos apenas IDs reais da dashboard
       };
 
-      // IDs de fallback do .env
+      // IDs de fallback do .env (não usados mais)
       this.fallbackIds = process.env.FALLBACK_DRIVER_IDS ? 
         process.env.FALLBACK_DRIVER_IDS.split(',').map(id => id.trim()) : 
-        ['DRV001', 'DRV002', 'DRV003', 'DRV004', 'DRV005'];
+        [];
 
-      console.log(`📋 Configuração carregada para cidade: ${this.cityConfig.name}`);
-      console.log(`🌐 API URL: ${this.cityConfig.apiUrl}`);
-      console.log(`📦 Fallback IDs: ${this.fallbackIds.length} disponíveis`);
+      console.log(`📋 DriverIdProvider configurado: ${this.cityConfig.name}`);
+      console.log(`🚫 API e Fallback IDs DESABILITADOS - sistema usa APENAS IDs reais da Active Drivers page`);
+      console.log(`🎯 Para funcionamento correto, certifique-se que extractAllDriverIds() está extraindo IDs reais`);
       
     } catch (error) {
       console.error('❌ Erro ao carregar configuração:', error);
@@ -94,51 +94,21 @@ export class DriverIdProvider {
     this.cityConfig = {
       name: 'Cidade Padrão',
       apiUrl: 'https://api.exemplo.com/drivers',
-      enabled: false
+      enabled: false // DESABILITADO - usar apenas IDs reais
     };
-    this.fallbackIds = ['DRV001', 'DRV002', 'DRV003'];
+    this.fallbackIds = []; // Array vazio - sem fallback IDs
+    console.log('🚫 Configuração padrão: API e Fallback IDs desabilitados');
   }
 
   /**
-   * Busca IDs de motoristas da cidade configurada
+   * Busca IDs de motoristas da cidade configurada - DESABILITADO: usando apenas extrações reais
    */
   public async getAllDriverIds(forceRefresh: boolean = false): Promise<DriverInfo[]> {
-    console.log(`🔍 Buscando IDs de motoristas da cidade: ${this.cityConfig.name}`);
+    console.log(`🔍 DriverIdProvider: Sistema configurado para usar APENAS IDs reais da Active Drivers page`);
+    console.log('⚠️ API/Fallback IDs desabilitados - retornando array vazio para forçar uso de extrações reais');
     
-    if (!this.cityConfig.enabled) {
-      console.log('⚠️ API da cidade desabilitada, usando fallback');
-      return this.getFallbackDrivers();
-    }
-    
-    // Verificar cache se não for refresh forçado
-    if (!forceRefresh && this.isCacheValid()) {
-      console.log(`📋 Usando cache: ${this.cache.length} motoristas`);
-      return this.cache;
-    }
-
-    // Buscar da API
-    try {
-      console.log(`🌐 Buscando IDs da API da cidade`);
-      const drivers = await this.fetchDriversFromAPI();
-      
-      // Atualizar cache
-      this.updateCache(drivers);
-      
-      return drivers;
-      
-    } catch (error) {
-      console.error(`❌ Erro ao buscar da API:`, error);
-      
-      // Usar cache expirado se disponível
-      if (this.cache.length > 0) {
-        console.log(`🔄 Usando cache expirado: ${this.cache.length} motoristas`);
-        return this.cache;
-      }
-      
-      // Último recurso: fallback
-      console.log(`🔄 Usando IDs de fallback`);
-      return this.getFallbackDrivers();
-    }
+    // Retorna array vazio para garantir que apenas IDs reais da dashboard sejam usados
+    return [];
   }
 
   /**
@@ -216,14 +186,11 @@ export class DriverIdProvider {
   }
 
   /**
-   * Retorna drivers de fallback
+   * Retorna drivers de fallback - DESABILITADO: usando apenas IDs reais da Active Drivers page
    */
   private getFallbackDrivers(): DriverInfo[] {
-    return this.fallbackIds.map(id => ({
-      id,
-      city: this.cityConfig.name,
-      priority: 'normal' as const
-    }));
+    console.log('⚠️ Fallback IDs desabilitados - sistema usa apenas IDs reais extraídos da Active Drivers page');
+    return []; // Retorna array vazio para forçar uso apenas de IDs reais
   }
 
   /**
