@@ -54,8 +54,8 @@ export class DriversPersistentScraper {
   private driversPages: Array<{name: string, url: string}>;
 
   constructor() {
-    // 🖥️ Usar instância separada para drivers (lado direito da tela)
-    this.sessionManager = BrowserSessionManager.getInstance('drivers_scraper');
+    // 🖥️ Compartilhar sessão com rides scraper para manter login sincronizado
+    this.sessionManager = BrowserSessionManager.getInstance('rides_scraper');
     this.cacheManager = DriverCacheManager.getInstance();
     
     // Extrair domínio base da URL de login (sem barra final)

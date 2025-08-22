@@ -307,12 +307,12 @@ class MonitoringService {
         await this.databaseManager.initialize();
       }
 
-      // 🚀 EXECUTAR RIDES E DRIVERS EM PARALELO (split-screen independente)
+      // 🚀 EXECUTAR RIDES E DRIVERS EM PARALELO (compartilhando sessão rides_scraper)
       this.logger.info('MONITORING', 'Executando scraping de rides e drivers EM PARALELO...');
       
       const [scrapingResult, driversResult] = await Promise.all([
-        scrapeAllRidesDataPersistent(),    // ✅ LADO ESQUERDO (rides_scraper)
-        scrapeAllDriversDataPersistent()   // ✅ LADO DIREITO (drivers_scraper)
+        scrapeAllRidesDataPersistent(),    // ✅ USA rides_scraper (sessão principal)
+        scrapeAllDriversDataPersistent()   // ✅ USA rides_scraper (mesma sessão)
       ]);
       
       // 1. PROCESSAR RESULTADO DE RIDES
