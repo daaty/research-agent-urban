@@ -170,42 +170,26 @@ export class EnvironmentDetector {
     const baseConfig = {
       headless: config.displayMode === 'headless',
       args: [
+        '--no-sandbox', // ✅ RESTAURADO: Essencial para funcionamento
+        '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--disable-web-security',
         '--disable-background-timer-throttling',
         '--disable-backgrounding-occluded-windows',
         '--disable-renderer-backgrounding',
-        // 🖱️ FLAGS CRÍTICAS PARA MOUSE NO VNC
-        '--enable-usermedia-screen-capturing',
-        '--allow-http-screen-capture',
-        '--use-fake-ui-for-media-stream',
-        '--disable-features=VizDisplayCompositor',
-        '--enable-logging=stderr',
-        '--log-level=0'
-        // ❌ REMOVIDO: --window-size e --window-position (conflitam com split-screen)
+        '--window-size=1600,1200', // ✅ RESTAURADO: Tamanho padrão funcionando
+        '--window-position=0,0' // ✅ RESTAURADO: Posição padrão (será sobrescrita no split-screen)
       ]
     };
 
     if (config.displayMode === 'vnc' || config.displayMode === 'xvfb') {
       baseConfig.args.push(`--display=${config.displayVar}`);
-      // Configurações específicas para VNC com melhor interação
+      // ✅ CONFIGURAÇÕES VNC DO COMMIT FUNCIONANDO
       baseConfig.args.push(
         '--force-device-scale-factor=1',
-        '--start-maximized',
-        '--disable-infobars',
-        '--disable-notifications',
-        '--disable-popup-blocking',
-        '--disable-extensions',
-        '--disable-plugins',
-        '--disable-sync',
-        '--no-default-browser-check',
-        '--no-first-run',
-        '--window-size=800,1170', // 🖥️ TAMANHO DESKTOP EXPLÍCITO
-        // 🖱️ FLAGS ADICIONAIS PARA GARANTIR INTERAÇÃO
-        '--enable-precise-memory-info',
-        '--enable-features=NetworkService',
-        '--force-fieldtrials=PasswordGeneration/Enabled/',
-        '--disable-ipc-flooding-protection'
+        '--disable-features=VizDisplayCompositor',
+        '--disable-gpu-sandbox',
+        '--start-maximized'
       );
     }
 

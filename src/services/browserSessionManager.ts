@@ -308,10 +308,7 @@ export class BrowserSessionManager {
       this.context = await chromium.launchPersistentContext(this.userDataDir, {
         headless: playwrightConfig.headless,
         args: splitScreenArgs, // 🎯 ARGS COM POSICIONAMENTO SIMPLES
-        viewport: { width: windowPosition.width, height: windowPosition.height }, // 🔧 VIEWPORT AJUSTADO PARA SPLIT-SCREEN
-        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', // 🖥️ USER-AGENT DESKTOP
-        isMobile: false, // 🖥️ FORÇAR DESKTOP
-        hasTouch: false, // 🖥️ SEM TOUCH
+        viewport: { width: windowPosition.width, height: windowPosition.height } // 🔧 VIEWPORT AJUSTADO PARA SPLIT-SCREEN
       });
 
       // Obter referência do browser do context
