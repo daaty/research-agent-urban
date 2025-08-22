@@ -633,6 +633,85 @@ export class RidesDashboardHybridScraper {
   }
 
   /**
+   * 🔍 VALIDAÇÃO CRUZADA: Busca dados do motorista na tabela Active Drivers para validação
+   */
+  private async getDriverDataFromTable(driverId: string): Promise<{ id: string; name: string; status: string } | null> {
+    if (!this.page) return null;
+
+    try {
+      console.log(`🔍 Buscando dados do driver ${driverId} na tabela Active Drivers para validação...`);
+      
+      // Navegar para Active Drivers se necessário
+      const currentUrl = this.page.url();
+      if (!currentUrl.includes('active-drivers')) {
+        await this.navigateToActiveDrivers();
+        await this.smartWait('pageLoad');
+      }
+
+      // Clicar em "See All" se necessário
+      const seeAllButton = await this.page.$('button:has-text("See All")');
+      if (seeAllButton) {
+        await seeAllButton.click();
+        await this.smartWait('pageLoad');
+      }
+
+      // Extrair linha específica do motorista da tabela
+      const driverRowData = await this.page.evaluate((targetDriverId) => {
+        const table = document.querySelector('#activeDriver');
+        if (!table) return null;
+
+        const rows = table.querySelectorAll('tbody tr');
+        for (const row of rows) {
+          const cells = row.querySelectorAll('td');
+          if (cells.length === 0) continue;
+
+          const rowDriverId = cells[0]?.textContent?.trim();
+          if (rowDriverId === targetDriverId) {
+            return {
+              id: cells[0]?.textContent?.trim() || '',
+              name: cells[1]?.textContent?.trim() || '',
+              franchise: cells[2]?.textContent?.trim() || '',
+              city: cells[3]?.textContent?.trim() || '',
+              mobile: cells[4]?.textContent?.trim() || '',
+              email: cells[5]?.textContent?.trim() || '',
+              status: cells[6]?.textContent?.trim() || '',
+              registeredOn: cells[7]?.textContent?.trim() || '',
+              vehicleNumber: cells[8]?.textContent?.trim() || '',
+              rides7Days: cells[9]?.textContent?.trim() || '',
+              rides30Days: cells[10]?.textContent?.trim() || '',
+              lastLogin: cells[11]?.textContent?.trim() || '',
+              lastRide: cells[12]?.textContent?.trim() || '',
+              driverRatings: cells[13]?.textContent?.trim() || '',
+              otp: cells[14]?.textContent?.trim() || ''
+            };
+          }
+        }
+        return null;
+      }, driverId);
+
+      if (driverRowData) {
+        console.log(`✅ Dados do driver ${driverId} encontrados na tabela:`, {
+          id: driverRowData.id,
+          name: driverRowData.name,
+          status: driverRowData.status
+        });
+        
+        return {
+          id: driverRowData.id,
+          name: driverRowData.name,
+          status: driverRowData.status
+        };
+      } else {
+        console.log(`⚠️ Driver ${driverId} não encontrado na tabela Active Drivers`);
+        return null;
+      }
+    } catch (error: any) {
+      console.error(`❌ Erro ao buscar dados na tabela:`, error.message);
+      return null;
+    }
+  }
+
+  /**
    * Extrai dados pessoais de um motorista específico
    */
   async extractDriverData(driverId: string): Promise<any> {
@@ -839,6 +918,8 @@ export class RidesDashboardHybridScraper {
 
       // 🔍 VALIDAÇÃO CRÍTICA: Verificar se o ID extraído corresponde ao ID solicitado
       const extractedDriverId = driverData?.personal_data?.driver_id;
+      const extractedDriverName = driverData?.personal_data?.driver_name;
+      
       if (extractedDriverId && extractedDriverId !== driverId) {
         console.error(`❌ ERRO CRÍTICO: Solicitado driver ${driverId}, mas extraiu dados do driver ${extractedDriverId}`);
         console.error(`❌ DADOS INCORRETOS DETECTADOS - ABORTANDO SALVAMENTO`);
@@ -850,7 +931,58 @@ export class RidesDashboardHybridScraper {
         throw new Error(`Driver ID não encontrado nos dados extraídos`);
       }
 
-      console.log(`✅ VALIDAÇÃO OK: Dados extraídos correspondem ao driver ${driverId}`);
+      // 🔍 VALIDAÇÃO CRUZADA: Comparar com dados da tabela Active Drivers
+      console.log(`🔍 FASE 8: Validação cruzada com tabela Active Drivers...`);
+      try {
+        const tableDriverData = await this.getDriverDataFromTable(driverId);
+        
+        if (tableDriverData) {
+          console.log(`📋 Dados da tabela - ID: ${tableDriverData.id}, Nome: ${tableDriverData.name}`);
+          console.log(`📊 Dados extraídos - ID: ${extractedDriverId}, Nome: ${extractedDriverName}`);
+          
+          // Validar ID
+          if (tableDriverData.id !== extractedDriverId) {
+            console.error(`❌ CONFLITO DE ID: Tabela=${tableDriverData.id} vs Extraído=${extractedDriverId}`);
+            throw new Error(`Conflito de dados: ID da tabela (${tableDriverData.id}) diferente do extraído (${extractedDriverId})`);
+          }
+          
+          // Validar Nome (comparação mais flexível para nomes)
+          if (extractedDriverName && tableDriverData.name) {
+            const tableName = tableDriverData.name.toLowerCase().trim();
+            const extractedName = extractedDriverName.toLowerCase().trim();
+            
+            // Verificar se os nomes são similares (considerando possíveis diferenças de formatação)
+            const nameMatch = tableName === extractedName || 
+                            tableName.includes(extractedName) || 
+                            extractedName.includes(tableName);
+                            
+            if (!nameMatch) {
+              console.error(`❌ CONFLITO DE NOME: Tabela="${tableDriverData.name}" vs Extraído="${extractedDriverName}"`);
+              console.error(`❌ Os nomes não correspondem - possível dados de outro motorista`);
+              throw new Error(`Conflito de dados: Nome da tabela (${tableDriverData.name}) diferente do extraído (${extractedDriverName})`);
+            }
+            
+            console.log(`✅ NOME VALIDADO: "${tableDriverData.name}" ≈ "${extractedDriverName}"`);
+          } else {
+            console.log(`⚠️ Nome não disponível para comparação (tabela: ${tableDriverData.name}, extraído: ${extractedDriverName})`);
+          }
+          
+          console.log(`✅ VALIDAÇÃO CRUZADA COMPLETA: Dados consistentes entre tabela e extração individual`);
+          
+        } else {
+          console.log(`⚠️ Driver ${driverId} não encontrado na tabela Active Drivers - continuando com validação básica`);
+        }
+      } catch (tableError: any) {
+        if (tableError.message.includes('Conflito de dados')) {
+          // Se é erro de conflito de dados, rejeitar
+          throw tableError;
+        } else {
+          // Se é erro técnico na busca da tabela, apenas alertar e continuar
+          console.warn(`⚠️ Erro na validação cruzada (continuando): ${tableError.message}`);
+        }
+      }
+
+      console.log(`✅ VALIDAÇÃO COMPLETA: Todos os dados correspondem ao driver ${driverId}`);
       
       const extractedData = {
         driverId,
