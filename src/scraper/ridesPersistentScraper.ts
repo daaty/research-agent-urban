@@ -30,7 +30,8 @@ export class RidesPersistentScraper {
   private ridesPages: Array<{name: string, url: string}>;
 
   constructor() {
-    this.sessionManager = BrowserSessionManager.getInstance();
+    // 🖥️ Usar instância específica para rides (lado esquerdo do split-screen)
+    this.sessionManager = BrowserSessionManager.getInstance('rides_scraper');
     this.cacheManager = DataCacheManager.getInstance();
     
     // Extrair domínio base da URL de login

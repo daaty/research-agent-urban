@@ -33,6 +33,21 @@ export class BrowserSessionManager {
   private email: string = process.env.RIDES_USERNAME || '';
   private password: string = process.env.RIDES_PASSWORD || '';
   
+  /**
+   * 🖥️ Obter posição da janela baseada na instância para VNC split-screen
+   */
+  private getWindowPosition(instanceName: string): { x: number, y: number, width: number, height: number } {
+    const positions: { [key: string]: { x: number, y: number, width: number, height: number } } = {
+      'default': { x: 0, y: 0, width: 800, height: 1170 },        // Lado esquerdo
+      'rides_scraper': { x: 0, y: 0, width: 800, height: 1170 },  // Lado esquerdo  
+      'drivers_scraper': { x: 800, y: 0, width: 800, height: 1170 }, // Lado direito
+      'hybrid_operation': { x: 0, y: 0, width: 800, height: 1170 },   // Lado esquerdo
+      'hybrid_scraper': { x: 800, y: 0, width: 800, height: 1170 }    // Lado direito
+    };
+    
+    return positions[instanceName] || positions['default'];
+  }
+  
   private constructor(instanceName: string = 'default') {
     this.instanceName = instanceName;
     this.isHeadless = process.env.HEADLESS_MODE === 'true';
@@ -276,10 +291,20 @@ export class BrowserSessionManager {
       
       console.log(`🖥️ Configuração Playwright: headless=${playwrightConfig.headless}`);
       
+      // 🖥️ Configurações específicas para VNC com split-screen
+      const windowPosition = this.getWindowPosition(this.instanceName);
+      const browserArgs = [
+        ...playwrightConfig.args,
+        `--window-position=${windowPosition.x},${windowPosition.y}`,
+        `--window-size=${windowPosition.width},${windowPosition.height}`
+      ];
+      
+      console.log(`🎯 [${this.instanceName}] Posição: (${windowPosition.x},${windowPosition.y}) Size: ${windowPosition.width}x${windowPosition.height}`);
+      
       this.context = await chromium.launchPersistentContext(this.userDataDir, {
         headless: playwrightConfig.headless,
-        args: playwrightConfig.args,
-        viewport: { width: 1600, height: 1200 }
+        args: browserArgs,
+        viewport: { width: windowPosition.width, height: windowPosition.height }
       });
 
       // Obter referência do browser do context
