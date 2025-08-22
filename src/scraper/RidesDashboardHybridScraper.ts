@@ -12,12 +12,13 @@ export class RidesDashboardHybridScraper {
   private page: Page | null = null;
   private isLoggedIn: boolean = false;
   private currentCity: string = '';
+  private isExtractingIds: boolean = false; // Flag para evitar extrações simultâneas
 
   // URLs hardcoded conforme solicitado
   private readonly DASHBOARD_URL = 'https://rides.ec2dashboard.com/#/app/dashboard';
   private readonly ACTIVE_DRIVERS_URL = 'https://rides.ec2dashboard.com/#/app/active-drivers';
 
-  constructor(instanceName: string = 'hybrid_scraper') {
+  constructor(instanceName: string = 'rides_scraper') {
     this.browserManager = BrowserSessionManager.getInstance(instanceName);
     this.dataTransformer = DataTransformer.getInstance();
   }
@@ -357,6 +358,17 @@ export class RidesDashboardHybridScraper {
   async extractAllDriverIds(): Promise<string[]> {
     if (!this.page) throw new Error('Página não disponível');
 
+    // Verificar se já está extraindo para evitar chamadas simultâneas
+    if (this.isExtractingIds) {
+      console.log('⚠️ Extração de IDs já em andamento, aguardando...');
+      // Aguardar um pouco e tentar novamente
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      if (this.isExtractingIds) {
+        throw new Error('Extração de IDs já em andamento por muito tempo');
+      }
+    }
+
+    this.isExtractingIds = true;
     console.log('🔍 Extraindo IDs dos motoristas da página Active Drivers...');
 
     try {
@@ -376,9 +388,14 @@ export class RidesDashboardHybridScraper {
         console.log('⏳ Aguardando tabela de motoristas carregar...');
         await this.page.waitForTimeout(3000);
         
-        // Aguardar tabela aparecer
-        await this.page.waitForSelector('#activeDriver tbody tr', { timeout: 10000 });
-        console.log('✅ Tabela de motoristas carregada');
+        // Aguardar tabela aparecer com timeout maior e melhor error handling
+        try {
+          await this.page.waitForSelector('#activeDriver tbody tr', { timeout: 20000 });
+          console.log('✅ Tabela de motoristas carregada');
+        } catch (waitError) {
+          console.log('⚠️ Timeout aguardando tabela, tentando sem wait...');
+          // Continuar mesmo sem wait - talvez a tabela já esteja lá
+        }
       } else {
         console.log('⚠️ Botão "See All" não encontrado, tentando extrair IDs diretamente...');
       }
@@ -421,6 +438,8 @@ export class RidesDashboardHybridScraper {
         console.error('❌ Abordagem alternativa também falhou:', altError.message);
         return [];
       }
+    } finally {
+      this.isExtractingIds = false; // Limpar flag sempre
     }
   }
 

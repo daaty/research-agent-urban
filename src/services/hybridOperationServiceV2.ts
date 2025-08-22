@@ -52,7 +52,7 @@ export class HybridOperationService {
     this.rechargeQueue = RechargeQueue.getInstance();
     this.stateManager = OperationStateManager.getInstance();
     this.driverIdProvider = DriverIdProvider.getInstance();
-    this.dashboardScraper = new RidesDashboardHybridScraper('hybrid_scraper');
+    this.dashboardScraper = new RidesDashboardHybridScraper('rides_scraper');
     
     this.stats = {
       totalExtracted: 0,
