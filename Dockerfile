@@ -14,6 +14,7 @@ ENV DISPLAY=:99
 ENV NODE_ENV=production
 ENV PLAYWRIGHT_BROWSERS_PATH=/app/browsers
 ENV DEBIAN_FRONTEND=noninteractive
+ENV VNC_RESOLUTION=1600x1200
 
 # Instalar dependências do sistema incluindo VNC e AI support
 RUN apt-get update && apt-get install -y \

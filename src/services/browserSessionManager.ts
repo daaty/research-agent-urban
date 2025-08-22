@@ -279,7 +279,7 @@ export class BrowserSessionManager {
       this.context = await chromium.launchPersistentContext(this.userDataDir, {
         headless: playwrightConfig.headless,
         args: playwrightConfig.args,
-        viewport: { width: 1366, height: 768 }
+        viewport: { width: 1600, height: 1200 }
       });
 
       // Obter referência do browser do context

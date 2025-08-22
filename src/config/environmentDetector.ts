@@ -151,7 +151,7 @@ export class EnvironmentDetector {
       case 'xvfb':
         return [
           `DISPLAY=${config.displayVar}`,
-          'xvfb-run -a -s "-screen 0 1920x1080x24"',
+          'xvfb-run -a -s "-screen 0 1600x1200x24"',
           'npm run prod'
         ];
         
@@ -176,12 +176,21 @@ export class EnvironmentDetector {
         '--disable-web-security',
         '--disable-background-timer-throttling',
         '--disable-backgrounding-occluded-windows',
-        '--disable-renderer-backgrounding'
+        '--disable-renderer-backgrounding',
+        '--window-size=1600,1200',
+        '--window-position=0,0'
       ]
     };
 
     if (config.displayMode === 'vnc' || config.displayMode === 'xvfb') {
       baseConfig.args.push(`--display=${config.displayVar}`);
+      // Configurações específicas para VNC
+      baseConfig.args.push(
+        '--force-device-scale-factor=1',
+        '--disable-features=VizDisplayCompositor',
+        '--disable-gpu-sandbox',
+        '--start-maximized'
+      );
     }
 
     if (config.isDocker) {

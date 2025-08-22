@@ -44,7 +44,7 @@ export class AIBrowserManager {
     this.page = page;
 
     // Configurações para melhor análise de AI
-    await this.page.setViewportSize({ width: 1920, height: 1080 });
+    await this.page.setViewportSize({ width: 1600, height: 1200 });
     
     // Interceptar requests para otimizar performance
     await this.page.route('**/*', (route) => {
