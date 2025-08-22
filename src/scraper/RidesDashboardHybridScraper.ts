@@ -758,8 +758,20 @@ export class RidesDashboardHybridScraper {
       console.log('⏳ Aguardando 2 segundos finais para estabilização completa...');
       await this.page.waitForTimeout(2000);
 
-      // ===== FASE 7: EXTRAIR DADOS DO MOTORISTA =====
-      console.log(`📊 FASE 7: Extraindo dados do motorista ${driverId}...`);
+      // ===== FASE 7: AGUARDAR GLOBAL LOADER E EXTRAIR DADOS =====
+      console.log(`📊 FASE 7: Aguardando global loader e extraindo dados do motorista ${driverId}...`);
+      
+      // Aguarda global loader desaparecer
+      try {
+        await this.page.waitForSelector('#global_loader', { state: 'hidden', timeout: 10000 });
+      } catch (error) {
+        console.log('⚠️ Global loader timeout - continuando...');
+      }
+      
+      // Aguarda os dados carregarem com delay humano
+      await this.page.waitForTimeout(humanDelayGenerator.generateDelay(3000, 1.0));
+      
+      // Extrai dados da página
       const driverData = await this.extractDriverDetails();
       
       console.log(`✅ EXTRAÇÃO CONCLUÍDA para ${driverId}`);
@@ -823,8 +835,16 @@ export class RidesDashboardHybridScraper {
     try {
       console.log('📊 === INICIANDO EXTRAÇÃO DE DETALHES ===');
       
-      // ===== VALIDAÇÃO 1: VERIFICAR SE DADOS ESTÃO CARREGADOS =====
-      console.log('🔍 VALIDAÇÃO 1: Verificando se dados do motorista estão carregados...');
+      // ===== VALIDAÇÃO 1: AGUARDAR GLOBAL LOADER =====
+      console.log('🔍 VALIDAÇÃO 1: Aguardando global loader desaparecer...');
+      try {
+        await this.page.waitForSelector('#global_loader', { state: 'hidden', timeout: 10000 });
+      } catch (error) {
+        console.log('⚠️ Global loader timeout - continuando...');
+      }
+      
+      // ===== VALIDAÇÃO 2: VERIFICAR SE DADOS ESTÃO CARREGADOS =====
+      console.log('🔍 VALIDAÇÃO 2: Verificando se dados do motorista estão carregados...');
       
       const hasDataLoaded = await this.page.evaluate(() => {
         // Contar elementos que indicam dados carregados
@@ -855,12 +875,12 @@ export class RidesDashboardHybridScraper {
       
       console.log('✅ Dados do motorista parecem estar carregados');
       
-      // ===== VALIDAÇÃO 2: AGUARDAR ESTABILIZAÇÃO (DELAY HUMANO) =====
-      console.log('⏳ VALIDAÇÃO 2: Aguardando estabilização dos dados (delay humano de 3 segundos)...');
+      // ===== VALIDAÇÃO 3: AGUARDAR ESTABILIZAÇÃO (DELAY HUMANO) =====
+      console.log('⏳ VALIDAÇÃO 3: Aguardando estabilização dos dados (delay humano)...');
       await this.page.waitForTimeout(3000);
       
-      // ===== EXTRAÇÃO 3: EXTRAIR DADOS COM VALIDAÇÃO =====
-      console.log('📋 EXTRAÇÃO 3: Iniciando extração estruturada dos dados...');
+      // ===== EXTRAÇÃO 4: EXTRAIR DADOS COM VALIDAÇÃO =====
+      console.log('📋 EXTRAÇÃO 4: Iniciando extração estruturada dos dados...');
 
       // Extrair dados pessoais e informações completas
       const driverData = await this.page.evaluate((currentCity) => {
@@ -993,6 +1013,16 @@ export class RidesDashboardHybridScraper {
                 const allElements = Array.from(document.querySelectorAll('*'));
                 const labelIndex = allElements.indexOf(label);
                 
+                // Lista de labels conhecidos para evitar confusão
+                const knownLabels = [
+                  'Driver ID', 'Driver Name', 'Status', 'Phone No', 'City', 'Joining Date', 'DOB',
+                  'Device', 'OS Version', 'App Version', 'Vehicle No', 'Vehicle Type', 'Last Login At',
+                  'Last Ride On', 'Ongoing Ride', 'Hold Payment', 'Today Completed Rides',
+                  'Today First Login At', 'Ride Avg 7 Days', 'Ref Avg 7 Days', 'Last Driver Ref On',
+                  'Credit/Debit', 'Bank Account No', 'Last Latitude Longitude', 'Last Location Updated At',
+                  'Faulty Rides Percentage (Last 30 days)', 'Active', 'Deactivated Vehicle', 'User Referal Code', 'Blocked'
+                ];
+                
                 for (let i = labelIndex + 1; i < Math.min(labelIndex + 15, allElements.length); i++) {
                   const elem = allElements[i];
                   const text = elem.textContent?.trim();
@@ -1003,6 +1033,7 @@ export class RidesDashboardHybridScraper {
                       text.length > 0 &&
                       text.length < 200 &&
                       !text.includes(labelText) &&
+                      !knownLabels.includes(text) && // CRÍTICO: Evitar capturar outros labels
                       elem.children.length === 0) { // Elemento folha
                     
                     console.log(`✅ VALOR POR PROXIMIDADE: "${text}"`);
@@ -1037,10 +1068,20 @@ export class RidesDashboardHybridScraper {
             
             if (labelText === 'Driver Name') {
               // Buscar em divs com class ng-binding que contenham nomes
-              const nameElements = document.querySelectorAll('.col-lg-5.ng-binding');
+              const nameElements = document.querySelectorAll('.col-lg-5.ng-binding, .ng-binding');
               for (const elem of nameElements) {
                 const text = elem.textContent?.trim();
-                if (text && text.match(/^[A-Za-z\s]{3,50}$/) && !text.match(/^\d/) && !text.includes('+') && !text.includes('@')) {
+                // Validar que é um nome válido e não um label
+                if (text && 
+                    text.match(/^[A-Za-zÀ-ÿ\s]{3,50}$/) && 
+                    !text.match(/^\d/) && 
+                    !text.includes('+') && 
+                    !text.includes('@') &&
+                    text !== 'Active' && // Evitar label específico
+                    text !== 'Driver Name' && // Evitar o próprio label
+                    !text.includes('Date') &&
+                    !text.includes('Version') &&
+                    !text.includes('Code')) {
                   console.log(`✅ Driver Name encontrado: "${text}"`);
                   return text;
                 }
@@ -1052,7 +1093,10 @@ export class RidesDashboardHybridScraper {
               const phoneElements = document.querySelectorAll('.ng-binding');
               for (const elem of phoneElements) {
                 const text = elem.textContent?.trim();
-                if (text && text.match(/^\+\d{13}$/)) {
+                if (text && 
+                    text.match(/^\+\d{13}$/) &&
+                    text !== 'Phone No' && // Evitar o próprio label
+                    text !== 'City') { // Evitar confusão com label City
                   console.log(`✅ Phone encontrado: "${text}"`);
                   return text;
                 }
@@ -1092,26 +1136,48 @@ export class RidesDashboardHybridScraper {
             return null;
           }
         }
+        
+        // Função auxiliar para validar que o valor extraído não é um label
+        function validateExtractedValue(value: string | null, expectedLabel: string): string | null {
+          if (!value) return null;
+          
+          const knownLabels = [
+            'Driver ID', 'Driver Name', 'Status', 'Phone No', 'City', 'Joining Date', 'DOB',
+            'Device', 'OS Version', 'App Version', 'Vehicle No', 'Vehicle Type', 'Last Login At',
+            'Last Ride On', 'Ongoing Ride', 'Hold Payment', 'Today Completed Rides',
+            'Today First Login At', 'Ride Avg 7 Days', 'Ref Avg 7 Days', 'Last Driver Ref On',
+            'Credit/Debit', 'Bank Account No', 'Last Latitude Longitude', 'Last Location Updated At',
+            'Faulty Rides Percentage (Last 30 days)', 'Active', 'Deactivated Vehicle', 'User Referal Code', 'Blocked'
+          ];
+          
+          // Se o valor é um label conhecido, retornar null
+          if (knownLabels.includes(value)) {
+            console.log(`⚠️ Valor "${value}" é um label conhecido para campo "${expectedLabel}", ignorando`);
+            return null;
+          }
+          
+          return value;
+        }
 
         // ===== EXTRAIR DADOS PESSOAIS =====
         console.log('📋 Extraindo dados pessoais...');
         
         try {
-          // Dados básicos (coluna 1)
-          result.personal_data.driver_id = extractFieldByLabel('Driver ID');
-          result.personal_data.driver_name = extractFieldByLabel('Driver Name');
-          result.personal_data.status = extractFieldByLabel('Status');
-          result.personal_data.phone_no = extractFieldByLabel('Phone No');
+          // Dados básicos (coluna 1) com validação anti-label
+          result.personal_data.driver_id = validateExtractedValue(extractFieldByLabel('Driver ID'), 'Driver ID');
+          result.personal_data.driver_name = validateExtractedValue(extractFieldByLabel('Driver Name'), 'Driver Name');
+          result.personal_data.status = validateExtractedValue(extractFieldByLabel('Status'), 'Status');
+          result.personal_data.phone_no = validateExtractedValue(extractFieldByLabel('Phone No'), 'Phone No');
           
           // Para a cidade, usar a cidade já identificada no início
           result.personal_data.city = currentCity; // Usar Matupá que foi identificado no início
           
-          result.personal_data.joining_date = extractFieldByLabel('Joining Date');
-          result.personal_data.dob = extractFieldByLabel('DOB');
-          result.personal_data.vehicle_no = extractFieldByLabel('Vehicle No');
-          result.personal_data.app_version = extractFieldByLabel('App Version');
-          result.personal_data.device = extractFieldByLabel('Device');
-          result.personal_data.os_version = extractFieldByLabel('OS version');
+          result.personal_data.joining_date = validateExtractedValue(extractFieldByLabel('Joining Date'), 'Joining Date');
+          result.personal_data.dob = validateExtractedValue(extractFieldByLabel('DOB'), 'DOB');
+          result.personal_data.vehicle_no = validateExtractedValue(extractFieldByLabel('Vehicle No'), 'Vehicle No');
+          result.personal_data.app_version = validateExtractedValue(extractFieldByLabel('App Version'), 'App Version');
+          result.personal_data.device = validateExtractedValue(extractFieldByLabel('Device'), 'Device');
+          result.personal_data.os_version = validateExtractedValue(extractFieldByLabel('OS version'), 'OS version');
 
           // Dados financeiros e de corridas (coluna 2)
           result.personal_data.today_completed_rides = extractFieldByLabel("Today's Completed Rides");
