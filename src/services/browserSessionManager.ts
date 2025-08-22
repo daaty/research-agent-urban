@@ -13,6 +13,11 @@ export interface SessionData {
 
 export class BrowserSessionManager {
   private static instances: Map<string, BrowserSessionManager> = new Map();
+  private static loginCoordination: { isLoginInProgress: boolean, activeInstance: string | null } = { 
+    isLoginInProgress: false, 
+    activeInstance: null 
+  }; // 🔄 COORDENAÇÃO DE LOGIN
+  
   private browser: Browser | null = null;
   private context: BrowserContext | null = null;
   private page: Page | null = null;
@@ -96,6 +101,32 @@ export class BrowserSessionManager {
       BrowserSessionManager.instances.set(instanceName, new BrowserSessionManager(instanceName));
     }
     return BrowserSessionManager.instances.get(instanceName)!;
+  }
+
+  /**
+   * 🔄 COORDENAÇÃO DE LOGIN - Verificar se outro está fazendo login
+   */
+  private static isAnotherInstanceLoggingIn(currentInstance: string): boolean {
+    return BrowserSessionManager.loginCoordination.isLoginInProgress && 
+           BrowserSessionManager.loginCoordination.activeInstance !== currentInstance;
+  }
+
+  /**
+   * 🔄 COORDENAÇÃO DE LOGIN - Marcar início de login
+   */
+  private static startLoginProcess(instanceName: string): void {
+    console.log(`🔒 [${instanceName}] Iniciando processo de login (bloqueando outras instâncias)`);
+    BrowserSessionManager.loginCoordination.isLoginInProgress = true;
+    BrowserSessionManager.loginCoordination.activeInstance = instanceName;
+  }
+
+  /**
+   * 🔄 COORDENAÇÃO DE LOGIN - Marcar fim de login
+   */
+  private static endLoginProcess(instanceName: string): void {
+    console.log(`🔓 [${instanceName}] Finalizando processo de login (liberando outras instâncias)`);
+    BrowserSessionManager.loginCoordination.isLoginInProgress = false;
+    BrowserSessionManager.loginCoordination.activeInstance = null;
   }
 
   /**
@@ -371,7 +402,27 @@ export class BrowserSessionManager {
       await this.initializeBrowser();
     }
 
-    console.log('🔐 Verificando status de login...');
+    // 🔄 VERIFICAR SE OUTRA INSTÂNCIA ESTÁ FAZENDO LOGIN
+    if (BrowserSessionManager.isAnotherInstanceLoggingIn(this.instanceName)) {
+      console.log(`⏳ [${this.instanceName}] Aguardando outra instância terminar login...`);
+      
+      // Aguardar até a outra instância terminar
+      while (BrowserSessionManager.isAnotherInstanceLoggingIn(this.instanceName)) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        console.log(`⏳ [${this.instanceName}] Ainda aguardando login de ${BrowserSessionManager.loginCoordination.activeInstance}...`);
+      }
+      
+      console.log(`✅ [${this.instanceName}] Outra instância terminou login, verificando status...`);
+      
+      // Verificar se agora está logado (pode ter sido resolvido pela outra instância)
+      const isLoggedAfterWait = await this.isCurrentlyLoggedIn();
+      if (isLoggedAfterWait) {
+        console.log(`✅ [${this.instanceName}] Login foi resolvido pela outra instância!`);
+        return true;
+      }
+    }
+
+    console.log(`🔐 [${this.instanceName}] Verificando status de login...`);
 
     // Primeiro, verificar se há sessão válida em cache
     if (this.isSessionValid()) {
@@ -514,18 +565,22 @@ export class BrowserSessionManager {
    * Monitora mudança de URL para detectar quando usuário completa login via VNC
    */
   public async waitForManualLogin(timeoutMs: number = 300000): Promise<boolean> {
-    console.log('⏳ Aguardando login manual via VNC...');
-    console.log('💡 Acesse o VNC em http://localhost:6080 para resolver o captcha');
-    console.log('🔄 O sistema detectará automaticamente quando você fizer login...');
+    // 🔒 MARCAR INÍCIO DE LOGIN PARA COORDENAÇÃO
+    BrowserSessionManager.startLoginProcess(this.instanceName);
     
-    const maxWaitTime = 5 * 60 * 1000; // 5 minutos
-    const checkInterval = 3000; // 3 segundos (mais rápido)
-    const startTime = Date.now();
-    
-    while ((Date.now() - startTime) < maxWaitTime) {
-      try {
-        const currentUrl = this.page!.url();
-        console.log(`🔍 Verificando URL: ${currentUrl.substring(0, 50)}...`);
+    try {
+      console.log(`⏳ [${this.instanceName}] Aguardando login manual via VNC...`);
+      console.log('💡 Acesse o VNC em http://localhost:6080 para resolver o captcha');
+      console.log('🔄 O sistema detectará automaticamente quando você fizer login...');
+      
+      const maxWaitTime = 5 * 60 * 1000; // 5 minutos
+      const checkInterval = 3000; // 3 segundos (mais rápido)
+      const startTime = Date.now();
+      
+      while ((Date.now() - startTime) < maxWaitTime) {
+        try {
+          const currentUrl = this.page!.url();
+          console.log(`🔍 [${this.instanceName}] Verificando URL: ${currentUrl.substring(0, 50)}...`);
         
         // Verificar se saiu da página de login OU se está logado
         const notInLogin = !currentUrl.includes('login');
@@ -559,7 +614,7 @@ export class BrowserSessionManager {
             this.lastLoginCheck = 0;
             this.lastLoginStatus = true;
             
-            console.log('✅ Sessão atualizada após login manual');
+            console.log(`✅ [${this.instanceName}] Sessão atualizada após login manual`);
             return true;
           } else {
             console.log('⚠️ URL mudou mas login não confirmado, continuando...');
@@ -576,8 +631,13 @@ export class BrowserSessionManager {
       }
     }
     
-    console.log('⏰ Timeout aguardando login manual');
+    console.log(`⏰ [${this.instanceName}] Timeout aguardando login manual`);
     return false;
+    
+    } finally {
+      // 🔓 FINALIZAR PROCESSO DE LOGIN PARA COORDENAÇÃO
+      BrowserSessionManager.endLoginProcess(this.instanceName);
+    }
   }
 
   /**
