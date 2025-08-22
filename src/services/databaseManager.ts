@@ -140,9 +140,7 @@ export class DatabaseManager {
       );
     `;
 
-    // Recriar tabela de drivers com campos corrigidos
-    const dropDriversTable = `DROP TABLE IF EXISTS drivers_data CASCADE;`;
-    
+    // 🔧 CORREÇÃO: Não dropar tabela, apenas criar se não existir
     const createDriversDataTable = `
       CREATE TABLE IF NOT EXISTS drivers_data (
         id SERIAL PRIMARY KEY,
@@ -215,17 +213,21 @@ export class DatabaseManager {
 
     try {
       await this.pool.query(createRidesDataTable);
-      // Recriar tabela de drivers para garantir campos corretos
-      await this.pool.query(dropDriversTable);
+      // 🔧 CORREÇÃO: Criar tabela apenas se não existir (sem drop)
       await this.pool.query(createDriversDataTable);
       await this.pool.query(createScrapingSessionsTable);
       await this.pool.query(createDriverPersonalDetailsTable);
       await this.pool.query(createIndexes);
       await this.pool.query(createDriverPersonalIndexes);
-      console.log('✅ Tabelas de rides, drivers (recriada), dados pessoais e índices criados/verificados');
+      console.log('✅ Tabelas de rides, drivers, dados pessoais e índices criados/verificados');
     } catch (error: any) {
-      console.error('❌ Erro ao criar tabelas:', error.message);
-      throw error;
+      // 🔧 IGNORAR erros de constraint duplicada de sequências
+      if (error.code === '23505' && error.detail?.includes('already exists')) {
+        console.log('⚠️ Algumas estruturas já existem (normal) - continuando...');
+      } else {
+        console.error('❌ Erro ao criar tabelas:', error.message);
+        throw error;
+      }
     }
   }
 

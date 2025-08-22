@@ -73,6 +73,7 @@ class DatabaseManager {
      */
     createTablesIfNotExist() {
         return __awaiter(this, void 0, void 0, function* () {
+            var _a;
             if (!this.pool)
                 throw new Error('Pool não inicializado');
             const createRidesDataTable = `
@@ -87,8 +88,7 @@ class DatabaseManager {
         CONSTRAINT unique_ride_hash UNIQUE (table_name, data_hash)
       );
     `;
-            // Recriar tabela de drivers com campos corrigidos
-            const dropDriversTable = `DROP TABLE IF EXISTS drivers_data CASCADE;`;
+            // 🔧 CORREÇÃO: Não dropar tabela, apenas criar se não existir
             const createDriversDataTable = `
       CREATE TABLE IF NOT EXISTS drivers_data (
         id SERIAL PRIMARY KEY,
@@ -156,18 +156,23 @@ class DatabaseManager {
     `;
             try {
                 yield this.pool.query(createRidesDataTable);
-                // Recriar tabela de drivers para garantir campos corretos
-                yield this.pool.query(dropDriversTable);
+                // 🔧 CORREÇÃO: Criar tabela apenas se não existir (sem drop)
                 yield this.pool.query(createDriversDataTable);
                 yield this.pool.query(createScrapingSessionsTable);
                 yield this.pool.query(createDriverPersonalDetailsTable);
                 yield this.pool.query(createIndexes);
                 yield this.pool.query(createDriverPersonalIndexes);
-                console.log('✅ Tabelas de rides, drivers (recriada), dados pessoais e índices criados/verificados');
+                console.log('✅ Tabelas de rides, drivers, dados pessoais e índices criados/verificados');
             }
             catch (error) {
-                console.error('❌ Erro ao criar tabelas:', error.message);
-                throw error;
+                // 🔧 IGNORAR erros de constraint duplicada de sequências
+                if (error.code === '23505' && ((_a = error.detail) === null || _a === void 0 ? void 0 : _a.includes('already exists'))) {
+                    console.log('⚠️ Algumas estruturas já existem (normal) - continuando...');
+                }
+                else {
+                    console.error('❌ Erro ao criar tabelas:', error.message);
+                    throw error;
+                }
             }
         });
     }
