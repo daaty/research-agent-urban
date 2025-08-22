@@ -109,45 +109,67 @@ export class DriversDataTransformer {
   private extractDriverInfo(row: string[], headers: string[]): any {
     const driverInfo: any = {};
     
-    headers.forEach((header, index) => {
-      const value = row[index] || '';
-      const headerLower = header.toLowerCase();
+    // 🔧 CORREÇÃO ESPECÍFICA: Dados vêm na ordem errada!
+    // Headers: ["City", "Driver ID", "Driver Name", "Phone Number", "Rank", "Rides"]  
+    // Dados:   [phone,    "0",       real_id,      rank,          city,   real_name]
+    
+    if (headers.length >= 6 && headers.includes('Driver ID') && headers.includes('Driver Name')) {
+      // Mapeamento correto baseado na análise dos dados reais
+      const phoneIndex = headers.indexOf('City');           // Posição 0 = telefone real
+      const idIndex = headers.indexOf('Driver Name');       // Posição 2 = ID real  
+      const nameIndex = headers.indexOf('Rides');           // Posição 5 = nome real
+      const cityIndex = headers.indexOf('Rank');            // Posição 4 = cidade real
+      const rankIndex = headers.indexOf('Phone Number');    // Posição 3 = rank real
       
-      // Mapear campos específicos da tabela Active Drivers
-      if (headerLower.includes('driver id')) {
-        driverInfo.driver_id = value;
-      } else if (headerLower.includes('driver name')) {
-        driverInfo.name = value;
-      } else if (headerLower.includes('city')) {
-        driverInfo.city = value;
-      } else if (headerLower.includes('mobile')) {
-        driverInfo.mobile = value;
-      } else if (headerLower.includes('email')) {
-        driverInfo.email = value;
-      } else if (headerLower.includes('status')) {
-        driverInfo.status = value;
-      } else if (headerLower.includes('registered on')) {
-        driverInfo.registered_on = value;
-      } else if (headerLower.includes('vehicle number')) {
-        driverInfo.vehicle_number = value;
-      } else if (headerLower.includes('rides in last 7 days')) {
-        driverInfo.rides_7_days = value;
-      } else if (headerLower.includes('rides in last 30 days')) {
-        driverInfo.rides_30_days = value;
-      } else if (headerLower.includes('last login')) {
-        driverInfo.last_login = value;
-      } else if (headerLower.includes('last ride')) {
-        driverInfo.last_ride = value;
-      } else if (headerLower.includes('driver ratings')) {
-        driverInfo.rating = value;
-      } else if (headerLower.includes('franchise')) {
-        driverInfo.franchise = value;
-      }
+      if (phoneIndex >= 0 && row[phoneIndex]) driverInfo.mobile = row[phoneIndex];
+      if (idIndex >= 0 && row[idIndex]) driverInfo.driver_id = row[idIndex]; 
+      if (nameIndex >= 0 && row[nameIndex]) driverInfo.name = row[nameIndex];
+      if (cityIndex >= 0 && row[cityIndex]) driverInfo.city = row[cityIndex];
+      if (rankIndex >= 0 && row[rankIndex]) driverInfo.rank = row[rankIndex];
       
-      // Adicionar campo genérico também
-      const fieldKey = header.toLowerCase().replace(/\s+/g, '_').replace(/[^\w]/g, '');
-      driverInfo[fieldKey] = value;
-    });
+      console.log(`🔧 [FIXED MAPPING] ID: ${driverInfo.driver_id}, Nome: ${driverInfo.name}, City: ${driverInfo.city}`);
+    } else {
+      // Fallback para mapeamento original se a estrutura for diferente
+      headers.forEach((header, index) => {
+        const value = row[index] || '';
+        const headerLower = header.toLowerCase();
+        
+        // Mapear campos específicos da tabela Active Drivers
+        if (headerLower.includes('driver id')) {
+          driverInfo.driver_id = value;
+        } else if (headerLower.includes('driver name')) {
+          driverInfo.name = value;
+        } else if (headerLower.includes('city')) {
+          driverInfo.city = value;
+        } else if (headerLower.includes('mobile') || headerLower.includes('phone')) {
+          driverInfo.mobile = value;
+        } else if (headerLower.includes('email')) {
+          driverInfo.email = value;
+        } else if (headerLower.includes('status')) {
+          driverInfo.status = value;
+        } else if (headerLower.includes('registered on')) {
+          driverInfo.registered_on = value;
+        } else if (headerLower.includes('vehicle number')) {
+          driverInfo.vehicle_number = value;
+        } else if (headerLower.includes('rides in last 7 days')) {
+          driverInfo.rides_7_days = value;
+        } else if (headerLower.includes('rides in last 30 days')) {
+          driverInfo.rides_30_days = value;
+        } else if (headerLower.includes('last login')) {
+          driverInfo.last_login = value;
+        } else if (headerLower.includes('last ride')) {
+          driverInfo.last_ride = value;
+        } else if (headerLower.includes('driver ratings')) {
+          driverInfo.rating = value;
+        } else if (headerLower.includes('franchise')) {
+          driverInfo.franchise = value;
+        }
+        
+        // Adicionar campo genérico também
+        const fieldKey = header.toLowerCase().replace(/\s+/g, '_').replace(/[^\w]/g, '');
+        driverInfo[fieldKey] = value;
+      });
+    }
 
     return driverInfo;
   }
