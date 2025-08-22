@@ -22,11 +22,45 @@ class RidesDashboardHybridScraper {
         this.isLoggedIn = false;
         this.currentCity = '';
         this.isExtractingIds = false; // Flag para evitar extrações simultâneas
+        // � CONTROLE DE VELOCIDADE CONFIGURÁVEL
+        this.speedConfig = {
+            // Multiplicador de velocidade (1.0 = normal, 2.0 = mais lento, 0.5 = mais rápido)
+            speedMultiplier: parseFloat(process.env.HYBRID_SPEED_MULTIPLIER || '1.5'), // Padrão 50% mais lento
+            // Delays base (serão multiplicados pelo speedMultiplier)
+            baseDelays: {
+                navigation: 3000, // Aguardar navegação
+                pageLoad: 5000, // Aguardar carregamento de página
+                elementWait: 2000, // Aguardar elementos
+                extraction: 3000, // Entre extrações
+                coordination: 1000 // Coordenação entre operações
+            }
+        };
         // URLs hardcoded conforme solicitado
         this.DASHBOARD_URL = 'https://rides.ec2dashboard.com/#/app/dashboard';
         this.ACTIVE_DRIVERS_URL = 'https://rides.ec2dashboard.com/#/app/active-drivers';
         this.browserManager = browserSessionManager_1.BrowserSessionManager.getInstance(instanceName);
         this.dataTransformer = dataTransformer_1.DataTransformer.getInstance();
+        // Log da configuração de velocidade
+        console.log(`🐌 [HYBRID] Velocidade configurada: ${this.speedConfig.speedMultiplier}x (1.0=normal, >1.0=mais lento)`);
+    }
+    /**
+     * 🐌 CONTROLE DE VELOCIDADE: Calcular delay baseado na configuração
+     */
+    getDelay(type) {
+        const baseDelay = this.speedConfig.baseDelays[type];
+        const adjustedDelay = Math.round(baseDelay * this.speedConfig.speedMultiplier);
+        return adjustedDelay;
+    }
+    /**
+     * 🕐 WAIT INTELIGENTE: Aguardar com delay configurável
+     */
+    smartWait(type, customDelay) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const delay = customDelay || this.getDelay(type);
+            if (this.page && !this.page.isClosed()) {
+                yield this.page.waitForTimeout(delay);
+            }
+        });
     }
     /**
      * Inicializa o scraper e faz login
@@ -102,7 +136,7 @@ class RidesDashboardHybridScraper {
                 console.log('🚪 Fazendo login...');
                 yield this.page.press('#exampleInputPassword1', 'Enter');
                 // Aguardar um pouco para ver se o login funcionou
-                yield this.page.waitForTimeout(3000);
+                yield this.smartWait('navigation');
                 const newUrl = this.page.url();
                 console.log('🔍 URL após login:', newUrl);
                 if (newUrl.includes('/app/dashboard') || newUrl.includes('#/app/')) {
@@ -149,13 +183,13 @@ class RidesDashboardHybridScraper {
                     console.log('🔍 Verificando URL atual:', currentUrl);
                     console.log('❌ Ainda na página de login');
                     console.log(`⏳ Aguardando... (${elapsedTime}s/${maxWaitTime}s)`);
-                    yield this.page.waitForTimeout(3000);
-                    elapsedTime += 3;
+                    yield this.smartWait('navigation');
+                    elapsedTime += Math.round(this.getDelay('navigation') / 1000);
                 }
                 else {
                     // URL mudou, aguardar um pouco mais para ver se vai para dashboard
-                    yield this.page.waitForTimeout(2000);
-                    elapsedTime += 2;
+                    yield this.smartWait('elementWait');
+                    elapsedTime += Math.round(this.getDelay('elementWait') / 1000);
                 }
             }
             throw new Error('Timeout aguardando login manual via VNC');
@@ -217,7 +251,7 @@ class RidesDashboardHybridScraper {
             try {
                 // Aguardar a página carregar completamente primeiro
                 console.log('⏳ Aguardando dashboard carregar...');
-                yield this.page.waitForTimeout(3000);
+                yield this.smartWait('pageLoad');
                 // Procurar e clicar no menu "Active Drivers"
                 console.log('🔍 Procurando item do menu "Active Drivers"...');
                 // Seletores possíveis para o item do menu Active Drivers
@@ -257,7 +291,7 @@ class RidesDashboardHybridScraper {
                 }
                 // Aguardar a navegação/carregamento após o clique
                 console.log('⏳ Aguardando página carregar após clique...');
-                yield this.page.waitForTimeout(5000);
+                yield this.smartWait('pageLoad');
                 // Verificar URL atual após o clique
                 const currentUrl = this.page.url();
                 console.log(`📍 URL após clique: ${currentUrl}`);
@@ -1260,7 +1294,7 @@ class RidesDashboardHybridScraper {
     }
 }
 exports.RidesDashboardHybridScraper = RidesDashboardHybridScraper;
-// 🔒 DEBOUNCE PARA EXTRAÇÃO DE IDs (static para compartilhar entre instâncias)
+// �🔒 DEBOUNCE PARA EXTRAÇÃO DE IDs (static para compartilhar entre instâncias)
 RidesDashboardHybridScraper.idExtractionDebounce = {
     lastExtraction: 0,
     isExtracting: false,
