@@ -79,21 +79,44 @@ export class DriversPersistentScraper {
     try {
       console.log('🚗 Iniciando scraping de drivers com sessão persistente...');
       
-      // Verificar se a sessão está ativa (deve estar devido ao scraping de rides)
+      // ✅ NOVA LÓGICA: Inicializar browser se não estiver ativo (para execução paralela)
       if (!this.sessionManager.isActive()) {
-        return {
-          success: false,
-          data: [],
-          message: 'Sessão do browser não está ativa. Execute primeiro o scraping de rides.',
-          sessionInfo: {
-            isNewLogin: false,
-            browserStatus: 'inactive',
-            sessionValid: false
+        console.log('🔧 Sessão de drivers não está ativa, inicializando browser...');
+        
+        try {
+          // Inicializar browser e fazer login
+          const loginSuccess = await this.sessionManager.ensureLoginWithCaptchaHandling();
+          
+          if (!loginSuccess) {
+            return {
+              success: false,
+              data: [],
+              message: 'Falha no login para sessão de drivers',
+              sessionInfo: {
+                isNewLogin: true,
+                browserStatus: 'login_failed',
+                sessionValid: false
+              }
+            };
           }
-        };
+          
+          console.log('✅ Sessão de drivers inicializada com sucesso');
+        } catch (initError: any) {
+          console.error('❌ Erro ao inicializar sessão de drivers:', initError.message);
+          return {
+            success: false,
+            data: [],
+            message: `Erro ao inicializar sessão de drivers: ${initError.message}`,
+            sessionInfo: {
+              isNewLogin: false,
+              browserStatus: 'init_error',
+              sessionValid: false
+            }
+          };
+        }
+      } else {
+        console.log('✅ Usando sessão existente do browser para drivers');
       }
-
-      console.log('✅ Usando sessão existente do browser para drivers');
       
       // Extrair dados de todas as páginas de drivers
       const allDriversData: DriverTableData[] = [];
