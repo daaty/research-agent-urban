@@ -4,6 +4,7 @@ import { OperationStateManager } from '../queue/operationStateManager';
 import { DriverIdProvider, DriverInfo } from './driverIdProvider';
 import { RidesDashboardHybridScraper } from '../scraper/RidesDashboardHybridScraper';
 import { logger } from '../utils/logger';
+import { humanDelayGenerator, HumanDelayGenerator } from '../config/humanDelayConfig';
 
 export interface HybridOperationConfig {
   extractionBatchSize: number;
@@ -509,10 +510,29 @@ export class HybridOperationService {
         logger.info('HYBRID', `Extraindo dados do motorista: ${driverItem.id}`);
         this.stateManager.setCurrentDriverId(driverItem.id);
         
-        // Aqui você implementaria a lógica real de extração
+        // ===== IMPLEMENTAR DELAYS HUMANOS PARA NAVEGAÇÃO =====
+        logger.info('HYBRID', `🎯 INICIANDO EXTRAÇÃO ${processed + 1}/${this.config.extractionBatchSize}: ${driverItem.id}`);
+        
+        // Delay inicial entre extrações (comportamento humano)
+        if (processed > 0) {
+          const humanDelay = humanDelayGenerator.getBetweenExtractionsDelay();
+          logger.debug('HYBRID', `⏳ Delay humano entre extrações: ${humanDelay}ms`);
+          await this.delay(humanDelay);
+        }
+        
+        // Extração com padrões de reconhecimento de carregamento
+        logger.debug('HYBRID', '📊 Iniciando extração com validação de carregamento...');
         const personalData = await this.extractDriverPersonalData(driverItem.id);
         
-        // Simular salvamento no banco
+        // Validar se dados foram extraídos corretamente
+        if (!personalData || !personalData.driver_id) {
+          throw new Error(`Dados não extraídos corretamente para motorista ${driverItem.id}`);
+        }
+        
+        logger.success('HYBRID', `✅ Dados extraídos: ${personalData.driver_name || 'Nome não encontrado'}`);
+        
+        // Salvar no banco com validação
+        logger.debug('HYBRID', '💾 Salvando dados no banco...');
         await this.savePersonalData(driverItem.id, personalData);
         
         this.driverQueue.markAsCompleted(driverItem.id);
@@ -520,10 +540,13 @@ export class HybridOperationService {
         this.stateManager.incrementProcessed();
         processed++;
         
-        // Delay entre extrações para evitar sobrecarregar o sistema
+        logger.info('HYBRID', `✅ EXTRAÇÃO ${processed}/${this.config.extractionBatchSize} CONCLUÍDA: ${driverItem.id}`);
+        
+        // Delay pós-extração (tempo para processar dados)
         if (processed < this.config.extractionBatchSize) {
-          logger.debug('HYBRID', 'Aguardando 3 segundos antes da próxima extração...');
-          await new Promise(resolve => setTimeout(resolve, 3000));
+          const postExtractionDelay = humanDelayGenerator.getPostExtractionDelay();
+          logger.debug('HYBRID', `⏳ Delay pós-extração: ${postExtractionDelay}ms`);
+          await this.delay(postExtractionDelay);
         }
         
       } catch (error) {
@@ -636,6 +659,17 @@ export class HybridOperationService {
    */
   private async delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Gera delay humano aleatório entre min e max (comportamento natural)
+   */
+  private generateHumanDelay(min: number, max: number): number {
+    // Gerar delay aleatório mais próximo de valores médios (distribuição normal-ish)
+    const base = Math.random() * (max - min) + min;
+    const variation = (Math.random() - 0.5) * (max - min) * 0.2; // Variação de ±10%
+    const delay = Math.max(min, Math.min(max, base + variation));
+    return Math.round(delay);
   }
 
   /**
