@@ -675,33 +675,20 @@ export class RidesDashboardHybridScraper {
 
       console.log('🔍 Botão "Details Driver" clicado');
 
-      // Aguarda os dados carregarem e VALIDA se são do motorista correto
-      await this.page.waitForTimeout(5000); // Aumentar tempo de espera
-      
-      // Extrai dados da página passando o driverId esperado para validação
-      const driverData = await this.extractDriverDetails(driverId);
-      
-      // ✅ VALIDAÇÃO CRÍTICA: Verificar se os dados são do motorista correto
-      const extractedDriverId = driverData.personal_data?.driver_id;
-      if (extractedDriverId && extractedDriverId !== driverId) {
-        console.log(`❌ DADOS INCORRETOS! Solicitado: ${driverId}, Extraído: ${extractedDriverId}`);
-        console.log(`🔄 Tentando novamente aguardar dados corretos...`);
-        
-        // Tentar aguardar mais e re-extrair
-        await this.page.waitForTimeout(3000);
-        const retryData = await this.extractDriverDetails(driverId);
-        const retryDriverId = retryData.personal_data?.driver_id;
-        
-        if (retryDriverId && retryDriverId !== driverId) {
-          throw new Error(`Dados extraídos são de outro motorista! Solicitado: ${driverId}, Encontrado: ${retryDriverId}`);
-        }
-        
-        console.log(`✅ Dados corretos obtidos na segunda tentativa: ${retryDriverId}`);
-        // Usar os dados da segunda tentativa
-        Object.assign(driverData, retryData);
+      // Aguarda global loader desaparecer
+      try {
+        await this.page.waitForSelector('#global_loader', { state: 'hidden', timeout: 10000 });
+      } catch (error) {
+        console.log('⚠️ Global loader timeout - continuando...');
       }
+      
+      // Aguarda os dados carregarem
+      await this.page.waitForTimeout(3000);
+      
+      // Extrai dados da página
+      const driverData = await this.extractDriverDetails();
 
-      console.log(`✅ Dados extraídos e validados para ${driverId}`);
+      console.log(`✅ Dados extraídos para ${driverId}`);
       
       const extractedData = {
         driverId,
@@ -757,76 +744,22 @@ export class RidesDashboardHybridScraper {
    * Extrai detalhes do motorista da página atual
    * @param expectedDriverId ID do motorista esperado para validação
    */
-  private async extractDriverDetails(expectedDriverId?: string): Promise<any> {
+  private async extractDriverDetails(): Promise<any> {
     if (!this.page) throw new Error('Página não disponível');
 
     try {
       console.log('📊 Aguardando página de detalhes carregar...');
       
-      // Se temos um expectedDriverId, aguardar especificamente ele aparecer na página
-      if (expectedDriverId) {
-        console.log(`🎯 Aguardando Driver ID ${expectedDriverId} aparecer na página...`);
-        
-        let attempts = 0;
-        const maxAttempts = 10;
-        
-        while (attempts < maxAttempts) {
-          try {
-            // Procurar pelo Driver ID específico na página
-            const foundDriverId = await this.page.evaluate(() => {
-              // Procurar por links com ng-click="redirectToDriverProfile"
-              const driverLink = document.querySelector('a[ng-click*="redirectToDriverProfile"]');
-              if (driverLink) {
-                const driverIdText = driverLink.textContent?.trim();
-                if (driverIdText && /^\d{8}$/.test(driverIdText)) {
-                  return driverIdText;
-                }
-              }
-              
-              // Procurar por números de 8 dígitos em elementos ng-binding
-              const ngElements = document.querySelectorAll('.ng-binding, .ng-scope');
-              for (const elem of ngElements) {
-                const text = elem.textContent?.trim();
-                if (text && /^\d{8}$/.test(text)) {
-                  return text;
-                }
-              }
-              
-              return null;
-            });
-            
-            if (foundDriverId === expectedDriverId) {
-              console.log(`✅ Driver ID correto ${expectedDriverId} encontrado na página!`);
-              break;
-            } else if (foundDriverId) {
-              console.log(`⚠️ Driver ID diferente encontrado: ${foundDriverId}, esperado: ${expectedDriverId} (tentativa ${attempts + 1}/${maxAttempts})`);
-            } else {
-              console.log(`⚠️ Nenhum Driver ID encontrado (tentativa ${attempts + 1}/${maxAttempts})`);
-            }
-            
-            attempts++;
-            if (attempts < maxAttempts) {
-              await this.page.waitForTimeout(2000); // Aguardar 2 segundos antes da próxima tentativa
-            }
-            
-          } catch (error) {
-            console.log(`❌ Erro na tentativa ${attempts + 1}: ${error}`);
-            attempts++;
-            if (attempts < maxAttempts) {
-              await this.page.waitForTimeout(2000);
-            }
-          }
-        }
-        
-        if (attempts >= maxAttempts) {
-          throw new Error(`Timeout: Driver ID ${expectedDriverId} não apareceu na página após ${maxAttempts} tentativas`);
-        }
+      // Aguardar global loader desaparecer
+      try {
+        await this.page.waitForSelector('#global_loader', { state: 'hidden', timeout: 10000 });
+      } catch (error) {
+        console.log('⚠️ Global loader timeout - continuando...');
       }
       
       // Aguardar mais tempo para a página carregar completamente
       await this.page.waitForTimeout(3000);
 
-      // Verificar se elementos carregaram - sem timeout desnecessário
       console.log('🔍 Elementos carregados, iniciando extração...');
 
       console.log('📋 Iniciando extração dos dados...');
