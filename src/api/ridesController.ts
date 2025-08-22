@@ -178,7 +178,7 @@ router.post('/test-browser', async (req, res) => {
     
     const browser = await chromium.launch({ 
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+      args: ['--disable-setuid-sandbox']
     });
     
     const page = await browser.newPage();

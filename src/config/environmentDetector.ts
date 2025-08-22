@@ -170,7 +170,6 @@ export class EnvironmentDetector {
     const baseConfig = {
       headless: config.displayMode === 'headless',
       args: [
-        '--no-sandbox', // ✅ RESTAURADO: Essencial para mouse funcionar em Docker/VNC
         '--disable-dev-shm-usage',
         '--disable-web-security',
         '--disable-background-timer-throttling',
