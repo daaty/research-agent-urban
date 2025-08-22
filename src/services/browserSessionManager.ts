@@ -156,9 +156,18 @@ export class BrowserSessionManager {
   }
 
   /**
-   * 🔒 MUTEX: Adquirir lock de navegação
+   * 🔒 MUTEX: Adquirir lock de navegação (com proteção contra auto-deadlock)
    */
   private async acquireNavigationLock(timeout: number = 30000): Promise<void> {
+    // 🧹 Limpar locks órfãos antes de tentar adquirir
+    BrowserSessionManager.cleanupOrphanedLocks();
+    
+    // 🛡️ PROTEÇÃO: Se já temos o lock, não aguardar
+    if (BrowserSessionManager.navigationLock.lockedBy === this.instanceName) {
+      console.log(`🔄 [${this.instanceName}] Já possui lock de navegação, continuando...`);
+      return;
+    }
+    
     const startTime = Date.now();
     
     while (BrowserSessionManager.navigationLock.isLocked) {
@@ -184,7 +193,7 @@ export class BrowserSessionManager {
   }
 
   /**
-   * 🔓 MUTEX: Liberar lock de navegação
+   * 🔓 MUTEX: Liberar lock de navegação (com limpeza robusta)
    */
   private releaseNavigationLock(): void {
     if (BrowserSessionManager.navigationLock.lockedBy === this.instanceName || 
@@ -193,6 +202,21 @@ export class BrowserSessionManager {
       BrowserSessionManager.navigationLock.lockedBy = null;
       BrowserSessionManager.navigationLock.lockTimestamp = 0;
       console.log(`🔓 [${this.instanceName}] Lock de navegação liberado`);
+    } else {
+      console.log(`⚠️ [${this.instanceName}] Tentativa de liberar lock de outro proprietário: ${BrowserSessionManager.navigationLock.lockedBy}`);
+    }
+  }
+
+  /**
+   * 🧹 LIMPEZA: Verificar e limpar locks órfãos periodicamente
+   */
+  private static cleanupOrphanedLocks(): void {
+    if (BrowserSessionManager.navigationLock.isLocked && 
+        Date.now() - BrowserSessionManager.navigationLock.lockTimestamp > 60000) { // 1 minuto
+      console.log(`🧹 Limpando lock órfão de navegação (${BrowserSessionManager.navigationLock.lockedBy})`);
+      BrowserSessionManager.navigationLock.isLocked = false;
+      BrowserSessionManager.navigationLock.lockedBy = null;
+      BrowserSessionManager.navigationLock.lockTimestamp = 0;
     }
   }
 
