@@ -492,63 +492,60 @@ export class HybridOperationService {
     }
     
     let processed = 0;
-    
     while (processed < this.config.extractionBatchSize && driverStats.total > 0) {
       // Verificar se chegaram recargas urgentes
       const urgentRecharges = this.rechargeQueue.getAllRequests()
         .filter(r => r.priority === 'urgent' && r.status === 'pending').length;
-      
       if (urgentRecharges > 0) {
         logger.warn('HYBRID', 'Interrompendo extração para recargas urgentes');
         break;
       }
-      
       const driverItem = this.driverQueue.getNextId();
       if (!driverItem) break;
-      
       try {
+        // ===== DELAY HUMANO ANTES DE QUALQUER INPUT/CAMPO =====
+        const humanDelay = humanDelayGenerator.getBetweenExtractionsDelay();
+        logger.debug('HYBRID', `⏳ [DELAY] Aguardando ${humanDelay}ms antes de preencher/clicar Driver ID (${driverItem.id})`);
+        await this.delay(humanDelay);
+
         logger.info('HYBRID', `Extraindo dados do motorista: ${driverItem.id}`);
         this.stateManager.setCurrentDriverId(driverItem.id);
-        
-        // ===== IMPLEMENTAR DELAYS HUMANOS PARA NAVEGAÇÃO =====
         logger.info('HYBRID', `🎯 INICIANDO EXTRAÇÃO ${processed + 1}/${this.config.extractionBatchSize}: ${driverItem.id}`);
-        
-        // Delay inicial entre extrações (comportamento humano)
-        if (processed > 0) {
-          const humanDelay = humanDelayGenerator.getBetweenExtractionsDelay();
-          logger.debug('HYBRID', `⏳ Delay humano entre extrações: ${humanDelay}ms`);
-          await this.delay(humanDelay);
-        }
-        
+
+        // Log antes do input
+        logger.debug('HYBRID', `[INPUT] Vai preencher/clicar campo Driver ID: ${driverItem.id}`);
+
         // Extração com padrões de reconhecimento de carregamento
         logger.debug('HYBRID', '📊 Iniciando extração com validação de carregamento...');
         const personalData = await this.extractDriverPersonalData(driverItem.id);
-        
+
+        // Log após input
+        logger.debug('HYBRID', `[INPUT] Preenchimento/click do campo Driver ID finalizado: ${driverItem.id}`);
+
         // Validar se dados foram extraídos corretamente
         if (!personalData || !personalData.driver_id) {
           throw new Error(`Dados não extraídos corretamente para motorista ${driverItem.id}`);
         }
-        
+
         logger.success('HYBRID', `✅ Dados extraídos: ${personalData.driver_name || 'Nome não encontrado'}`);
-        
+
         // Salvar no banco com validação
         logger.debug('HYBRID', '💾 Salvando dados no banco...');
         await this.savePersonalData(driverItem.id, personalData);
-        
+
         this.driverQueue.markAsCompleted(driverItem.id);
         this.stats.totalExtracted++;
         this.stateManager.incrementProcessed();
         processed++;
-        
+
         logger.info('HYBRID', `✅ EXTRAÇÃO ${processed}/${this.config.extractionBatchSize} CONCLUÍDA: ${driverItem.id}`);
-        
+
         // Delay pós-extração (tempo para processar dados)
         if (processed < this.config.extractionBatchSize) {
           const postExtractionDelay = humanDelayGenerator.getPostExtractionDelay();
           logger.debug('HYBRID', `⏳ Delay pós-extração: ${postExtractionDelay}ms`);
           await this.delay(postExtractionDelay);
         }
-        
       } catch (error) {
         logger.error('HYBRID', `Erro na extração ${driverItem.id}`, error);
         const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
@@ -556,7 +553,6 @@ export class HybridOperationService {
         this.stats.errorCount++;
       }
     }
-    
     this.stateManager.setCurrentDriverId(null);
   }
 
