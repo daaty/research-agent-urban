@@ -834,6 +834,16 @@ export class RidesDashboardHybridScraper {
                 const allElements = Array.from(document.querySelectorAll('*'));
                 const labelIndex = allElements.indexOf(label);
                 
+                // Lista de labels conhecidos para evitar confusão
+                const knownLabels = [
+                  'Driver ID', 'Driver Name', 'Status', 'Phone No', 'City', 'Joining Date', 'DOB',
+                  'Device', 'OS Version', 'App Version', 'Vehicle No', 'Vehicle Type', 'Last Login At',
+                  'Last Ride On', 'Ongoing Ride', 'Hold Payment', 'Today Completed Rides',
+                  'Today First Login At', 'Ride Avg 7 Days', 'Ref Avg 7 Days', 'Last Driver Ref On',
+                  'Credit/Debit', 'Bank Account No', 'Last Latitude Longitude', 'Last Location Updated At',
+                  'Faulty Rides Percentage (Last 30 days)', 'Active', 'Deactivated Vehicle', 'User Referal Code', 'Blocked'
+                ];
+                
                 for (let i = labelIndex + 1; i < Math.min(labelIndex + 10, allElements.length); i++) {
                   const elem = allElements[i];
                   const text = elem.textContent?.trim();
@@ -843,6 +853,7 @@ export class RidesDashboardHybridScraper {
                       text !== ':' &&
                       text.length > 0 &&
                       !text.includes(labelText) &&
+                      !knownLabels.includes(text) && // CRÍTICO: Evitar capturar outros labels
                       elem.children.length === 0) { // Elemento folha
                     
                     console.log(`✅ Valor encontrado por proximidade: "${text}"`);
@@ -877,10 +888,20 @@ export class RidesDashboardHybridScraper {
             
             if (labelText === 'Driver Name') {
               // Buscar em divs com class ng-binding que contenham nomes
-              const nameElements = document.querySelectorAll('.col-lg-5.ng-binding');
+              const nameElements = document.querySelectorAll('.col-lg-5.ng-binding, .ng-binding');
               for (const elem of nameElements) {
                 const text = elem.textContent?.trim();
-                if (text && text.match(/^[A-Za-z\s]{3,50}$/) && !text.match(/^\d/) && !text.includes('+') && !text.includes('@')) {
+                // Validar que é um nome válido e não um label
+                if (text && 
+                    text.match(/^[A-Za-zÀ-ÿ\s]{3,50}$/) && 
+                    !text.match(/^\d/) && 
+                    !text.includes('+') && 
+                    !text.includes('@') &&
+                    text !== 'Active' && // Evitar label específico
+                    text !== 'Driver Name' && // Evitar o próprio label
+                    !text.includes('Date') &&
+                    !text.includes('Version') &&
+                    !text.includes('Code')) {
                   console.log(`✅ Driver Name encontrado: "${text}"`);
                   return text;
                 }
@@ -892,7 +913,10 @@ export class RidesDashboardHybridScraper {
               const phoneElements = document.querySelectorAll('.ng-binding');
               for (const elem of phoneElements) {
                 const text = elem.textContent?.trim();
-                if (text && text.match(/^\+\d{13}$/)) {
+                if (text && 
+                    text.match(/^\+\d{13}$/) &&
+                    text !== 'Phone No' && // Evitar o próprio label
+                    text !== 'City') { // Evitar confusão com label City
                   console.log(`✅ Phone encontrado: "${text}"`);
                   return text;
                 }
@@ -932,26 +956,48 @@ export class RidesDashboardHybridScraper {
             return null;
           }
         }
+        
+        // Função auxiliar para validar que o valor extraído não é um label
+        function validateExtractedValue(value: string | null, expectedLabel: string): string | null {
+          if (!value) return null;
+          
+          const knownLabels = [
+            'Driver ID', 'Driver Name', 'Status', 'Phone No', 'City', 'Joining Date', 'DOB',
+            'Device', 'OS Version', 'App Version', 'Vehicle No', 'Vehicle Type', 'Last Login At',
+            'Last Ride On', 'Ongoing Ride', 'Hold Payment', 'Today Completed Rides',
+            'Today First Login At', 'Ride Avg 7 Days', 'Ref Avg 7 Days', 'Last Driver Ref On',
+            'Credit/Debit', 'Bank Account No', 'Last Latitude Longitude', 'Last Location Updated At',
+            'Faulty Rides Percentage (Last 30 days)', 'Active', 'Deactivated Vehicle', 'User Referal Code', 'Blocked'
+          ];
+          
+          // Se o valor é um label conhecido, retornar null
+          if (knownLabels.includes(value)) {
+            console.log(`⚠️ Valor "${value}" é um label conhecido para campo "${expectedLabel}", ignorando`);
+            return null;
+          }
+          
+          return value;
+        }
 
         // ===== EXTRAIR DADOS PESSOAIS =====
         console.log('📋 Extraindo dados pessoais...');
         
         try {
-          // Dados básicos (coluna 1)
-          result.personal_data.driver_id = extractFieldByLabel('Driver ID');
-          result.personal_data.driver_name = extractFieldByLabel('Driver Name');
-          result.personal_data.status = extractFieldByLabel('Status');
-          result.personal_data.phone_no = extractFieldByLabel('Phone No');
+          // Dados básicos (coluna 1) com validação anti-label
+          result.personal_data.driver_id = validateExtractedValue(extractFieldByLabel('Driver ID'), 'Driver ID');
+          result.personal_data.driver_name = validateExtractedValue(extractFieldByLabel('Driver Name'), 'Driver Name');
+          result.personal_data.status = validateExtractedValue(extractFieldByLabel('Status'), 'Status');
+          result.personal_data.phone_no = validateExtractedValue(extractFieldByLabel('Phone No'), 'Phone No');
           
           // Para a cidade, usar a cidade já identificada no início
           result.personal_data.city = currentCity; // Usar Matupá que foi identificado no início
           
-          result.personal_data.joining_date = extractFieldByLabel('Joining Date');
-          result.personal_data.dob = extractFieldByLabel('DOB');
-          result.personal_data.vehicle_no = extractFieldByLabel('Vehicle No');
-          result.personal_data.app_version = extractFieldByLabel('App Version');
-          result.personal_data.device = extractFieldByLabel('Device');
-          result.personal_data.os_version = extractFieldByLabel('OS version');
+          result.personal_data.joining_date = validateExtractedValue(extractFieldByLabel('Joining Date'), 'Joining Date');
+          result.personal_data.dob = validateExtractedValue(extractFieldByLabel('DOB'), 'DOB');
+          result.personal_data.vehicle_no = validateExtractedValue(extractFieldByLabel('Vehicle No'), 'Vehicle No');
+          result.personal_data.app_version = validateExtractedValue(extractFieldByLabel('App Version'), 'App Version');
+          result.personal_data.device = validateExtractedValue(extractFieldByLabel('Device'), 'Device');
+          result.personal_data.os_version = validateExtractedValue(extractFieldByLabel('OS version'), 'OS version');
 
           // Dados financeiros e de corridas (coluna 2)
           result.personal_data.today_completed_rides = extractFieldByLabel("Today's Completed Rides");
