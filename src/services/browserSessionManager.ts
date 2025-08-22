@@ -308,7 +308,10 @@ export class BrowserSessionManager {
       this.context = await chromium.launchPersistentContext(this.userDataDir, {
         headless: playwrightConfig.headless,
         args: splitScreenArgs, // 🎯 ARGS COM POSICIONAMENTO SIMPLES
-        viewport: { width: 1600, height: 1200 } // ✅ MANTER VIEWPORT ORIGINAL
+        viewport: { width: windowPosition.width, height: windowPosition.height }, // 🔧 VIEWPORT AJUSTADO PARA SPLIT-SCREEN
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', // 🖥️ USER-AGENT DESKTOP
+        isMobile: false, // 🖥️ FORÇAR DESKTOP
+        hasTouch: false, // 🖥️ SEM TOUCH
       });
 
       // Obter referência do browser do context
@@ -324,6 +327,37 @@ export class BrowserSessionManager {
       // Pegar a página existente ou criar uma nova
       const pages = this.context.pages();
       this.page = pages.length > 0 ? pages[0] : await this.context.newPage();
+      
+      // 🎯 CONFIGURAÇÃO PÓS-INICIALIZAÇÃO PARA FOCO (apenas VNC)
+      if (!this.isHeadless) {
+        setTimeout(async () => {
+          try {
+            console.log(`🎯 [${this.instanceName}] Aplicando foco pós-inicialização...`);
+            
+            // Tentar focar usando xdotool simples
+            const { exec } = require('child_process');
+            const { promisify } = require('util');
+            const execAsync = promisify(exec);
+            
+            // Encontrar janela e focar
+            const windows = await execAsync('DISPLAY=:99 xdotool search --class "chrome"').catch(() => ({ stdout: '' }));
+            const windowIds = windows.stdout.trim().split('\n').filter((id: string) => id.length > 0);
+            
+            if (windowIds.length > 0) {
+              const windowIndex = this.instanceName === 'hybrid_scraper' ? 1 : 0;
+              const targetWindow = windowIds[windowIndex];
+              
+              if (targetWindow) {
+                await execAsync(`DISPLAY=:99 xdotool windowraise ${targetWindow}`).catch(() => {});
+                await execAsync(`DISPLAY=:99 xdotool windowfocus ${targetWindow}`).catch(() => {});
+                console.log(`✅ [${this.instanceName}] Foco aplicado na janela ${targetWindow}`);
+              }
+            }
+          } catch (error) {
+            console.log(`⚠️ [${this.instanceName}] Erro no foco pós-inicialização:`, String(error));
+          }
+        }, 3000); // Aguardar 3 segundos
+      }
       
     this.logger.success('BROWSER', 'Browser inicializado com sucesso');
       
