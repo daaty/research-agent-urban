@@ -844,76 +844,14 @@ export class RidesDashboardHybridScraper {
       await this.page.click('button[ng-click="getDriverInfo(enteredDriverValue)"]');
       console.log('🔍 Botão "Details Driver" clicado');
 
-      // ⏳ FASE 6: Aguardar dados carregarem com validação do Driver ID correto
-      console.log('⏳ FASE 6: Aguardando dados do motorista carregarem...');
-      await this.smartWait('pageLoad'); // 5 segundos base * multiplicador
+      // ⏳ FASE 6: Aguardar dados carregarem adequadamente (5-8 segundos)
+      console.log('⏳ FASE 6: Aguardando dados do motorista carregarem por 5-8 segundos...');
+      const initialWaitTime = 5000 + Math.random() * 3000; // 5-8 segundos randomizado
+      console.log(`⏰ Aguardando ${Math.round(initialWaitTime)}ms para dados carregarem completamente`);
+      await this.page.waitForTimeout(initialWaitTime);
 
-      // 🔍 VALIDAÇÃO: Aguardar o Driver ID correto aparecer na página
-      console.log(`🔍 FASE 6.1: Validando se driver ${driverId} carregou corretamente...`);
-      
-      let validationAttempts = 0;
-      const maxValidationAttempts = 5;
-      let driverIdFound = false;
-      
-      while (!driverIdFound && validationAttempts < maxValidationAttempts) {
-        try {
-          // Buscar pelo Driver ID na página usando diferentes estratégias
-          const pageDriverId = await this.page.evaluate((targetId) => {
-            // Estratégia 1: Buscar em labels próximos a "Driver ID"
-            const labels = Array.from(document.querySelectorAll('label, span, div'));
-            for (const label of labels) {
-              const text = label.textContent?.trim() || '';
-              if (text.includes('Driver ID') || text === 'Driver ID') {
-                const nextElement = label.nextElementSibling;
-                if (nextElement) {
-                  const nextText = nextElement.textContent?.trim() || '';
-                  if (nextText === targetId) return nextText;
-                }
-                // Verificar elementos próximos
-                const parent = label.parentElement;
-                if (parent) {
-                  const siblings = Array.from(parent.children);
-                  for (const sibling of siblings) {
-                    const siblingText = sibling.textContent?.trim() || '';
-                    if (siblingText === targetId) return siblingText;
-                  }
-                }
-              }
-            }
-            
-            // Estratégia 2: Buscar o ID diretamente no texto
-            const allElements = Array.from(document.querySelectorAll('*'));
-            for (const el of allElements) {
-              if (el.textContent?.trim() === targetId) {
-                return targetId;
-              }
-            }
-            
-            return null;
-          }, driverId);
-
-          if (pageDriverId === driverId) {
-            console.log(`✅ Driver ID ${driverId} confirmado na página`);
-            driverIdFound = true;
-          } else {
-            validationAttempts++;
-            console.log(`⚠️ Driver ID ${driverId} não encontrado na página (tentativa ${validationAttempts}/${maxValidationAttempts})`);
-            await this.smartWait('elementWait'); // Aguardar mais um pouco
-          }
-        } catch (error) {
-          validationAttempts++;
-          console.log(`⚠️ Erro na validação do Driver ID (tentativa ${validationAttempts}/${maxValidationAttempts}):`, error);
-          await this.smartWait('elementWait');
-        }
-      }
-
-      if (!driverIdFound) {
-        console.error(`❌ ERRO: Driver ID ${driverId} não apareceu na página após ${maxValidationAttempts} tentativas`);
-        throw new Error(`Driver ID ${driverId} não carregou na página - dados podem ser de outro motorista`);
-      }
-
-      // 📊 FASE 7: Extração dos dados
-      console.log('📊 FASE 7: Extraindo dados do motorista...');
+      // 📊 FASE 7: Extração dos dados (15-20 segundos total)
+      console.log('📊 FASE 7: Extraindo dados do motorista com timing adequado...');
       const driverData = await this.extractDriverDetails();
 
       // 🔍 VALIDAÇÃO CRÍTICA: Verificar se o ID extraído corresponde ao ID solicitado
@@ -1084,9 +1022,10 @@ export class RidesDashboardHybridScraper {
       console.log('⏳ FASE 3: Aguardando conteúdo específico carregar...');
       await this.smartWait('extraction'); // 3 segundos para dados estabilizarem
 
-      console.log('📋 Iniciando extração dos dados...');
+      console.log('📋 Iniciando extração dos dados da primeira aba (Driver Details)...');
 
-      // Extrair dados pessoais e informações completas
+      // ===== ABA 1: DRIVER DETAILS (já carregada) =====
+      console.log('📊 Extraindo dados pessoais da aba Driver Details...');
       const driverData = await this.page.evaluate((currentCity) => {
         const result: any = {
           personal_data: {},
@@ -1451,13 +1390,20 @@ export class RidesDashboardHybridScraper {
 
         console.log('✅ Extração de dados concluída no navegador');
         return result;
-      }, this.currentCity);    // ===== EXTRAIR WALLET TRANSACTIONS (FORA DO EVALUATE) =====
-    console.log('💰 Extraindo transações da carteira...');
-    
-    try {
-      // Clicar na aba WALLET TRANSACTIONS
-      const walletTabClicked = await this.page.evaluate(() => {
-        const walletTabs = Array.from(document.querySelectorAll('md-tab-item'));
+      }, this.currentCity);
+
+      // ===== ABA 2: WALLET TRANSACTIONS =====
+      console.log('💰 Extraindo transações da carteira...');
+      
+      // ⏰ DELAY ENTRE ABAS: 3-5 segundos antes de clicar na próxima aba
+      const tabDelay = 3000 + Math.random() * 2000; // 3-5 segundos randomizado
+      console.log(`⏰ Aguardando ${Math.round(tabDelay)}ms antes de extrair aba WALLET TRANSACTIONS`);
+      await this.page.waitForTimeout(tabDelay);
+      
+      try {
+        // Clicar na aba WALLET TRANSACTIONS
+        const walletTabClicked = await this.page.evaluate(() => {
+          const walletTabs = Array.from(document.querySelectorAll('md-tab-item'));
         
         for (const tab of walletTabs) {
           const tabText = tab.textContent?.trim();
@@ -1526,8 +1472,13 @@ export class RidesDashboardHybridScraper {
       console.error('❌ Erro ao extrair wallet transactions:', walletError);
     }
 
-    // ===== EXTRAIR SUBSCRIPTION HISTORY (FORA DO EVALUATE) =====
+    // ===== ABA 3: SUBSCRIPTION HISTORY =====
     console.log('📋 Extraindo histórico de assinaturas...');
+    
+    // ⏰ DELAY ENTRE ABAS: 3-5 segundos antes de clicar na próxima aba
+    const subscriptionTabDelay = 3000 + Math.random() * 2000; // 3-5 segundos randomizado
+    console.log(`⏰ Aguardando ${Math.round(subscriptionTabDelay)}ms antes de extrair aba SUBSCRIPTION HISTORY`);
+    await this.page.waitForTimeout(subscriptionTabDelay);
     
     try {
       // Clicar na aba Subscription History
@@ -1617,6 +1568,109 @@ export class RidesDashboardHybridScraper {
       console.error('❌ Erro ao extrair subscription history:', subscriptionError);
     }
 
+    // ===== ABA 4: CANCELLED RIDES =====
+    console.log('🚫 Extraindo corridas canceladas...');
+    
+    // ⏰ DELAY ENTRE ABAS: 3-5 segundos antes de clicar na próxima aba
+    const cancelledRidesTabDelay = 3000 + Math.random() * 2000; // 3-5 segundos randomizado
+    console.log(`⏰ Aguardando ${Math.round(cancelledRidesTabDelay)}ms antes de extrair aba CANCELLED RIDES`);
+    await this.page.waitForTimeout(cancelledRidesTabDelay);
+    
+    try {
+      // Clicar na aba CANCELLED RIDES
+      const cancelledTabClicked = await this.page.evaluate(() => {
+        const cancelledTabs = Array.from(document.querySelectorAll('md-tab-item'));
+        
+        for (const tab of cancelledTabs) {
+          const tabText = tab.textContent?.trim();
+          if (tabText && (tabText.includes('CANCELLED RIDES') || tabText.includes('Cancelled Rides'))) {
+            console.log('✅ Aba CANCELLED RIDES encontrada, clicando...');
+            (tab as HTMLElement).click();
+            return true;
+          }
+        }
+        
+        console.log('⚠️ Aba CANCELLED RIDES não encontrada');
+        return false;
+      });
+      
+      if (cancelledTabClicked) {
+        // Aguardar carregar
+        await this.page.waitForTimeout(3000);
+        
+        // Extrair dados da tabela de corridas canceladas
+        const cancelledRides = await this.page.evaluate(() => {
+          const rides: any[] = [];
+          
+          try {
+            const cancelledTable = document.querySelector('table.t-fancy-table tbody, table[id*="cancelled"] tbody, table[class*="cancelled"] tbody');
+            
+            if (cancelledTable) {
+              console.log('✅ Tabela de corridas canceladas encontrada');
+              
+              const cancelledRows = cancelledTable.querySelectorAll('tr[ng-repeat], tr.ng-scope, tr.odd, tr.even');
+              console.log(`📑 Encontradas ${cancelledRows.length} linhas de corridas canceladas`);
+              
+              for (let i = 0; i < cancelledRows.length; i++) {
+                const row = cancelledRows[i];
+                const cells = row.querySelectorAll('td');
+                
+                // Verificar se não é a linha "No data available" e tem dados suficientes
+                if (cells.length >= 8 && !row.querySelector('.dataTables_empty')) {
+                  const ride = {
+                    booking_id: cells[0]?.textContent?.trim() || 'N/A',
+                    passenger_name: cells[1]?.textContent?.trim() || 'N/A', 
+                    pickup_location: cells[2]?.textContent?.trim() || 'N/A',
+                    drop_location: cells[3]?.textContent?.trim() || 'N/A',
+                    ride_fare: cells[4]?.textContent?.trim() || 'N/A',
+                    commission: cells[5]?.textContent?.trim() || 'N/A',
+                    cancelled_by: cells[6]?.textContent?.trim() || 'N/A',
+                    cancelled_reason: cells[7]?.textContent?.trim() || 'N/A',
+                    date_time: cells[8]?.textContent?.trim() || 'N/A'
+                  };
+                  
+                  rides.push(ride);
+                  
+                  if (i < 3) { // Log das primeiras 3 para verificação
+                    console.log(`🚫 Corrida cancelada ${i+1}: ${ride.booking_id} - ${ride.passenger_name}`);
+                  }
+                }
+              }
+              
+              console.log(`✅ Total de ${rides.length} corridas canceladas extraídas`);
+            } else {
+              console.log('⚠️ Tabela de corridas canceladas não encontrada');
+            }
+            
+            // Se não encontrou dados, verificar se tem a mensagem "No data available"  
+            const noDataMsg = document.querySelector('.dataTables_empty');
+            if (noDataMsg) {
+              console.log('ℹ️ Nenhuma corrida cancelada disponível para este motorista');
+            }
+          } catch (error) {
+            console.error('❌ Erro ao extrair corridas canceladas:', error);
+          }
+          
+          return rides;
+        });
+        
+        driverData.cancelled_rides = cancelledRides;
+        console.log(`✅ ${cancelledRides.length} corridas canceladas extraídas com sucesso`);
+      }
+    } catch (cancelledError) {
+      console.error('❌ Erro ao extrair cancelled rides:', cancelledError);
+    }
+
+    // ✅ EXTRAÇÃO COMPLETA COM TIMING ADEQUADO
+    console.log('✅ EXTRAÇÃO COMPLETA: Todas as 4 abas processadas com timing de 15-20 segundos');
+    console.log('📊 Sequência de extração realizada:');
+    console.log('   1️⃣ Driver Details - extraído após 5-8s de espera inicial');
+    console.log('   2️⃣ RIDES - extraído junto com Driver Details');
+    console.log('   3️⃣ WALLET TRANSACTIONS - extraído após delay de 3-5s');
+    console.log('   4️⃣ SUBSCRIPTION HISTORY - extraído após delay de 3-5s');
+    console.log('   5️⃣ CANCELLED RIDES - extraído após delay de 3-5s');
+    console.log('⏰ Tempo total estimado: 15-20 segundos por motorista');
+
       // Log dos dados extraídos
       console.log('📊 Resumo dos dados extraídos:');
       console.log(`   🆔 Driver ID: ${driverData.personal_data.driver_id || 'N/A'}`);
@@ -1625,6 +1679,9 @@ export class RidesDashboardHybridScraper {
       console.log(`   🏙️ Cidade: ${driverData.personal_data.city || 'N/A'}`);
       console.log(`   ✅ Status: ${driverData.personal_data.status || 'N/A'}`);
       console.log(`   🚗 Corridas no histórico: ${driverData.rides_history.length}`);
+      console.log(`   💰 Transações da carteira: ${driverData.wallet_transactions?.length || 0}`);
+      console.log(`   📋 Histórico de assinaturas: ${driverData.subscription_history?.length || 0}`);
+      console.log(`   🚫 Corridas canceladas: ${driverData.cancelled_rides?.length || 0}`);
 
       // Log da estrutura completa dos dados
       console.log(`   🔍 Estrutura retornada: {

@@ -1,7 +1,4 @@
-<div class="row ng-scope" ng-show="showDriverDetails &amp;&amp; enteredDriverValue != 5 &amp;&amp; enteredDriverValue != 6" style="margin:40px" aria-hidden="false">
-
-    <!--Code For Driver Details 3-columns view-->
-    <div class="row panel-box-custom" style="background-color: #fff;border: 1px solid #B9B9BD;padding-top: 50px;">
+<div class="row panel-box-custom" style="background-color: #fff;border: 1px solid #B9B9BD;padding-top: 50px;">
 
 
         <div class="col-lg-4">
@@ -22,7 +19,7 @@
 
                         <!-- ngIf: smp && driverSummary["Suspended"]==1 -->
 
-                        <!-- ngIf: !smp --><a ng-if="!smp" ng-click="redirectToDriverProfile(driverSummary.Suspended)" class="ng-binding ng-scope">17528787</a><!-- end ngIf: !smp -->
+                        <!-- ngIf: !smp --><a ng-if="!smp" ng-click="redirectToDriverProfile(driverSummary.Suspended)" class="ng-binding ng-scope">17116809</a><!-- end ngIf: !smp -->
                     </div>
                 </div>
             </div>
@@ -37,7 +34,7 @@
                         <label>:</label>
                     </div>
                     <div class="col-lg-5 ng-binding">
-                        Marcos  minichik
+                        Weslei Martins de souza
                     </div>
                 </div>
             </div>
@@ -67,7 +64,7 @@
                         <label>:</label>
                     </div>
                     <div class="col-lg-5 ng-binding">
-                        +5566996350296
+                        +5566996708347
                     </div>
                 </div>
             </div>
@@ -98,7 +95,7 @@
                         <label>:</label>
                     </div>
                     <div class="col-lg-5 ng-binding">
-                        22/05/2025
+                        26/03/2025
                     </div>
                 </div>
             </div>
@@ -134,7 +131,7 @@
                         <label>:</label>
                     </div>
                     <div class="col-lg-5 ng-binding">
-                        HB20 MARRON - PLACA PYI4760
+                        FIESTA PRETO - JZV8J45
                     </div>
                 </div>
             </div><!-- end ngIf: !multipleVehicleEnabled && !showDeviceText -->
@@ -149,7 +146,7 @@
                         <label>:</label>
                     </div>
                     <div class="col-lg-5">
-                        <!-- ngIf: driverSummary['Device Name']!='' && driverSummary['OS version']!='' --><div ng-if="driverSummary['Device Name']!='' &amp;&amp; driverSummary['OS version']!=''" class="ng-binding ng-scope">391</div><!-- end ngIf: driverSummary['Device Name']!='' && driverSummary['OS version']!='' -->
+                        <!-- ngIf: driverSummary['Device Name']!='' && driverSummary['OS version']!='' --><div ng-if="driverSummary['Device Name']!='' &amp;&amp; driverSummary['OS version']!=''" class="ng-binding ng-scope">466</div><!-- end ngIf: driverSummary['Device Name']!='' && driverSummary['OS version']!='' -->
                         <!-- ngIf: driverSummary['Device Name']=='' -->
                         <!-- ngIf: driverSummary['OS version']=='' -->
                     </div>
@@ -166,7 +163,7 @@
                         <label>:</label>
                     </div>
                     <div class="col-lg-5 ng-binding">
-                        iPhone12Pro
+                        samsungSM-A145M
                     </div>
                 </div>
             </div><!-- end ngIf: !showDeviceText -->
@@ -181,7 +178,7 @@
                         <label>:</label>
                     </div>
                     <div class="col-lg-5 ng-binding">
-                        19
+                        14
                     </div>
                 </div>
             </div><!-- end ngIf: !showDeviceText -->
@@ -279,7 +276,7 @@
                         <label>:</label>
                     </div>
                     <div class="col-lg-4 ng-binding">
-                        8
+                        18
                     </div>
                 </div>
             </div><!-- end ngIf: !showDeviceText -->
@@ -333,7 +330,7 @@
                         <label>:</label>
                     </div>
                     <div class="col-lg-4">
-                        <label class="ng-binding">26/06/2025 01:24 PM
+                        <label class="ng-binding">22/07/2025 07:17 PM
                         </label>
                     </div>
                 </div>
@@ -348,7 +345,7 @@
                         <label>:</label>
                     </div>
                     <div class="col-lg-4">
-                        <label class="ng-binding">-10.1418019, -54.9133745</label>
+                        <label class="ng-binding">-10.2345901, -55.0008151</label>
                     </div>
                 </div>
             </div>
@@ -362,7 +359,7 @@
                         <label>:</label>
                     </div>
                     <div class="col-lg-4">
-                        <label class="ng-binding">2025-07-12 10:49:28
+                        <label class="ng-binding">2025-08-20 16:58:48
                         </label>
                     </div>
                 </div>
@@ -377,7 +374,7 @@
                         <label>:</label>
                     </div>
                     <div class="col-lg-4">
-                        <label class="ng-binding">2025-07-12 11:07:02
+                        <label class="ng-binding">2025-08-20 17:07:02
                         </label>
                     </div>
                 </div>
@@ -449,292 +446,3 @@
         </div>
         <!--Col 3 ends-->
     </div>
-    <button class="fancyButton width-95-percent md-button md-ink-ripple" type="button" ng-transclude="" ng-show="finalpermission.giveCredits &amp;&amp; !hideThingsForJugnooFranchise &amp;&amp; !isRestrictedUserToEditWalletAndManager" style="margin-top:30px" ng-click="openPopUp()" aria-hidden="false"><span class="ng-binding ng-scope">Credit/Debit
-    </span></button>
-    <!-- ngIf: (showInvoiceBalance || credit_and_cash_wallet) && finalpermission.driverCashWalletRecharge && !isRestrictedUserToEditWalletAndManager -->
-    <!--<div class="row" style="background-color:#fff ;padding-top: 10px;padding-bottom: 10px">
-                <div class="col-lg-4">
-                    <div class="text-center" style="margin: 10px 0 10px 0">
-                        <label style="margin-right: 10px">Register an Issue</label>
-                        <select ng-model="DDissueTrackingWithEngId.val" ng-init="DDissueTrackingWithEngId.val = ''" ng-change="ddIssueTracking(DDissueTrackingWithEngId.val, 0, 0,undefined,undefined,undefined,0);"
-                            class="form-control" style="width:115px; display: inline-block">
-                            <option value="">&#45;&#45;Issue Type&#45;&#45;</option>
-                            <option ng-repeat="tags in issue_tags.driver_issues | filter : {'is_eng_required': 0} | unique:'category_name'" value="{{tags.issue_category_id}}">{{tags.category_name}}</option>
-                        </select>
-                    </div>
-                </div>
-            </div>-->
-    <!--Code for Driver Details 3-columns view Ends-->
-
-    <!--Code for get Driver Details starts-->
-    <div class="row">
-        <div class="tabsdemoDynamicHeight" style="margin-top: 30px">
-            <md-content class="_md">
-                <md-tabs md-dynamic-height="" md-border-bottom="" md-no-ink="" md-primary="" class="ng-isolate-scope md-dynamic-height"><md-tabs-wrapper> <md-tab-data>
-                    <!-- <md-tab label="ONGOING RIDES" ng-if="driverSummary['ongoingRide'].length !=0">
-                                <md-content class="md-padding">
-                                    <div class="table-responsive">
-                                        &lt;!&ndash; style="margin-top: 10px;border-left: 2px solid #B9B9BD;border-right:2px solid #B9B9BD;border-bottom:2px solid #B9B9BD  " &ndash;&gt;
-                                        <table class="col-lg-12 table t-fancy-table">
-                                            <thead>
-                                                <tr>
-                                                    <th>Engagement Id</th>
-                                                    <th>Accept Time</th>
-                                                    <th>Pickup Time</th>
-                                                    <th>Pickup Location</th>
-                                                    <th>Drop Location</th>
-                                                    <th>Customer ID</th>
-                                                    <th>Customer Name</th>
-                                                    <th>Ride Status</th>
-                                                    <th>Ongoing Ride Time</th>
-                                                    <th>Coupon Used</th>
-                                                    <th ng-show="ongoingRideStatus">End Ride</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <tr ng-repeat="ride in driverSummary['ongoingRide']">
-                                                    <td>
-                                                        <span ng-if="ride['rideStatus']==2" style="display:block">
-                                                            <a style="color: dodgerblue" ng-click="viewRoute3(ride['engagement_id'])">{{ride["engagement_id"]}}</a>
-                                                        </span>
-                                                        <span ng-if="ride['rideStatus']!=2" style="display:block">{{ride["engagement_id"]}}</span>
-                                                    </td>
-                                                    <td>{{ride["accept_time"] | date : 'dd/MM/yyyy hh:mm a' }}</td>
-                                                    <td>{{ride["pickup_time"] | date : 'dd/MM/yyyy hh:mm a' }}</td>
-                                                    <td>{{ride.pickup_location_address}}</td>
-                                                    <td>{{ride.drop_location_address}}</td>
-                                                    <td>
-                                                        <a style="color: dodgerblue" ng-click="getInfoLink(ride['user_id'],'user')">{{ride["user_id"]}}</a>
-                                                    </td>
-                                                    <td>{{ride["user_name"]}}</td>
-                                                    <td>
-                                                        <span ng-if="ride['rideStatus']==1" style="display:block">Req Accepted</span>
-                                                        <span ng-if="ride['rideStatus']==2" style="display:block">Ride Started</span>
-                                                        <span ng-if="ride['rideStatus']==14" style="display:block">Driver Arrived</span>
-                                                    </td>
-                                                    <td>{{ride.ongoing_ride_time}}</td>
-                                                    <td>{{ride["coupon_title"]==null?'NA':ride["coupon_title"]}}</td>
-                                                    <td ng-show="ongoingRideStatus">
-                                                        <md-button class="fancyButton" ng-click="endRide(ride)">End Ride</md-button>
-                                                    </td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-    
-                                    <div class="row pull-right" style="margin: 20px 50px -20px 0" ng-if="driverSummary.start_end_count>0">
-                                        <label style="color: red">Start End Case: {{" "+driverSummary.start_end_count}}</label>
-                                    </div>
-                                </md-content>
-                            </md-tab>
-    -->
-                    <md-tab label="RIDES" class="ng-scope ng-isolate-scope"></md-tab>
-
-                    <!-- ngIf: driverSummary['appIssues'].length || driverSummary['issues'].length -->
-
-                    <!-- ngIf: driverSummary['cancelled_rides'].length !=0 -->
-
-                    <!-- ngIf: driverSummary['call_history'].length !=0 -->
-
-
-                    <!-- ngIf: !realtime_wallet_transactions_enabled --><md-tab ng-if="!realtime_wallet_transactions_enabled" label="WALLET TRANSACTIONS" ng-click="TransactionsHistory(1)" class="ng-scope ng-isolate-scope" role="button" tabindex="0"></md-tab><!-- end ngIf: !realtime_wallet_transactions_enabled -->
-
-
-                    <!-- ngIf: realtime_wallet_transactions_enabled -->
-
-                    <!-- ngIf: driverSummary['friends'].length !=0 -->
-
-                    <!-- ngIf: finalpermission.fetchDriverSubscriptions --><md-tab label="Subscription History" ng-if="finalpermission.fetchDriverSubscriptions" class="ng-scope ng-isolate-scope"></md-tab><!-- end ngIf: finalpermission.fetchDriverSubscriptions -->
-                </md-tab-data> <!-- ngIf: $mdTabsCtrl.shouldPaginate --> <!-- ngIf: $mdTabsCtrl.shouldPaginate --> <md-tabs-canvas tabindex="0" ng-focus="$mdTabsCtrl.redirectFocus()" ng-class="{ 'md-paginated': $mdTabsCtrl.shouldPaginate, 'md-center-tabs': $mdTabsCtrl.shouldCenterTabs }" ng-keydown="$mdTabsCtrl.keydown($event)"> <md-pagination-wrapper ng-class="{ 'md-center-tabs': $mdTabsCtrl.shouldCenterTabs }" md-tab-scroll="$mdTabsCtrl.scroll($event)" role="tablist" aria-label="Use the left and right arrow keys to navigate between tabs" style="transform: translate(0px, 0px);"><!-- ngRepeat: tab in $mdTabsCtrl.tabs --><md-tab-item tabindex="0" class="md-tab  md-active" ng-repeat="tab in $mdTabsCtrl.tabs" role="tab" id="tab-item-8" md-tab-id="8" aria-selected="true" aria-disabled="false" ng-click="$mdTabsCtrl.select(tab.getIndex())" ng-focus="$mdTabsCtrl.hasFocus = true" ng-blur="$mdTabsCtrl.hasFocus = false" ng-class="{ 'md-active':    tab.isActive(), 'md-focused':   tab.hasFocus(), 'md-disabled':  tab.scope.disabled }" ng-disabled="tab.scope.disabled" md-swipe-left="$mdTabsCtrl.nextPage()" md-swipe-right="$mdTabsCtrl.previousPage()" md-tabs-template="::tab.label" md-scope="::tab.parent" aria-controls="tab-content-8" style="max-width: 264px;"><span class="ng-binding ng-scope">RIDES</span></md-tab-item><!-- end ngRepeat: tab in $mdTabsCtrl.tabs --><md-tab-item tabindex="-1" class="md-tab " ng-repeat="tab in $mdTabsCtrl.tabs" role="tab" id="tab-item-19" md-tab-id="19" aria-selected="false" aria-disabled="false" ng-click="$mdTabsCtrl.select(tab.getIndex())" ng-focus="$mdTabsCtrl.hasFocus = true" ng-blur="$mdTabsCtrl.hasFocus = false" ng-class="{ 'md-active':    tab.isActive(), 'md-focused':   tab.hasFocus(), 'md-disabled':  tab.scope.disabled }" ng-disabled="tab.scope.disabled" md-swipe-left="$mdTabsCtrl.nextPage()" md-swipe-right="$mdTabsCtrl.previousPage()" md-tabs-template="::tab.label" md-scope="::tab.parent" aria-controls="tab-content-19" style="max-width: 264px;"><span class="ng-binding ng-scope">WALLET TRANSACTIONS</span></md-tab-item><!-- end ngRepeat: tab in $mdTabsCtrl.tabs --><md-tab-item tabindex="-1" class="md-tab " ng-repeat="tab in $mdTabsCtrl.tabs" role="tab" id="tab-item-22" md-tab-id="22" aria-selected="false" aria-disabled="false" ng-click="$mdTabsCtrl.select(tab.getIndex())" ng-focus="$mdTabsCtrl.hasFocus = true" ng-blur="$mdTabsCtrl.hasFocus = false" ng-class="{ 'md-active':    tab.isActive(), 'md-focused':   tab.hasFocus(), 'md-disabled':  tab.scope.disabled }" ng-disabled="tab.scope.disabled" md-swipe-left="$mdTabsCtrl.nextPage()" md-swipe-right="$mdTabsCtrl.previousPage()" md-tabs-template="::tab.label" md-scope="::tab.parent" aria-controls="tab-content-22" style="max-width: 264px;"><span class="ng-binding ng-scope">Subscription History</span></md-tab-item><!-- end ngRepeat: tab in $mdTabsCtrl.tabs --> <md-ink-bar style="left: 0px; right: 425px;"></md-ink-bar> </md-pagination-wrapper> <md-tabs-dummy-wrapper aria-hidden="true" class="md-visually-hidden md-dummy-wrapper"> <!-- ngRepeat: tab in $mdTabsCtrl.tabs --><md-dummy-tab class="md-tab ng-scope ng-isolate-scope" tabindex="-1" ng-focus="$mdTabsCtrl.hasFocus = true" ng-blur="$mdTabsCtrl.hasFocus = false" ng-repeat="tab in $mdTabsCtrl.tabs" md-tabs-template="::tab.label" md-scope="::tab.parent" style="max-width: 264px;"><span class="ng-binding ng-scope">RIDES</span></md-dummy-tab><!-- end ngRepeat: tab in $mdTabsCtrl.tabs --><md-dummy-tab class="md-tab ng-scope ng-isolate-scope" tabindex="-1" ng-focus="$mdTabsCtrl.hasFocus = true" ng-blur="$mdTabsCtrl.hasFocus = false" ng-repeat="tab in $mdTabsCtrl.tabs" md-tabs-template="::tab.label" md-scope="::tab.parent" style="max-width: 264px;"><span class="ng-binding ng-scope">WALLET TRANSACTIONS</span></md-dummy-tab><!-- end ngRepeat: tab in $mdTabsCtrl.tabs --><md-dummy-tab class="md-tab ng-scope ng-isolate-scope" tabindex="-1" ng-focus="$mdTabsCtrl.hasFocus = true" ng-blur="$mdTabsCtrl.hasFocus = false" ng-repeat="tab in $mdTabsCtrl.tabs" md-tabs-template="::tab.label" md-scope="::tab.parent" style="max-width: 264px;"><span class="ng-binding ng-scope">Subscription History</span></md-dummy-tab><!-- end ngRepeat: tab in $mdTabsCtrl.tabs --> </md-tabs-dummy-wrapper> </md-tabs-canvas> </md-tabs-wrapper> <md-tabs-content-wrapper ng-show="$mdTabsCtrl.hasContent &amp;&amp; $mdTabsCtrl.selectedIndex &gt;= 0" class="_md" aria-hidden="false"> <!-- ngRepeat: (index, tab) in $mdTabsCtrl.tabs --><!-- ngIf: tab.hasContent --><md-tab-content id="tab-content-8" class="_md ng-scope md-active md-no-scroll" role="tabpanel" aria-labelledby="tab-item-8" md-swipe-left="$mdTabsCtrl.swipeContent &amp;&amp; $mdTabsCtrl.incrementIndex(1)" md-swipe-right="$mdTabsCtrl.swipeContent &amp;&amp; $mdTabsCtrl.incrementIndex(-1)" ng-if="tab.hasContent" ng-repeat="(index, tab) in $mdTabsCtrl.tabs" ng-class="{ 'md-no-transition': $mdTabsCtrl.lastSelectedIndex == null, 'md-active':        tab.isActive(), 'md-left':          tab.isLeft(), 'md-right':         tab.isRight(), 'md-no-scroll':     $mdTabsCtrl.dynamicHeight }"> <!-- ngIf: $mdTabsCtrl.enableDisconnect || tab.shouldRender() --><div md-tabs-template="::tab.template" md-connected-if="tab.isActive()" md-scope="::tab.parent" ng-if="$mdTabsCtrl.enableDisconnect || tab.shouldRender()" class="ng-scope ng-isolate-scope">
-                        <md-content class="md-padding ng-scope _md">
-                            <div class="table-responsive" style="clear: both">
-                                <div class="col-lg-12" style="text-align: center">
-                                    <!-- ngIf: driverSummary.info.length == 0 -->
-                                </div>
-
-                                <!-- ngIf: driverSummary.info.length != 0 --><table class="col-lg-12 table t-fancy-table ng-scope" ng-if="driverSummary.info.length != 0" style="margin-top: 10px;border-left: 2px solid #B9B9BD;border-right:2px solid #B9B9BD;border-bottom:2px solid #B9B9BD  ">
-                                    <thead>
-                                        <tr>
-                                            <th class="ng-binding">S.No</th>
-                                            <th class="ng-binding">Engagement ID</th>
-                                            <th class="ng-binding">Customer ID</th>
-                                            <th class="ng-binding">Driver Rating</th>
-                                            <th class="ng-binding">Drop Time</th>
-                                            <th class="ng-binding">Distance travelled (Km)</th>
-                                            <th class="ng-binding">Google Distance (Km)</th>
-                                            <th class="ng-binding">Duration (min)</th>
-                                            <th class="ng-binding">Fare</th>
-                                            <!-- ngIf: admin -->
-                                            <!--<th>Route</th>-->
-                                            <!-- ngIf: !showDeviceText --><th ng-if="!showDeviceText" class="ng-binding ng-scope">Start End Case Issue Reported</th><!-- end ngIf: !showDeviceText -->
-                                            <!-- <th>Report Issues</th>-->
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <!-- ngRepeat: i in driverSummary.info --><tr ng-repeat="i in driverSummary.info" ng-class="{'change-background' : i['Start End']==1&amp;&amp;(i['Start End Reversed']==0||i['Start End Reversed']==null), 'change-background-automated' : i['Start End Automated'] ==1}" class="ng-scope">
-                                            <td class="ng-binding">1</td>
-                                            <td>
-                                                <!-- ngIf: i['Ride Type']!='Dodo' --><span ng-if="i['Ride Type']!='Dodo'" style="display:block" class="ng-scope">
-                                                    <a style="color: dodgerblue" ng-click="viewRoute(i['Engagement ID'],i['Google Distance'],i['Duration'])" class="ng-binding">590170278</a>
-                                                </span><!-- end ngIf: i['Ride Type']!='Dodo' -->
-                                                <!-- ngIf: i['Ride Type']=='Dodo' -->
-                                            </td>
-                                            <td>
-                                                <!-- ngIf: i['Ride Type']!='Dodo' --><span ng-if="i['Ride Type']!='Dodo'" style="display:block" class="ng-scope">
-                                                    <a style="color: dodgerblue" ng-click="getInfoLink(i['Customer ID'],'user')" class="ng-binding">17801586</a>
-                                                </span><!-- end ngIf: i['Ride Type']!='Dodo' -->
-                                                <!-- ngIf: i['Ride Type']=='Dodo' -->
-                                            </td>
-                                            <td>
-                                                <!-- ngIf: i['Driver Rating']>0 -->
-                                                <!-- ngIf: i['Driver Rating']==-1 --><span ng-if="i['Driver Rating']==-1" style="display:block" class="ng-scope">--</span><!-- end ngIf: i['Driver Rating']==-1 -->
-                                            </td>
-                                            <td class="ng-binding">26/06/2025 : 2:24 pm</td>
-                                            <td class="ng-binding">2.03317</td>
-                                            <td class="ng-binding">2.31</td>
-                                            <td class="ng-binding">5</td>
-                                            <td class="ng-binding">15.15</td>
-                                            <!-- ngIf: admin -->
-                                            <!-- ngIf: !showDeviceText --><td ng-if="!showDeviceText" class="ng-scope">
-                                                <!-- ngIf: i['Start End']==null&&(i['Start End Automated']==null&&i['Start End Reversed']==null) --><span ng-if="i['Start End']==null&amp;&amp;(i['Start End Automated']==null&amp;&amp;i['Start End Reversed']==null)" style="display:block" class="ng-binding ng-scope">NO</span><!-- end ngIf: i['Start End']==null&&(i['Start End Automated']==null&&i['Start End Reversed']==null) -->
-                                                <!-- ngIf: i['Start End']==1&&(i['Start End Automated']==0||i['Start End Automated']==null) -->
-                                                <!-- ngIf: i['Start End Automated']==1 -->
-                                            </td><!-- end ngIf: !showDeviceText -->
-                                            <!-- <td>
-                                                        <select ng-model="DDissueTrackingWithEngId.val" ng-init="DDissueTrackingWithEngId.val = ''" ng-change="ddIssueTracking(DDissueTrackingWithEngId.val, 1, 0, i['Customer ID'], i['Engagement ID'],i ,1);"
-                                                            class="form-control" style="margin-bottom: 5px">
-                                                            <option value="">&#45;&#45;Issue Type&#45;&#45;</option>
-                                                            <option ng-repeat="tags in issue_tags.driver_issues | filter : {'is_eng_required': 1} | unique:'category_name'" value="{{tags.issue_category_id}}">{{tags.category_name}}</option>
-                                                            <option value="22">Edit Ride</option>
-                                                            <option value="26" ng-if="(i['Start End']==null&&i['Ride Type']!='Dodo')&&admin">Start End Case</option>
-                                                            <option value="33" ng-if="(i['Start End']==1&&(i['Start End Reversed']==0||i['Start End Reversed']==null)&&i['Start End Automated'])&&admin">Reverse Start End Case</option>
-                                                            <option value="100">Raise MA</option>
-                                                        </select>
-                                                    </td>-->
-                                        </tr><!-- end ngRepeat: i in driverSummary.info --><tr ng-repeat="i in driverSummary.info" ng-class="{'change-background' : i['Start End']==1&amp;&amp;(i['Start End Reversed']==0||i['Start End Reversed']==null), 'change-background-automated' : i['Start End Automated'] ==1}" class="ng-scope">
-                                            <td class="ng-binding">2</td>
-                                            <td>
-                                                <!-- ngIf: i['Ride Type']!='Dodo' --><span ng-if="i['Ride Type']!='Dodo'" style="display:block" class="ng-scope">
-                                                    <a style="color: dodgerblue" ng-click="viewRoute(i['Engagement ID'],i['Google Distance'],i['Duration'])" class="ng-binding">589209862</a>
-                                                </span><!-- end ngIf: i['Ride Type']!='Dodo' -->
-                                                <!-- ngIf: i['Ride Type']=='Dodo' -->
-                                            </td>
-                                            <td>
-                                                <!-- ngIf: i['Ride Type']!='Dodo' --><span ng-if="i['Ride Type']!='Dodo'" style="display:block" class="ng-scope">
-                                                    <a style="color: dodgerblue" ng-click="getInfoLink(i['Customer ID'],'user')" class="ng-binding">17801586</a>
-                                                </span><!-- end ngIf: i['Ride Type']!='Dodo' -->
-                                                <!-- ngIf: i['Ride Type']=='Dodo' -->
-                                            </td>
-                                            <td>
-                                                <!-- ngIf: i['Driver Rating']>0 -->
-                                                <!-- ngIf: i['Driver Rating']==-1 --><span ng-if="i['Driver Rating']==-1" style="display:block" class="ng-scope">--</span><!-- end ngIf: i['Driver Rating']==-1 -->
-                                            </td>
-                                            <td class="ng-binding">22/06/2025 : 9:24 pm</td>
-                                            <td class="ng-binding">0.002</td>
-                                            <td class="ng-binding">0.002</td>
-                                            <td class="ng-binding">0</td>
-                                            <td class="ng-binding">15</td>
-                                            <!-- ngIf: admin -->
-                                            <!-- ngIf: !showDeviceText --><td ng-if="!showDeviceText" class="ng-scope">
-                                                <!-- ngIf: i['Start End']==null&&(i['Start End Automated']==null&&i['Start End Reversed']==null) --><span ng-if="i['Start End']==null&amp;&amp;(i['Start End Automated']==null&amp;&amp;i['Start End Reversed']==null)" style="display:block" class="ng-binding ng-scope">NO</span><!-- end ngIf: i['Start End']==null&&(i['Start End Automated']==null&&i['Start End Reversed']==null) -->
-                                                <!-- ngIf: i['Start End']==1&&(i['Start End Automated']==0||i['Start End Automated']==null) -->
-                                                <!-- ngIf: i['Start End Automated']==1 -->
-                                            </td><!-- end ngIf: !showDeviceText -->
-                                            <!-- <td>
-                                                        <select ng-model="DDissueTrackingWithEngId.val" ng-init="DDissueTrackingWithEngId.val = ''" ng-change="ddIssueTracking(DDissueTrackingWithEngId.val, 1, 0, i['Customer ID'], i['Engagement ID'],i ,1);"
-                                                            class="form-control" style="margin-bottom: 5px">
-                                                            <option value="">&#45;&#45;Issue Type&#45;&#45;</option>
-                                                            <option ng-repeat="tags in issue_tags.driver_issues | filter : {'is_eng_required': 1} | unique:'category_name'" value="{{tags.issue_category_id}}">{{tags.category_name}}</option>
-                                                            <option value="22">Edit Ride</option>
-                                                            <option value="26" ng-if="(i['Start End']==null&&i['Ride Type']!='Dodo')&&admin">Start End Case</option>
-                                                            <option value="33" ng-if="(i['Start End']==1&&(i['Start End Reversed']==0||i['Start End Reversed']==null)&&i['Start End Automated'])&&admin">Reverse Start End Case</option>
-                                                            <option value="100">Raise MA</option>
-                                                        </select>
-                                                    </td>-->
-                                        </tr><!-- end ngRepeat: i in driverSummary.info -->
-                                    </tbody>
-                                </table><!-- end ngIf: driverSummary.info.length != 0 -->
-                            </div>
-                            <!--Pagination-->
-                            <div class="" style="margin-top: 5px">
-                                <div style="float: right" class="">
-                                    <div class="col-sm-3" title="Previous" data-toggle="tooltip">
-                                        <img ng-click="prev_newDriver('driverRecent');" ng-hide="prevBtnDisabledDriver" src="app/img/prev.png" class="ng-hide" role="button" tabindex="0" aria-hidden="true">
-                                    </div>
-                                    <div class="col-sm-4" style="margin-left: 10px" title="Next" data-toggle="tooltip">
-                                        <img ng-click="next_newDriver('driverRecent');" ng-hide="nextBtnDisabledDriver" src="app/img/next.png" class="ng-hide" role="button" tabindex="0" aria-hidden="true">
-                                    </div>
-
-                                </div>
-                            </div>
-                            <!--Pagination Ends-->
-                        </md-content>
-                    </div><!-- end ngIf: $mdTabsCtrl.enableDisconnect || tab.shouldRender() --> </md-tab-content><!-- end ngIf: tab.hasContent --><!-- end ngRepeat: (index, tab) in $mdTabsCtrl.tabs --><!-- ngIf: tab.hasContent --><md-tab-content id="tab-content-19" class="_md ng-scope md-right md-no-scroll" role="tabpanel" aria-labelledby="tab-item-19" md-swipe-left="$mdTabsCtrl.swipeContent &amp;&amp; $mdTabsCtrl.incrementIndex(1)" md-swipe-right="$mdTabsCtrl.swipeContent &amp;&amp; $mdTabsCtrl.incrementIndex(-1)" ng-if="tab.hasContent" ng-repeat="(index, tab) in $mdTabsCtrl.tabs" ng-class="{ 'md-no-transition': $mdTabsCtrl.lastSelectedIndex == null, 'md-active':        tab.isActive(), 'md-left':          tab.isLeft(), 'md-right':         tab.isRight(), 'md-no-scroll':     $mdTabsCtrl.dynamicHeight }"> <!-- ngIf: $mdTabsCtrl.enableDisconnect || tab.shouldRender() --><div md-tabs-template="::tab.template" md-connected-if="tab.isActive()" md-scope="::tab.parent" ng-if="$mdTabsCtrl.enableDisconnect || tab.shouldRender()" class="ng-scope ng-isolate-scope">
-                        <md-content class="md-padding ng-scope _md">
-                            <div class="table-responsive" style="clear: both">
-
-                                <div id="creditLogs_wrapper" class="dataTables_wrapper form-inline dt-bootstrap no-footer"><div class="row"><div class="col-sm-6"><div class="dataTables_length" id="creditLogs_length"><label>Show <select name="creditLogs_length" aria-controls="creditLogs" class="form-control input-sm"><option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="100">100</option></select> entries</label></div></div><div class="col-sm-6"><div id="creditLogs_filter" class="dataTables_filter"><label>Search:<input type="search" class="form-control input-sm" placeholder="" aria-controls="creditLogs"></label></div></div></div><div class="row"><div class="col-sm-12"><div class="dataTables_scroll"><div class="dataTables_scrollHead" style="overflow: hidden; position: relative; border: 0px; width: 100%;"><div class="dataTables_scrollHeadInner" style="box-sizing: content-box; width: 1244.33px; padding-right: 0px;"><table class="col-lg-12 table t-fancy-table no-footer dataTable" style="margin-top: 10px; border-left: 2px solid rgb(185, 185, 189); border-right: 2px solid rgb(185, 185, 189); border-bottom: 2px solid rgb(185, 185, 189); margin-left: 0px; width: 1244.33px;" aria-describedby="creditLogs_info"><thead>
-                                        <tr><th class="ng-binding sorting sorting_desc" tabindex="0" aria-controls="creditLogs" rowspan="1" colspan="1" aria-label="Transaction Time: activate to sort column descending: activate to sort column ascending: activate to sort column ascending" style="width: 196.854px;" data-column-index="0" aria-sort="descending">Transaction Time</th><th class="ng-binding sorting" tabindex="0" aria-controls="creditLogs" rowspan="1" colspan="1" aria-label="Engagement ID: activate to sort column ascending: activate to sort column ascending: activate to sort column ascending" style="width: 178.875px;" data-column-index="1">Engagement ID</th><th class="ng-binding sorting" tabindex="0" aria-controls="creditLogs" rowspan="1" colspan="1" aria-label="Amount: activate to sort column ascending: activate to sort column ascending: activate to sort column ascending" style="width: 107.917px;" data-column-index="2">Amount</th><th class="ng-binding sorting" tabindex="0" aria-controls="creditLogs" rowspan="1" colspan="1" aria-label="Debit/Credit/CashBack/ Driver Added Cash
-                                            (D/C/CB/DAC): activate to sort column ascending: activate to sort column ascending: activate to sort column ascending" style="width: 450.688px;" data-column-index="3">Debit/Credit/CashBack<!-- ngIf: !showDeviceText --><span ng-if="!showDeviceText" class="ng-binding ng-scope">/ Driver Added Cash</span><!-- end ngIf: !showDeviceText -->
-                                            <br>(D/C/CB/DAC)</th></tr>
-                                    </thead></table></div></div><div class="dataTables_scrollBody" style="position: relative; overflow: auto; width: 100%;"><table id="creditLogs" class="col-lg-12 table t-fancy-table no-footer dataTable" style="margin-top: 10px; border-left: 2px solid rgb(185, 185, 189); border-right: 2px solid rgb(185, 185, 189); border-bottom: 2px solid rgb(185, 185, 189); width: 1215px;" aria-describedby="creditLogs_info"><thead>
-                                        <tr style="height: 0px;"><th class="ng-binding sorting sorting_desc" aria-controls="creditLogs" rowspan="1" colspan="1" aria-label="Transaction Time: activate to sort column descending: activate to sort column ascending: activate to sort column ascending" style="width: 196.854px; padding-top: 0px; padding-bottom: 0px; border-top-width: 0px; border-bottom-width: 0px; height: 0px;" data-column-index="0" aria-sort="descending"><div class="dataTables_sizing" style="height: 0px; overflow: hidden;">Transaction Time</div></th><th class="ng-binding sorting" aria-controls="creditLogs" rowspan="1" colspan="1" aria-label="Engagement ID: activate to sort column ascending: activate to sort column ascending: activate to sort column ascending" style="width: 178.875px; padding-top: 0px; padding-bottom: 0px; border-top-width: 0px; border-bottom-width: 0px; height: 0px;" data-column-index="1"><div class="dataTables_sizing" style="height: 0px; overflow: hidden;">Engagement ID</div></th><th class="ng-binding sorting" aria-controls="creditLogs" rowspan="1" colspan="1" aria-label="Amount: activate to sort column ascending: activate to sort column ascending: activate to sort column ascending" style="width: 107.917px; padding-top: 0px; padding-bottom: 0px; border-top-width: 0px; border-bottom-width: 0px; height: 0px;" data-column-index="2"><div class="dataTables_sizing" style="height: 0px; overflow: hidden;">Amount</div></th><th class="ng-binding sorting" aria-controls="creditLogs" rowspan="1" colspan="1" aria-label="Debit/Credit/CashBack/ Driver Added Cash
-                                            (D/C/CB/DAC): activate to sort column ascending: activate to sort column ascending: activate to sort column ascending" style="width: 450.688px; padding-top: 0px; padding-bottom: 0px; border-top-width: 0px; border-bottom-width: 0px; height: 0px;" data-column-index="3"><div class="dataTables_sizing" style="height: 0px; overflow: hidden;">Debit/Credit/CashBack<!-- ngIf: !showDeviceText --><span ng-if="!showDeviceText" class="ng-binding ng-scope">/ Driver Added Cash</span><!-- end ngIf: !showDeviceText -->
-                                            <br>(D/C/CB/DAC)</div></th></tr>
-                                    </thead>
-                                    
-                                    <tbody>
-                                        <!-- ngRepeat: data in creditLogs --><!-- end ngRepeat: data in creditLogs --><!-- end ngRepeat: data in creditLogs --><!-- end ngRepeat: data in creditLogs --><!-- end ngRepeat: data in creditLogs -->
-                                    <tr ng-repeat="data in creditLogs" class="ng-scope odd">
-                                            <td class="ng-binding sorting_1">2025-06-26 14:24:53</td>
-                                            <td class="ng-binding">590170278</td>
-                                            <td class="ng-binding">1</td>
-                                            <td class="ng-binding">D</td>
-                                        </tr><tr ng-repeat="data in creditLogs" class="ng-scope even">
-                                            <td class="ng-binding sorting_1">2025-06-22 21:24:20</td>
-                                            <td class="ng-binding">589209862</td>
-                                            <td class="ng-binding">1</td>
-                                            <td class="ng-binding">D</td>
-                                        </tr><tr ng-repeat="data in creditLogs" class="ng-scope odd">
-                                            <td class="ng-binding sorting_1">2025-05-23 10:27:38</td>
-                                            <td class="ng-binding">1278672</td>
-                                            <td class="ng-binding">10</td>
-                                            <td class="ng-binding">C</td>
-                                        </tr></tbody>
-                                </table></div></div></div></div><div class="row"><div class="col-sm-5"><div class="dataTables_info" id="creditLogs_info" role="status" aria-live="polite">Showing 1 to 3 of 3 entries</div></div><div class="col-sm-7"><div class="dataTables_paginate paging_full_numbers" id="creditLogs_paginate"><ul class="pagination"><li class="paginate_button first disabled" id="creditLogs_first"><a href="#" aria-controls="creditLogs" data-dt-idx="0" tabindex="0">First</a></li><li class="paginate_button previous disabled" id="creditLogs_previous"><a href="#" aria-controls="creditLogs" data-dt-idx="1" tabindex="0">Previous</a></li><li class="paginate_button active"><a href="#" aria-controls="creditLogs" data-dt-idx="2" tabindex="0">1</a></li><li class="paginate_button next disabled" id="creditLogs_next"><a href="#" aria-controls="creditLogs" data-dt-idx="3" tabindex="0">Next</a></li><li class="paginate_button last disabled" id="creditLogs_last"><a href="#" aria-controls="creditLogs" data-dt-idx="4" tabindex="0">Last</a></li></ul></div></div></div></div>
-                            </div>
-                            <!--Pagination-->
-                            <div class="" style="margin-top: 5px">
-                                <div style="float: right" class="">
-                                    <div class="col-sm-3" title="Previous" data-toggle="tooltip">
-                                        <img ng-click="prev_newDriver('driveragentHistory');" ng-hide="agentHistoryDriver_prevBtnDisabled" src="app/img/prev.png" class="ng-hide" role="button" tabindex="0" aria-hidden="true">
-                                    </div>
-                                    <div class="col-sm-4" style="margin-left: 10px" title="Next" data-toggle="tooltip">
-                                        <img ng-click="next_newDriver('driveragentHistory');" ng-hide="agentHistoryDriver_nextBtnDisabled" src="app/img/next.png" class="ng-hide" role="button" tabindex="0" aria-hidden="true">
-                                    </div>
-
-                                </div>
-                            </div>
-                            <!--Pagination Ends-->
-                        </md-content>
-                    </div><!-- end ngIf: $mdTabsCtrl.enableDisconnect || tab.shouldRender() --> </md-tab-content><!-- end ngIf: tab.hasContent --><!-- end ngRepeat: (index, tab) in $mdTabsCtrl.tabs --><!-- ngIf: tab.hasContent --><md-tab-content id="tab-content-22" class="_md ng-scope md-right md-no-scroll" role="tabpanel" aria-labelledby="tab-item-22" md-swipe-left="$mdTabsCtrl.swipeContent &amp;&amp; $mdTabsCtrl.incrementIndex(1)" md-swipe-right="$mdTabsCtrl.swipeContent &amp;&amp; $mdTabsCtrl.incrementIndex(-1)" ng-if="tab.hasContent" ng-repeat="(index, tab) in $mdTabsCtrl.tabs" ng-class="{ 'md-no-transition': $mdTabsCtrl.lastSelectedIndex == null, 'md-active':        tab.isActive(), 'md-left':          tab.isLeft(), 'md-right':         tab.isRight(), 'md-no-scroll':     $mdTabsCtrl.dynamicHeight }"> <!-- ngIf: $mdTabsCtrl.enableDisconnect || tab.shouldRender() --><div md-tabs-template="::tab.template" md-connected-if="tab.isActive()" md-scope="::tab.parent" ng-if="$mdTabsCtrl.enableDisconnect || tab.shouldRender()" class="ng-scope ng-isolate-scope">
-                        <md-content class="md-padding ng-scope _md">
-                            <div style="clear: both;">
-                                <div id="driverSubscriptionsTable_wrapper" class="dataTables_wrapper form-inline dt-bootstrap no-footer"><div class="row"><div class="col-sm-6"><div class="dataTables_length" id="driverSubscriptionsTable_length"><label>Show <select name="driverSubscriptionsTable_length" aria-controls="driverSubscriptionsTable" class="form-control input-sm"><option value="10">10</option><option value="25">25</option><option value="50">50</option><option value="100">100</option></select> entries</label></div></div><div class="col-sm-6"><div id="driverSubscriptionsTable_filter" class="dataTables_filter"><label>Search:<input type="search" class="form-control input-sm" placeholder="" aria-controls="driverSubscriptionsTable"></label></div></div></div><div class="row"><div class="col-sm-12"><div class="dataTables_scroll"><div class="dataTables_scrollHead" style="overflow: hidden; position: relative; border: 0px; width: 100%;"><div class="dataTables_scrollHeadInner" style="box-sizing: content-box; width: 1586.12px; padding-right: 0px;"><table class="col-lg-12 table t-fancy-table no-footer dataTable" aria-describedby="driverSubscriptionsTable_info" style="margin-left: 0px; width: 1586.12px;"><thead>
-                                        <tr><th class="ng-binding sorting sorting_asc" tabindex="0" aria-controls="driverSubscriptionsTable" rowspan="1" colspan="1" aria-label="S.No: activate to sort column descending: activate to sort column descending: activate to sort column descending" style="width: 30.8542px;" data-column-index="0" aria-sort="ascending">S.No</th><th class="ng-binding sorting" tabindex="0" aria-controls="driverSubscriptionsTable" rowspan="1" colspan="1" aria-label="Subscription ID: activate to sort column ascending: activate to sort column ascending: activate to sort column ascending" style="width: 86.5208px;" data-column-index="1">Subscription ID</th><th class="ng-binding sorting" tabindex="0" aria-controls="driverSubscriptionsTable" rowspan="1" colspan="1" aria-label="Title: activate to sort column ascending: activate to sort column ascending: activate to sort column ascending" style="width: 29.875px;" data-column-index="2">Title</th><th class="ng-binding sorting" tabindex="0" aria-controls="driverSubscriptionsTable" rowspan="1" colspan="1" aria-label="Amount: activate to sort column ascending: activate to sort column ascending: activate to sort column ascending" style="width: 53.9792px;" data-column-index="3">Amount</th><th class="ng-binding sorting" tabindex="0" aria-controls="driverSubscriptionsTable" rowspan="1" colspan="1" aria-label="Benefit Amount: activate to sort column ascending: activate to sort column ascending: activate to sort column ascending" style="width: 53.9583px;" data-column-index="4">Benefit Amount</th><th class="ng-binding sorting" tabindex="0" aria-controls="driverSubscriptionsTable" rowspan="1" colspan="1" aria-label="Start From: activate to sort column ascending: activate to sort column ascending: activate to sort column ascending" style="width: 34.9167px;" data-column-index="5">Start From</th><th class="ng-binding sorting" tabindex="0" aria-controls="driverSubscriptionsTable" rowspan="1" colspan="1" aria-label="End On: activate to sort column ascending: activate to sort column ascending: activate to sort column ascending" style="width: 26.0417px;" data-column-index="6">End On</th><th class="ng-binding sorting" tabindex="0" aria-controls="driverSubscriptionsTable" rowspan="1" colspan="1" aria-label="Current Rides Count: activate to sort column ascending: activate to sort column ascending: activate to sort column ascending" style="width: 52.5833px;" data-column-index="7">Current Rides Count</th><th class="ng-binding sorting" tabindex="0" aria-controls="driverSubscriptionsTable" rowspan="1" colspan="1" aria-label="Payment Mode: activate to sort column ascending: activate to sort column ascending: activate to sort column ascending" style="width: 60.2708px;" data-column-index="8">Payment Mode</th><th class="ng-binding sorting" tabindex="0" aria-controls="driverSubscriptionsTable" rowspan="1" colspan="1" aria-label="Payment Notes: activate to sort column ascending: activate to sort column ascending: activate to sort column ascending" style="width: 60.2708px;" data-column-index="9">Payment Notes</th><th class="ng-binding sorting" tabindex="0" aria-controls="driverSubscriptionsTable" rowspan="1" colspan="1" aria-label="Created By: activate to sort column ascending: activate to sort column ascending: activate to sort column ascending" style="width: 54px;" data-column-index="10">Created By</th><th class="ng-binding sorting" tabindex="0" aria-controls="driverSubscriptionsTable" rowspan="1" colspan="1" aria-label="Updated By: activate to sort column ascending: activate to sort column ascending: activate to sort column ascending" style="width: 57.7708px;" data-column-index="11">Updated By</th><th class="ng-binding sorting" tabindex="0" aria-controls="driverSubscriptionsTable" rowspan="1" colspan="1" aria-label="Status: activate to sort column ascending: activate to sort column ascending: activate to sort column ascending" style="width: 45.0833px;" data-column-index="12">Status</th></tr>
-                                    </thead></table></div></div><div class="dataTables_scrollBody" style="position: relative; overflow: auto; width: 100%;"><table class="col-lg-12 table t-fancy-table no-footer dataTable" id="driverSubscriptionsTable" aria-describedby="driverSubscriptionsTable_info" style="width: 1561px;"><thead>
-                                        <tr style="height: 0px;"><th class="ng-binding sorting sorting_asc" aria-controls="driverSubscriptionsTable" rowspan="1" colspan="1" aria-label="S.No: activate to sort column descending: activate to sort column descending: activate to sort column descending" style="width: 30.8542px; padding-top: 0px; padding-bottom: 0px; border-top-width: 0px; border-bottom-width: 0px; height: 0px;" data-column-index="0" aria-sort="ascending"><div class="dataTables_sizing" style="height: 0px; overflow: hidden;">S.No</div></th><th class="ng-binding sorting" aria-controls="driverSubscriptionsTable" rowspan="1" colspan="1" aria-label="Subscription ID: activate to sort column ascending: activate to sort column ascending: activate to sort column ascending" style="width: 86.5208px; padding-top: 0px; padding-bottom: 0px; border-top-width: 0px; border-bottom-width: 0px; height: 0px;" data-column-index="1"><div class="dataTables_sizing" style="height: 0px; overflow: hidden;">Subscription ID</div></th><th class="ng-binding sorting" aria-controls="driverSubscriptionsTable" rowspan="1" colspan="1" aria-label="Title: activate to sort column ascending: activate to sort column ascending: activate to sort column ascending" style="width: 29.875px; padding-top: 0px; padding-bottom: 0px; border-top-width: 0px; border-bottom-width: 0px; height: 0px;" data-column-index="2"><div class="dataTables_sizing" style="height: 0px; overflow: hidden;">Title</div></th><th class="ng-binding sorting" aria-controls="driverSubscriptionsTable" rowspan="1" colspan="1" aria-label="Amount: activate to sort column ascending: activate to sort column ascending: activate to sort column ascending" style="width: 53.9792px; padding-top: 0px; padding-bottom: 0px; border-top-width: 0px; border-bottom-width: 0px; height: 0px;" data-column-index="3"><div class="dataTables_sizing" style="height: 0px; overflow: hidden;">Amount</div></th><th class="ng-binding sorting" aria-controls="driverSubscriptionsTable" rowspan="1" colspan="1" aria-label="Benefit Amount: activate to sort column ascending: activate to sort column ascending: activate to sort column ascending" style="width: 53.9583px; padding-top: 0px; padding-bottom: 0px; border-top-width: 0px; border-bottom-width: 0px; height: 0px;" data-column-index="4"><div class="dataTables_sizing" style="height: 0px; overflow: hidden;">Benefit Amount</div></th><th class="ng-binding sorting" aria-controls="driverSubscriptionsTable" rowspan="1" colspan="1" aria-label="Start From: activate to sort column ascending: activate to sort column ascending: activate to sort column ascending" style="width: 34.9167px; padding-top: 0px; padding-bottom: 0px; border-top-width: 0px; border-bottom-width: 0px; height: 0px;" data-column-index="5"><div class="dataTables_sizing" style="height: 0px; overflow: hidden;">Start From</div></th><th class="ng-binding sorting" aria-controls="driverSubscriptionsTable" rowspan="1" colspan="1" aria-label="End On: activate to sort column ascending: activate to sort column ascending: activate to sort column ascending" style="width: 26.0417px; padding-top: 0px; padding-bottom: 0px; border-top-width: 0px; border-bottom-width: 0px; height: 0px;" data-column-index="6"><div class="dataTables_sizing" style="height: 0px; overflow: hidden;">End On</div></th><th class="ng-binding sorting" aria-controls="driverSubscriptionsTable" rowspan="1" colspan="1" aria-label="Current Rides Count: activate to sort column ascending: activate to sort column ascending: activate to sort column ascending" style="width: 52.5833px; padding-top: 0px; padding-bottom: 0px; border-top-width: 0px; border-bottom-width: 0px; height: 0px;" data-column-index="7"><div class="dataTables_sizing" style="height: 0px; overflow: hidden;">Current Rides Count</div></th><th class="ng-binding sorting" aria-controls="driverSubscriptionsTable" rowspan="1" colspan="1" aria-label="Payment Mode: activate to sort column ascending: activate to sort column ascending: activate to sort column ascending" style="width: 60.2708px; padding-top: 0px; padding-bottom: 0px; border-top-width: 0px; border-bottom-width: 0px; height: 0px;" data-column-index="8"><div class="dataTables_sizing" style="height: 0px; overflow: hidden;">Payment Mode</div></th><th class="ng-binding sorting" aria-controls="driverSubscriptionsTable" rowspan="1" colspan="1" aria-label="Payment Notes: activate to sort column ascending: activate to sort column ascending: activate to sort column ascending" style="width: 60.2708px; padding-top: 0px; padding-bottom: 0px; border-top-width: 0px; border-bottom-width: 0px; height: 0px;" data-column-index="9"><div class="dataTables_sizing" style="height: 0px; overflow: hidden;">Payment Notes</div></th><th class="ng-binding sorting" aria-controls="driverSubscriptionsTable" rowspan="1" colspan="1" aria-label="Created By: activate to sort column ascending: activate to sort column ascending: activate to sort column ascending" style="width: 54px; padding-top: 0px; padding-bottom: 0px; border-top-width: 0px; border-bottom-width: 0px; height: 0px;" data-column-index="10"><div class="dataTables_sizing" style="height: 0px; overflow: hidden;">Created By</div></th><th class="ng-binding sorting" aria-controls="driverSubscriptionsTable" rowspan="1" colspan="1" aria-label="Updated By: activate to sort column ascending: activate to sort column ascending: activate to sort column ascending" style="width: 57.7708px; padding-top: 0px; padding-bottom: 0px; border-top-width: 0px; border-bottom-width: 0px; height: 0px;" data-column-index="11"><div class="dataTables_sizing" style="height: 0px; overflow: hidden;">Updated By</div></th><th class="ng-binding sorting" aria-controls="driverSubscriptionsTable" rowspan="1" colspan="1" aria-label="Status: activate to sort column ascending: activate to sort column ascending: activate to sort column ascending" style="width: 45.0833px; padding-top: 0px; padding-bottom: 0px; border-top-width: 0px; border-bottom-width: 0px; height: 0px;" data-column-index="12"><div class="dataTables_sizing" style="height: 0px; overflow: hidden;">Status</div></th></tr>
-                                    </thead>
-                                    
-                                    <tbody>
-                                        <!-- ngRepeat: data in driverSubscriptionHistory -->
-                                    <tr class="odd"><td valign="top" colspan="13" class="dataTables_empty">No data available in table</td></tr></tbody>
-                                </table></div></div></div></div><div class="row"><div class="col-sm-5"><div class="dataTables_info" id="driverSubscriptionsTable_info" role="status" aria-live="polite">Showing 0 to 0 of 0 entries</div></div><div class="col-sm-7"><div class="dataTables_paginate paging_full_numbers" id="driverSubscriptionsTable_paginate"><ul class="pagination"><li class="paginate_button first disabled" id="driverSubscriptionsTable_first"><a href="#" aria-controls="driverSubscriptionsTable" data-dt-idx="0" tabindex="0">First</a></li><li class="paginate_button previous disabled" id="driverSubscriptionsTable_previous"><a href="#" aria-controls="driverSubscriptionsTable" data-dt-idx="1" tabindex="0">Previous</a></li><li class="paginate_button next disabled" id="driverSubscriptionsTable_next"><a href="#" aria-controls="driverSubscriptionsTable" data-dt-idx="2" tabindex="0">Next</a></li><li class="paginate_button last disabled" id="driverSubscriptionsTable_last"><a href="#" aria-controls="driverSubscriptionsTable" data-dt-idx="3" tabindex="0">Last</a></li></ul></div></div></div></div>
-                            </div>
-                        </md-content>
-                    </div><!-- end ngIf: $mdTabsCtrl.enableDisconnect || tab.shouldRender() --> </md-tab-content><!-- end ngIf: tab.hasContent --><!-- end ngRepeat: (index, tab) in $mdTabsCtrl.tabs --> </md-tabs-content-wrapper></md-tabs>
-            </md-content>
-        </div>
-    </div>
-    <!--Code for get Driver Details Ends-->
-</div>
