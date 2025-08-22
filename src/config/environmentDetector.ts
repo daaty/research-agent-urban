@@ -176,9 +176,8 @@ export class EnvironmentDetector {
         '--disable-web-security',
         '--disable-background-timer-throttling',
         '--disable-backgrounding-occluded-windows',
-        '--disable-renderer-backgrounding',
-        '--window-size=1600,1200',
-        '--window-position=0,0'
+        '--disable-renderer-backgrounding'
+        // ❌ REMOVIDO: --window-size e --window-position (conflitam com split-screen)
       ]
     };
 

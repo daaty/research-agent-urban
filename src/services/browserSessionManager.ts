@@ -37,15 +37,21 @@ export class BrowserSessionManager {
    * 🖥️ Obter posição da janela baseada na instância para VNC split-screen
    */
   private getWindowPosition(instanceName: string): { x: number, y: number, width: number, height: number } {
+    // 🎯 LÓGICA SIMPLIFICADA: Apenas 2 posições principais
     const positions: { [key: string]: { x: number, y: number, width: number, height: number } } = {
-      'default': { x: 0, y: 0, width: 800, height: 1170 },        // Lado esquerdo
-      'rides_scraper': { x: 0, y: 0, width: 800, height: 1170 },  // Lado esquerdo  
-      'drivers_scraper': { x: 800, y: 0, width: 800, height: 1170 }, // Lado direito
-      'hybrid_operation': { x: 0, y: 0, width: 800, height: 1170 },   // Lado esquerdo
-      'hybrid_scraper': { x: 800, y: 0, width: 800, height: 1170 }    // Lado direito
+      // LADO ESQUERDO (rides, monitoramento)
+      'default': { x: 0, y: 0, width: 800, height: 1170 },
+      'rides_scraper': { x: 0, y: 0, width: 800, height: 1170 },
+      'hybrid_operation': { x: 0, y: 0, width: 800, height: 1170 },
+      
+      // LADO DIREITO (drivers, híbrido)  
+      'drivers_scraper': { x: 800, y: 0, width: 800, height: 1170 },
+      'hybrid_scraper': { x: 800, y: 0, width: 800, height: 1170 }
     };
     
-    return positions[instanceName] || positions['default'];
+    const position = positions[instanceName] || positions['default'];
+    console.log(`📍 [${instanceName}] → Posição: (${position.x}, ${position.y}) Tamanho: ${position.width}x${position.height}`);
+    return position;
   }
   
   private constructor(instanceName: string = 'default') {
@@ -296,15 +302,20 @@ export class BrowserSessionManager {
       const browserArgs = [
         ...playwrightConfig.args,
         `--window-position=${windowPosition.x},${windowPosition.y}`,
-        `--window-size=${windowPosition.width},${windowPosition.height}`
+        `--window-size=${windowPosition.width},${windowPosition.height}`,
+        '--new-window',  // Força nova janela
+        '--no-first-run',
+        '--disable-default-apps'
       ];
-      
-      console.log(`🎯 [${this.instanceName}] Posição: (${windowPosition.x},${windowPosition.y}) Size: ${windowPosition.width}x${windowPosition.height}`);
       
       this.context = await chromium.launchPersistentContext(this.userDataDir, {
         headless: playwrightConfig.headless,
         args: browserArgs,
-        viewport: { width: windowPosition.width, height: windowPosition.height }
+        viewport: { width: windowPosition.width, height: windowPosition.height },
+        ignoreDefaultArgs: ['--enable-automation'], // Remove automação detectável
+        handleSIGINT: false,
+        handleSIGTERM: false,
+        handleSIGHUP: false
       });
 
       // Obter referência do browser do context
