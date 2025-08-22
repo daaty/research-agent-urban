@@ -1,19 +1,24 @@
 import { Router, Request, Response } from 'express';
 import { HybridOperationService } from '../services/hybridOperationServiceV2';
+import { validateApiToken, simpleRateLimit, AuthenticatedRequest } from '../middleware/auth';
 
 const router = Router();
 
+// 🛡️ Aplicar rate limiting a todas as rotas (100 requests por 15 min)
+router.use(simpleRateLimit(100, 15 * 60 * 1000));
+
 /**
  * Controller para operações de recarga
- * Endpoints internos para pausar scraper e processar recargas
+ * Endpoints protegidos por token de acesso
  */
 
 /**
  * POST /api/recharge/request
  * Endpoint para solicitar recarga de um motorista
  * PARA o scraper automaticamente e processa a recarga
+ * 🔐 PROTEGIDO: Requer token de acesso
  */
-router.post('/request', async (req: Request, res: Response) => {
+router.post('/request', validateApiToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
     console.log('💰 Recebido pedido de recarga:', req.body);
     
@@ -79,8 +84,9 @@ router.post('/request', async (req: Request, res: Response) => {
 /**
  * GET /api/recharge/track/:id
  * Rastreia o resultado específico de uma recarga
+ * 🔐 PROTEGIDO: Requer token de acesso
  */
-router.get('/track/:id', async (req: Request, res: Response) => {
+router.get('/track/:id', validateApiToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
     
@@ -123,8 +129,9 @@ router.get('/track/:id', async (req: Request, res: Response) => {
 /**
  * GET /api/recharge/status
  * Verifica status das recargas e do sistema híbrido
+ * 🔐 PROTEGIDO: Requer token de acesso
  */
-router.get('/status', async (req: Request, res: Response) => {
+router.get('/status', validateApiToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const hybridService = HybridOperationService.getInstance({
       extractionBatchSize: 5,
