@@ -1,5 +1,5 @@
 import { createHash } from 'crypto';
-import { DatabaseManager, RideRecord, ScrapingSession } from './databaseManager';
+import { DatabaseManager, RideRecord, ScrapingSession, DriverPersonalDetailsRecord } from './databaseManager';
 import { RidesTableData } from '../types/common';
 
 export interface TransformedData {
@@ -349,6 +349,64 @@ export class DataTransformer {
         error: error.message,
         isConnected: false
       };
+    }
+  }
+
+  /**
+   * Salva dados pessoais detalhados de um motorista no banco
+   */
+  public async saveDriverPersonalDetails(extractedData: any): Promise<boolean> {
+    try {
+      // Verificar se o banco está disponível
+      if (!this.databaseManager.isConnectedToDatabase()) {
+        console.log('⚠️ Banco não conectado - dados pessoais não salvos no PostgreSQL');
+        return false;
+      }
+
+      // Gerar hash único baseado no conteúdo dos dados
+      const dataString = JSON.stringify({
+        driverId: extractedData.driverId,
+        personalData: extractedData.data.personal_data,
+        ridesHistory: extractedData.data.rides_history,
+        walletTransactions: extractedData.data.wallet_transactions,
+        subscriptionHistory: extractedData.data.subscription_history
+      });
+      
+      const dataHash = createHash('md5').update(dataString).digest('hex');
+
+      // Verificar se os dados já existem (evitar duplicação)
+      const existingData = await this.databaseManager.getDriverPersonalDetails(extractedData.driverId);
+      if (existingData && existingData.data_hash === dataHash) {
+        console.log(`ℹ️ Dados pessoais do motorista ${extractedData.driverId} já estão atualizados (hash: ${dataHash})`);
+        return true;
+      }
+
+      // Preparar registro para inserção
+      const record = {
+        driver_id: extractedData.driverId,
+        city: extractedData.city,
+        personal_data: extractedData.data.personal_data,
+        rides_history: extractedData.data.rides_history || [],
+        wallet_transactions: extractedData.data.wallet_transactions || [],
+        subscription_history: extractedData.data.subscription_history || [],
+        additional_info: extractedData.data.additional_info || {},
+        data_hash: dataHash,
+        extraction_source: 'hybrid_scraper'
+      };
+
+      // Salvar no banco
+      await this.databaseManager.insertDriverPersonalDetails(record);
+      
+      console.log(`💾 Dados pessoais do motorista ${extractedData.driverId} salvos no PostgreSQL`);
+      console.log(`   📊 Corridas no histórico: ${extractedData.data.rides_history?.length || 0}`);
+      console.log(`   💰 Transações da carteira: ${extractedData.data.wallet_transactions?.length || 0}`);
+      console.log(`   📋 Histórico de assinaturas: ${extractedData.data.subscription_history?.length || 0}`);
+      
+      return true;
+
+    } catch (error: any) {
+      console.error(`❌ Erro ao salvar dados pessoais do motorista ${extractedData.driverId}:`, error.message);
+      return false;
     }
   }
 }

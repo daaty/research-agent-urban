@@ -1,0 +1,12 @@
+{
+  "currentDriverId": null,
+  "extractionMode": true,
+  "rechargeMode": false,
+  "lastSavedAt": "2025-08-22T01:54:54.757Z",
+  "totalProcessed": 453,
+  "sessionStarted": "2025-08-21T10:53:42.121Z",
+  "queueSnapshot": {
+    "driverIds": [],
+    "rechargeCount": 0
+  }
+}

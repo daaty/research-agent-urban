@@ -8,6 +8,7 @@ import { scrapeAllDriversDataPersistent, DriversPersistentScraper } from '../scr
 import { DriversDataTransformer } from './driversDataTransformer';
 import { DataCacheManager } from './dataCacheManager'; // ⭐ INTEGRAR SISTEMA DE CACHE SOFISTICADO
 import { DatabaseManager } from './databaseManager'; // ⭐ INTEGRAR SALVAMENTO NO BANCO
+import { Logger } from '../utils/logger';
 
 interface RideData {
   id: string;
@@ -44,10 +45,12 @@ class MonitoringService {
   private cacheManager: DataCacheManager; // ⭐ USAR SISTEMA DE CACHE SOFISTICADO
   private databaseManager: DatabaseManager; // ⭐ INTEGRAR SALVAMENTO NO BANCO
   private lastRawData: any[] = []; // ⭐ ARMAZENAR ÚLTIMOS DADOS PARA WEBHOOK
+  private logger: Logger; // ⭐ SISTEMA DE LOGGING
 
   constructor() {
     this.dataFilePath = path.join(__dirname, '../../data/previous-rides-data.json');
     this.cacheManager = DataCacheManager.getInstance(); // ⭐ INICIALIZAR CACHE MANAGER
+    this.logger = Logger.getInstance(); // ⭐ INICIALIZAR LOGGER
     this.databaseManager = DatabaseManager.getInstance(); // ⭐ INICIALIZAR DATABASE MANAGER
     this.loadPreviousData();
     this.initializeDatabase(); // ⭐ INICIALIZAR CONEXÃO COM BANCO
@@ -258,17 +261,17 @@ class MonitoringService {
 
       // ⭐ LÓGICA CORRETA: Enviar sempre se há dados, ou se há mudanças detectadas
       if (!payload.hasChanges && this.lastRawData.length === 0) {
-        console.log('⏭️ Pulando envio para n8n (sem mudanças detectadas pelo sistema de cache)');
+        this.logger.info('MONITORING', 'Pulando envio para n8n (sem mudanças detectadas pelo sistema de cache)');
         return;
       }
       
       // ⭐ FORÇAR ENVIO se há dados mas cache não detectou mudanças (primeira execução)
       if (!payload.hasChanges && this.lastRawData.length > 0) {
-        console.log('🔄 Forçando envio para n8n (primeira execução com dados)');
+        this.logger.info('MONITORING', 'Forçando envio para n8n (primeira execução com dados)');
         payload.hasChanges = true;
       }
 
-      console.log(`🚀 Enviando para n8n: ${JSON.stringify(result.summary)}`);
+      this.logger.success('MONITORING', `Enviando para n8n: ${JSON.stringify(result.summary)}`);
       
       const response = await axios.post(webhookUrl, payload, {
         headers: {
@@ -278,7 +281,7 @@ class MonitoringService {
         timeout: 30000
       });
 
-      console.log(`✅ Dados enviados para n8n: ${response.status}`);    } catch (error) {
+      this.logger.success('MONITORING', `Dados enviados para n8n: ${response.status}`);    } catch (error) {
       if (axios.isAxiosError(error) && error.response?.status === 404) {
         console.log('⚠️ n8n webhook não encontrado (404) - Verifique se o workflow está ativo');
       } else {
@@ -289,26 +292,26 @@ class MonitoringService {
 
   private async performScraping(): Promise<void> {
     if (this.isRunning) {
-      console.log('⚠️ Scraping já em execução, pulando...');
+      this.logger.warn('MONITORING', 'Scraping já em execução, pulando...');
       return;
     }
 
     this.isRunning = true;
-    console.log(`🕐 [${new Date().toLocaleString()}] Iniciando scraping (rides + drivers)...`);
+    this.logger.info('MONITORING', `Iniciando scraping (rides + drivers)...`);
     
     try {
       // ⭐ VERIFICAR SE O BANCO ESTÁ CONECTADO
       if (!this.databaseManager.isConnectedToDatabase()) {
-        console.log('⚠️ Banco de dados não conectado, tentando reconectar...');
+        this.logger.warn('MONITORING', 'Banco de dados não conectado, tentando reconectar...');
         await this.databaseManager.initialize();
       }
 
       // 1. EXECUTAR SCRAPING DE RIDES
-      console.log('🚗 Executando scraping de rides...');
+      this.logger.info('MONITORING', 'Executando scraping de rides...');
       const scrapingResult = await scrapeAllRidesDataPersistent();
       
       if (!scrapingResult.success || !scrapingResult.data || scrapingResult.data.length === 0) {
-        console.log('⚠️ Nenhum dado de rides extraído:', scrapingResult.message);
+        this.logger.warn('MONITORING', `Nenhum dado de rides extraído: ${scrapingResult.message}`);
         return;
       }
 
@@ -316,14 +319,14 @@ class MonitoringService {
       // Processar dados para formato compatível: {tableName, newRecords}
       const adaptedData: any[] = [];
       const rawData: any[] = []; // Para compatibilidade com cache/webhook
-      console.log(`📊 Processando ${scrapingResult.data.length} tabelas de dados para estrutura compatível...`);
+      this.logger.info('MONITORING', `Processando ${scrapingResult.data.length} tabelas de dados para estrutura compatível...`);
       
       scrapingResult.data.forEach((table: any) => {
-        console.log(`📋 Tabela: ${table.name}, Rows: ${table.rows?.length || 0}, isEmpty: ${table.isEmpty}`);
+        this.logger.debug('MONITORING', `Tabela: ${table.name}, Rows: ${table.rows?.length || 0}, isEmpty: ${table.isEmpty}`);
         
         // ⭐ ADAPTAÇÃO: Ignorar isEmpty - só verificar se há rows
         if (table.rows && table.rows.length > 0) {
-          console.log(`✅ Processando ${table.rows.length} registros da tabela ${table.name}`);
+          this.logger.info('MONITORING', `Processando ${table.rows.length} registros da tabela ${table.name}`);
           
           // 🔧 NOVO FORMATO: Estrutura compatível com dados existentes
           const adaptedTableData = {

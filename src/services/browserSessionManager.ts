@@ -2,6 +2,7 @@ import { Browser, Page, chromium, BrowserContext } from 'playwright';
 import * as fs from 'fs';
 import * as path from 'path';
 import { EnvironmentDetector } from '../config/environmentDetector';
+import { Logger } from '../utils/logger';
 
 export interface SessionData {
   isLoggedIn: boolean;
@@ -11,7 +12,7 @@ export interface SessionData {
 }
 
 export class BrowserSessionManager {
-  private static instance: BrowserSessionManager;
+  private static instances: Map<string, BrowserSessionManager> = new Map();
   private browser: Browser | null = null;
   private context: BrowserContext | null = null;
   private page: Page | null = null;
@@ -19,6 +20,8 @@ export class BrowserSessionManager {
   private sessionFilePath: string;
   private userDataDir: string;
   private isHeadless: boolean;
+  private instanceName: string; // 🆕 Nome da instância
+  private logger: Logger; // ⭐ SISTEMA DE LOGGING
   
   // 🔄 Cache de status para evitar verificações excessivas
   private lastLoginCheck: number = 0;
@@ -30,18 +33,24 @@ export class BrowserSessionManager {
   private email: string = process.env.RIDES_USERNAME || '';
   private password: string = process.env.RIDES_PASSWORD || '';
   
-  private constructor() {
+  private constructor(instanceName: string = 'default') {
+    this.instanceName = instanceName;
     this.isHeadless = process.env.HEADLESS_MODE === 'true';
-    this.userDataDir = path.join(process.cwd(), 'browser-data');
-    this.sessionFilePath = path.join(process.cwd(), 'session-data.json');
+    this.logger = Logger.getInstance(); // ⭐ INICIALIZAR LOGGER
+    
+    // 🆕 Diretórios específicos por instância
+    this.userDataDir = path.join(process.cwd(), 'browser-data', instanceName);
+    this.sessionFilePath = path.join(process.cwd(), `session-data-${instanceName}.json`);
     this.sessionData = this.loadSessionData();
     
     // 🔍 Detectar ambiente e configurar adequadamente
     const envDetector = EnvironmentDetector.getInstance();
     const envConfig = envDetector.getConfig();
     
-    // Log do ambiente detectado
-    envDetector.logEnvironmentInfo();
+    // Log do ambiente detectado (apenas para a primeira instância)
+    if (instanceName === 'default') {
+      envDetector.logEnvironmentInfo();
+    }
     
     // Ajustar headless baseado no ambiente
     if (envConfig.displayMode === 'headless') {
@@ -50,8 +59,8 @@ export class BrowserSessionManager {
       this.isHeadless = false;
     }
     
-    console.log(`🖥️ Browser configurado para modo: ${envConfig.displayMode.toUpperCase()}`);
-    console.log(`🖥️ Headless: ${this.isHeadless ? 'SIM' : 'NÃO'}`);
+    this.logger.info('BROWSER', `Browser [${instanceName}] configurado para modo: ${envConfig.displayMode.toUpperCase()}`);
+    this.logger.info('BROWSER', `Headless [${instanceName}]: ${this.isHeadless ? 'SIM' : 'NÃO'}`);
     
     // Garantir que o diretório de dados do browser existe
     if (!fs.existsSync(this.userDataDir)) {
@@ -59,11 +68,28 @@ export class BrowserSessionManager {
     }
   }
 
-  public static getInstance(): BrowserSessionManager {
-    if (!BrowserSessionManager.instance) {
-      BrowserSessionManager.instance = new BrowserSessionManager();
+  /**
+   * 🆕 Obtém instância nomeada do BrowserSessionManager
+   */
+  public static getInstance(instanceName: string = 'default'): BrowserSessionManager {
+    if (!BrowserSessionManager.instances.has(instanceName)) {
+      BrowserSessionManager.instances.set(instanceName, new BrowserSessionManager(instanceName));
     }
-    return BrowserSessionManager.instance;
+    return BrowserSessionManager.instances.get(instanceName)!;
+  }
+
+  /**
+   * 🆕 Lista todas as instâncias ativas
+   */
+  public static getActiveInstances(): string[] {
+    return Array.from(BrowserSessionManager.instances.keys());
+  }
+
+  /**
+   * 🆕 Obtém nome da instância atual
+   */
+  public getInstanceName(): string {
+    return this.instanceName;
   }
 
   /**
@@ -241,7 +267,7 @@ export class BrowserSessionManager {
       }
     }
 
-    console.log('🚀 Inicializando browser com persistência...');
+    this.logger.info('BROWSER', 'Inicializando browser com persistência...');
     
     try {
       // 🔍 Obter configuração de browser baseada no ambiente
@@ -270,7 +296,7 @@ export class BrowserSessionManager {
       const pages = this.context.pages();
       this.page = pages.length > 0 ? pages[0] : await this.context.newPage();
       
-      console.log('✅ Browser inicializado com sucesso');
+    this.logger.success('BROWSER', 'Browser inicializado com sucesso');
       
     } catch (error) {
       console.error('❌ Erro ao inicializar browser:', error);

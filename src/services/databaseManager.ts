@@ -39,6 +39,21 @@ export interface DriverRecord {
   unique_id: string;
 }
 
+export interface DriverPersonalDetailsRecord {
+  id?: number;
+  driver_id: string;
+  city: string;
+  personal_data: any;
+  rides_history?: any[];
+  wallet_transactions?: any[];
+  subscription_history?: any[];
+  additional_info?: any;
+  extracted_at?: Date;
+  updated_at?: Date;
+  extraction_source?: string;
+  data_hash: string;
+}
+
 export interface ScrapingSession {
   id?: number;
   session_start?: Date;
@@ -160,6 +175,32 @@ export class DatabaseManager {
       );
     `;
 
+    // Criar tabela para dados pessoais detalhados dos motoristas
+    const createDriverPersonalDetailsTable = `
+      CREATE TABLE IF NOT EXISTS driver_personal_details (
+        id SERIAL PRIMARY KEY,
+        driver_id VARCHAR(50) UNIQUE NOT NULL,
+        city VARCHAR(100) NOT NULL,
+        personal_data JSONB NOT NULL,
+        rides_history JSONB DEFAULT '[]',
+        wallet_transactions JSONB DEFAULT '[]',
+        subscription_history JSONB DEFAULT '[]',
+        additional_info JSONB DEFAULT '{}',
+        extracted_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW(),
+        extraction_source VARCHAR(50) DEFAULT 'hybrid_scraper',
+        data_hash VARCHAR(32) NOT NULL,
+        CONSTRAINT unique_driver_personal_hash UNIQUE (driver_id, data_hash)
+      );
+    `;
+
+    // Índices para performance na tabela de dados pessoais
+    const createDriverPersonalIndexes = `
+      CREATE INDEX IF NOT EXISTS idx_driver_personal_id ON driver_personal_details (driver_id);
+      CREATE INDEX IF NOT EXISTS idx_driver_personal_city ON driver_personal_details (city);
+      CREATE INDEX IF NOT EXISTS idx_driver_personal_extracted_at ON driver_personal_details (extracted_at);
+    `;
+
     const createIndexes = `
       CREATE INDEX IF NOT EXISTS idx_rides_data_scraped_at ON rides_data(scraped_at);
       CREATE INDEX IF NOT EXISTS idx_rides_data_table_name ON rides_data(table_name);
@@ -178,8 +219,10 @@ export class DatabaseManager {
       await this.pool.query(dropDriversTable);
       await this.pool.query(createDriversDataTable);
       await this.pool.query(createScrapingSessionsTable);
+      await this.pool.query(createDriverPersonalDetailsTable);
       await this.pool.query(createIndexes);
-      console.log('✅ Tabelas de rides, drivers (recriada) e índices criados/verificados');
+      await this.pool.query(createDriverPersonalIndexes);
+      console.log('✅ Tabelas de rides, drivers (recriada), dados pessoais e índices criados/verificados');
     } catch (error: any) {
       console.error('❌ Erro ao criar tabelas:', error.message);
       throw error;
@@ -308,6 +351,69 @@ export class DatabaseManager {
     } catch (error: any) {
       await client.query('ROLLBACK');
       console.error('❌ Erro ao inserir dados de drivers:', error.message);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Insere dados pessoais detalhados de drivers usando UPSERT
+   * Evita duplicação baseada na constraint unique_driver_personal_hash
+   */
+  public async insertDriverPersonalDetails(record: DriverPersonalDetailsRecord): Promise<void> {
+    if (!this.pool || !this.isConnected) {
+      throw new Error('Banco de dados não conectado');
+    }
+
+    const client = await this.pool.connect();
+    
+    try {
+      await client.query('BEGIN');
+
+      const query = `
+        INSERT INTO driver_personal_details (
+          driver_id, city, personal_data, rides_history, wallet_transactions, 
+          subscription_history, additional_info, data_hash, extraction_source
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        ON CONFLICT (driver_id) 
+        DO UPDATE SET 
+          city = EXCLUDED.city,
+          personal_data = EXCLUDED.personal_data,
+          rides_history = EXCLUDED.rides_history,
+          wallet_transactions = EXCLUDED.wallet_transactions,
+          subscription_history = EXCLUDED.subscription_history,
+          additional_info = EXCLUDED.additional_info,
+          data_hash = EXCLUDED.data_hash,
+          updated_at = NOW(),
+          extraction_source = EXCLUDED.extraction_source
+        RETURNING (xmax = 0) AS inserted
+      `;
+      
+      const result = await client.query(query, [
+        record.driver_id,
+        record.city,
+        JSON.stringify(record.personal_data),
+        JSON.stringify(record.rides_history || []),
+        JSON.stringify(record.wallet_transactions || []),
+        JSON.stringify(record.subscription_history || []),
+        JSON.stringify(record.additional_info || {}),
+        record.data_hash,
+        record.extraction_source || 'hybrid_scraper'
+      ]);
+
+      // xmax = 0 significa INSERT, xmax > 0 significa UPDATE
+      const isInserted = result.rows[0].inserted;
+      
+      await client.query('COMMIT');
+      
+      const action = isInserted ? 'inserido' : 'atualizado';
+      console.log(`✅ Dados pessoais do motorista ${record.driver_id} ${action} com sucesso`);
+
+    } catch (error: any) {
+      await client.query('ROLLBACK');
+      console.error(`❌ Erro ao salvar dados pessoais do motorista ${record.driver_id}:`, error.message);
       throw error;
     } finally {
       client.release();
@@ -521,6 +627,73 @@ export class DatabaseManager {
   }
 
   /**
+   * Verifica se já existe dados pessoais para um motorista específico
+   */
+  public async driverPersonalDetailsExists(driverId: string): Promise<boolean> {
+    if (!this.pool || !this.isConnected) {
+      return false;
+    }
+
+    try {
+      const query = 'SELECT COUNT(*) as count FROM driver_personal_details WHERE driver_id = $1';
+      const result = await this.pool.query(query, [driverId]);
+      return parseInt(result.rows[0].count) > 0;
+    } catch (error: any) {
+      console.error(`❌ Erro ao verificar dados pessoais do motorista ${driverId}:`, error.message);
+      return false;
+    }
+  }
+
+  /**
+   * Busca dados pessoais de um motorista específico
+   */
+  public async getDriverPersonalDetails(driverId: string): Promise<DriverPersonalDetailsRecord | null> {
+    if (!this.pool || !this.isConnected) {
+      return null;
+    }
+
+    try {
+      const query = `
+        SELECT * FROM driver_personal_details 
+        WHERE driver_id = $1 
+        ORDER BY updated_at DESC 
+        LIMIT 1
+      `;
+      const result = await this.pool.query(query, [driverId]);
+      
+      if (result.rows.length > 0) {
+        return result.rows[0];
+      }
+      return null;
+    } catch (error: any) {
+      console.error(`❌ Erro ao buscar dados pessoais do motorista ${driverId}:`, error.message);
+      return null;
+    }
+  }
+
+  /**
+   * Busca todos os drivers com dados pessoais salvos
+   */
+  public async getAllDriversPersonalDetails(limit: number = 100): Promise<DriverPersonalDetailsRecord[]> {
+    if (!this.pool || !this.isConnected) {
+      return [];
+    }
+
+    try {
+      const query = `
+        SELECT * FROM driver_personal_details 
+        ORDER BY updated_at DESC 
+        LIMIT $1
+      `;
+      const result = await this.pool.query(query, [limit]);
+      return result.rows;
+    } catch (error: any) {
+      console.error('❌ Erro ao buscar todos os dados pessoais de motoristas:', error.message);
+      return [];
+    }
+  }
+
+  /**
    * Obter estatísticas do banco
    */
   public async getDatabaseStats(): Promise<any> {
@@ -531,9 +704,11 @@ export class DatabaseManager {
     try {
       const totalRecordsQuery = 'SELECT COUNT(*) as total FROM rides_data';
       const totalDriversQuery = 'SELECT COUNT(*) as total FROM drivers_data';
+      const totalPersonalDetailsQuery = 'SELECT COUNT(*) as total FROM driver_personal_details';
       const totalSessionsQuery = 'SELECT COUNT(*) as total FROM scraping_sessions';
       const lastScrapingQuery = 'SELECT MAX(scraped_at) as last_scraping FROM rides_data';
       const lastDriversScrapingQuery = 'SELECT MAX(scraped_at) as last_scraping FROM drivers_data';
+      const lastPersonalDetailsQuery = 'SELECT MAX(updated_at) as last_scraping FROM driver_personal_details';
       const tableStatsQuery = `
         SELECT table_name, COUNT(*) as count 
         FROM rides_data 
@@ -546,25 +721,48 @@ export class DatabaseManager {
         GROUP BY data_type 
         ORDER BY count DESC
       `;
+      const personalDetailsCityStatsQuery = `
+        SELECT city, COUNT(*) as count 
+        FROM driver_personal_details 
+        GROUP BY city 
+        ORDER BY count DESC
+      `;
 
-      const [totalRecords, totalDrivers, totalSessions, lastScraping, lastDriversScraping, tableStats, driversStats] = await Promise.all([
+      const [
+        totalRecords, 
+        totalDrivers, 
+        totalPersonalDetails,
+        totalSessions, 
+        lastScraping, 
+        lastDriversScraping, 
+        lastPersonalDetails,
+        tableStats, 
+        driversStats,
+        personalDetailsCityStats
+      ] = await Promise.all([
         this.pool.query(totalRecordsQuery),
         this.pool.query(totalDriversQuery),
+        this.pool.query(totalPersonalDetailsQuery),
         this.pool.query(totalSessionsQuery),
         this.pool.query(lastScrapingQuery),
         this.pool.query(lastDriversScrapingQuery),
+        this.pool.query(lastPersonalDetailsQuery),
         this.pool.query(tableStatsQuery),
-        this.pool.query(driversStatsQuery)
+        this.pool.query(driversStatsQuery),
+        this.pool.query(personalDetailsCityStatsQuery)
       ]);
 
       return {
         totalRecords: parseInt(totalRecords.rows[0].total),
         totalDrivers: parseInt(totalDrivers.rows[0].total),
+        totalPersonalDetails: parseInt(totalPersonalDetails.rows[0].total),
         totalSessions: parseInt(totalSessions.rows[0].total),
         lastScraping: lastScraping.rows[0].last_scraping,
         lastDriversScraping: lastDriversScraping.rows[0].last_scraping,
+        lastPersonalDetailsExtraction: lastPersonalDetails.rows[0].last_scraping,
         tableStats: tableStats.rows,
         driversStats: driversStats.rows,
+        personalDetailsByCity: personalDetailsCityStats.rows,
         isConnected: this.isConnected
       };
 

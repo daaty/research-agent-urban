@@ -1,6 +1,13 @@
 import dotenv from 'dotenv';
-dotenv.config();
+dotenv.config({ path: '.env.local' });
 import express, { Request, Response } from 'express';
+import { logger, LogLevel } from './utils/logger';
+
+// 🔧 Configurar logging
+logger.setConsoleLevel(LogLevel.INFO); // Apenas INFO, WARN, ERROR no console
+logger.setFileLevel(LogLevel.DEBUG);   // Tudo nos arquivos
+logger.info('STARTUP', '🚀 Iniciando Research Agent Urban AI - Sistema Híbrido');
+
 import { getPersistentScraper, scrapeAllRidesDataPersistent } from './scraper/ridesPersistentScraper';
 import { scrapeAllDriversDataPersistent } from './scraper/driversPersistentScraper';
 import { MonitoringService } from './services/monitoringService';
@@ -10,11 +17,15 @@ import { DatabaseManager } from './services/databaseManager';
 import { DataTransformer } from './services/dataTransformer';
 import { DriversDataTransformer } from './services/driversDataTransformer';
 import { AIAgentController } from './api/aiAgentController';
+import apiRoutes from './api';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
+
+// 🔄 API Routes - Controle de Recargas e Sistema Híbrido
+app.use('/api', apiRoutes);
 
 // Instância do scraper persistente
 const scraper = getPersistentScraper();
@@ -963,6 +974,49 @@ app.post('/api/database/query', async (req: any, res: any) => {
   }
 });
 
+// 📊 Endpoint para dados pessoais de motoristas
+app.get('/api/database/driver-personal/:driverId?', async (req: any, res: any) => {
+  try {
+    const { driverId } = req.params;
+    
+    if (driverId) {
+      // Buscar dados de um motorista específico
+      const driverData = await databaseManager.getDriverPersonalDetails(driverId);
+      
+      if (driverData) {
+        res.json({
+          success: true,
+          driver: driverData,
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        res.status(404).json({
+          success: false,
+          message: `Dados pessoais do motorista ${driverId} não encontrados`,
+          timestamp: new Date().toISOString()
+        });
+      }
+    } else {
+      // Listar todos os drivers com dados pessoais
+      const allDrivers = await databaseManager.getAllDriversPersonalDetails();
+      
+      res.json({
+        success: true,
+        drivers: allDrivers,
+        count: allDrivers.length,
+        timestamp: new Date().toISOString()
+      });
+    }
+  } catch (error: any) {
+    console.error('❌ Erro ao buscar dados pessoais de motoristas:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // 🤖 ============= ROTAS DO AI AGENT =============
 
 // Inicializar AI Agent
@@ -1008,6 +1062,244 @@ app.post('/api/ai/clear', async (req: any, res: any) => {
 // 🤖 ===============================================
 
 // Inicializar servidor
+// 🚀 NOVOS ENDPOINTS PARA SISTEMA HÍBRIDO
+
+import { HybridOperationService } from './services/hybridOperationServiceV2';
+
+// 🔄 Instância do Sistema Híbrido
+const hybridService = HybridOperationService.getInstance({
+  extractionBatchSize: 1, // Alterado para 1 - processar apenas uma extração por ciclo
+  rechargePauseThreshold: 1,
+  maxConcurrentRecharges: 3,
+  stateCheckInterval: 8000, // Aumentado de 5000 para 8000ms (8 segundos entre ciclos)
+  recoveryOnStart: true,
+  autoFeedInterval: 60000,
+  citiesRefreshInterval: 300000
+});
+
+// 🚀 Iniciar Sistema Híbrido
+app.post('/api/hybrid/start', async (req, res) => {
+  try {
+    console.log('🚀 Iniciando Sistema Híbrido via API...');
+    await hybridService.start();
+    
+    res.json({
+      success: true,
+      message: 'Sistema híbrido iniciado com sucesso',
+      status: hybridService.getStats(),
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    console.error('❌ Erro ao iniciar sistema híbrido:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// ⏹️ Parar Sistema Híbrido
+app.post('/api/hybrid/stop', async (req, res) => {
+  try {
+    console.log('⏹️ Parando Sistema Híbrido via API...');
+    await hybridService.stop();
+    
+    res.json({
+      success: true,
+      message: 'Sistema híbrido parado com sucesso',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    console.error('❌ Erro ao parar sistema híbrido:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// 📊 Status do Sistema Híbrido
+app.get('/api/hybrid/status', (req, res) => {
+  try {
+    const status = hybridService.getStats();
+    
+    res.json({
+      success: true,
+      data: status,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// 🔋 Adicionar Solicitação de Recarga
+app.post('/api/hybrid/recharge', (req, res) => {
+  try {
+    const { driverId, amount, priority = 'normal' } = req.body;
+    
+    if (!driverId || !amount) {
+      return res.status(400).json({
+        success: false,
+        error: 'driverId e amount são obrigatórios',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    hybridService.addRechargeToQueue(driverId, amount, priority === 'urgent');
+    
+    res.json({
+      success: true,
+      message: `Recarga adicionada à fila: ${driverId} -> R$ ${amount}`,
+      driverId,
+      amount,
+      priority,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// 📋 Adicionar IDs para Extração
+app.post('/api/hybrid/add-drivers', (req, res) => {
+  try {
+    const { driverIds, priority = 'normal' } = req.body;
+    
+    if (!driverIds || !Array.isArray(driverIds)) {
+      return res.status(400).json({
+        success: false,
+        error: 'driverIds deve ser um array',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Adicionar cada ID individualmente 
+    driverIds.forEach((driverId: string) => {
+      hybridService.addDriverToQueue(driverId, priority);
+    });
+    
+    res.json({
+      success: true,
+      message: `${driverIds.length} IDs adicionados à fila de extração`,
+      driverIds,
+      priority,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// ⏸️ Pausar Sistema Híbrido (Nota: Funcionalidade controlada automaticamente)
+app.post('/api/hybrid/pause', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Sistema híbrido controla pausas automaticamente durante recargas',
+    note: 'Use /api/hybrid/stop para parar completamente',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// ▶️ Resumir Sistema Híbrido (Nota: Funcionalidade controlada automaticamente)
+app.post('/api/hybrid/resume', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Sistema híbrido resume automaticamente após recargas',
+    note: 'Use /api/hybrid/start para iniciar se parado',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// 🚨 Parada de Emergência (Use o método stop padrão)
+app.post('/api/hybrid/emergency-stop', async (req, res) => {
+  try {
+    console.log('🚨 PARADA DE EMERGÊNCIA ATIVADA VIA API - Usando stop()');
+    await hybridService.stop();
+    
+    res.json({
+      success: true,
+      message: 'Sistema híbrido parado (método padrão usado)',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// 📊 Consultar Dados Pessoais Salvos
+app.get('/api/personal-data/drivers', async (req, res) => {
+  try {
+    const drivers = await databaseManager.getAllDriversPersonalDetails();
+    
+    res.json({
+      success: true,
+      data: drivers,
+      count: drivers.length,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// 📈 Estatísticas dos Dados Pessoais
+app.get('/api/personal-data/stats', async (req, res) => {
+  try {
+    // Usar o método existente
+    const allDrivers = await databaseManager.getAllDriversPersonalDetails();
+    
+    // Calcular estatísticas manualmente
+    const stats = {
+      total_drivers: allDrivers.length,
+      by_city: allDrivers.reduce((acc: any, driver: any) => {
+        const city = driver.city || 'Unknown';
+        acc[city] = (acc[city] || 0) + 1;
+        return acc;
+      }, {}),
+      extracted_today: allDrivers.filter((driver: any) => {
+        const today = new Date().toISOString().split('T')[0];
+        return driver.extracted_at?.startsWith(today);
+      }).length
+    };
+    
+    res.json({
+      success: true,
+      data: stats,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Auto-inicialização (sem mudanças)
 app.listen(PORT, async () => {
   console.log('🎉' + '='.repeat(70));
   console.log(`🚀 SERVIDOR PERSISTENTE FUNCIONANDO NA PORTA ${PORT}`);
@@ -1062,58 +1354,75 @@ app.listen(PORT, async () => {
   
   // 🚀 AUTO-INICIALIZAÇÃO (apenas se habilitada)
   if (isAutoScrapingEnabled) {
-    console.log('⏳ Aguardando 30 segundos para auto-inicialização...');
+    const autoStartHybrid = process.env.AUTO_START_HYBRID === 'true';
+    
+    // Log detalhado para arquivo
+    logger.debug('AUTO', `Variáveis de ambiente: ENABLE_AUTO_SCRAPING=${process.env.ENABLE_AUTO_SCRAPING}, AUTO_START_HYBRID=${process.env.AUTO_START_HYBRID}`);
+    logger.debug('AUTO', `Flags calculadas: isAutoScrapingEnabled=${isAutoScrapingEnabled}, autoStartHybrid=${autoStartHybrid}`);
+    
+    // Log resumido para console
+    logger.info('AUTO', `Auto-start configurado - MonitoringService: SIM | HybridService: ${autoStartHybrid ? 'SIM' : 'NÃO'}`);
+    logger.info('AUTO', 'Aguardando 30 segundos para inicialização...');
+    
     setTimeout(async () => {
       try {
-        console.log('🚀 Iniciando auto-execução do scraper...');
-        
+        logger.info('AUTO', 'Iniciando scrapers automáticos...');
+
         // Verificar se credenciais estão configuradas
-        if (!process.env.RIDES_USERNAME || process.env.RIDES_USERNAME.includes('seu_email') || 
+        if (!process.env.RIDES_USERNAME || process.env.RIDES_USERNAME.includes('seu_email') ||
             !process.env.RIDES_PASSWORD || process.env.RIDES_PASSWORD.includes('sua_senha')) {
-          console.log('⚠️ Credenciais não configuradas - aguardando configuração manual');
+          logger.warn('AUTO', 'Credenciais não configuradas - aguardando configuração manual');
           return;
         }
+
+        // ✅ MonitoringService e HybridOperationService em paralelo
+        logger.info('MONITORING', 'Iniciando MonitoringService...');
         
-        // ✅ NOVA IMPLEMENTAÇÃO: Usar MonitoringService para Rides + Drivers
-        console.log('🔄 Iniciando MonitoringService (Rides + Drivers integrado)...');
+        // 🚀 Iniciar híbrido em paralelo (não aguardar MonitoringService)
+        if (autoStartHybrid) {
+          logger.info('HYBRID', 'Iniciando Sistema Híbrido...');
+          hybridService.start().then(() => {
+            logger.success('HYBRID', 'Sistema Híbrido iniciado com sucesso');
+          }).catch(err => {
+            logger.error('HYBRID', 'Erro ao iniciar Sistema Híbrido', err);
+          });
+        } else {
+          logger.info('HYBRID', 'Sistema Híbrido não será iniciado automaticamente (AUTO_START_HYBRID=false)');
+        }
         
         try {
           // Executar uma vez imediatamente
           await monitoringService.runOnce();
-          console.log('✅ Execução inicial de Rides + Drivers concluída!');
-          
-          // 🔄 Iniciar monitoramento automático (substitui o setInterval antigo)
+          logger.success('MONITORING', 'Execução inicial de Rides + Drivers concluída');
+
+          // 🔄 Iniciar monitoramento automático
           monitoringService.startMonitoring();
-          console.log('✅ Monitoramento automático (Rides + Drivers) iniciado!');
-          console.log('⏰ Frequência: A cada 2,5 minutos');
-          console.log('🚗 Incluindo scraping de todas as 5 páginas de drivers');
-          
+          logger.success('MONITORING', 'Monitoramento automático iniciado (frequência: 2,5 min)');
+
         } catch (error) {
-          console.error('❌ Erro na execução inicial integrada:', error);
-          console.log('💡 Tentando fallback para método tradicional...');
-          
-          // Fallback para método antigo se o novo falhar
+          logger.error('MONITORING', 'Erro na execução inicial', error);
+          logger.info('MONITORING', 'Tentando fallback...');
           try {
             const result = await scrapeAllRidesDataPersistent();
             if (result.success) {
-              console.log('✅ Fallback concluído com sucesso!');
+              logger.success('MONITORING', 'Fallback concluído com sucesso');
               await processScrapingResult(result, 'initial-execution');
             } else {
-              console.log('❌ Falha no fallback:', result.message);
+              logger.error('MONITORING', `Falha no fallback: ${result.message}`);
             }
           } catch (fallbackError) {
-            console.error('❌ Erro no fallback:', fallbackError);
+            logger.error('MONITORING', 'Erro no fallback', fallbackError);
           }
         }
-        
+
       } catch (error) {
-        console.error('❌ Erro na auto-inicialização:', error);
-        console.log('💡 Use o endpoint /api/rides/scrape para execução manual');
+        logger.error('AUTO', 'Erro na auto-inicialização', error);
+        logger.info('AUTO', 'Use os endpoints /api/rides/scrape ou /api/hybrid/start para execução manual');
       }
     }, 30000);
   } else {
-    console.log('ℹ️ Auto-execução DESABILITADA (ENABLE_AUTO_SCRAPING=false)');
-    console.log('💡 Use o endpoint POST /api/rides/scrape para execução manual quando necessário');
+    logger.info('AUTO', 'Auto-execução DESABILITADA (ENABLE_AUTO_SCRAPING=false)');
+    logger.info('AUTO', 'Use os endpoints para execução manual quando necessário');
   }
 });
 

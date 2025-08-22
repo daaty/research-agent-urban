@@ -1,0 +1,11 @@
+{
+  "isLoggedIn": true,
+  "loginTimestamp": 1755827426685,
+  "sessionExpiry": 1755834626685,
+  "userData": {
+    "email": "herbert@urbandobrasil.com.br",
+    "manualLogin": true,
+    "captchaSolved": true,
+    "detectedAt": "2025-08-22T01:50:26.685Z"
+  }
+}

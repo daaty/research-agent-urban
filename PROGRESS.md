@@ -63,30 +63,60 @@ RIDES_PASSWORD=herbert@urban25
 - Aguarda redirecionamento com timeout adequado
 - Verifica mudança de URL para confirmar sucesso
 
-## 📝 Próximos Passos
+## 📝 Próximos Passos - SISTEMA HÍBRIDO
 
-### Fase 2: Navegação e Extração de Dados
-1. **Navegar pelas abas/seções** do dashboard
-2. **Identificar as 5 tabelas** mencionadas
-3. **Extrair dados das tabelas** (podem estar vazias)
-4. **Estruturar dados** no formato adequado
-5. **Integrar com n8n** para envio dos dados
+### Fase 2: Sistema Híbrido de Extração + Recarga
+1. **✅ DriverIdProvider Simplificado** - Uma cidade por processo
+2. **✅ HybridOperationService** - Extração contínua + interrupção para recarga
+3. **🔄 FASE ATUAL: Integração com Dashboard Real**
 
-### Estrutura de Dados Esperada
+### Fluxo do Sistema Híbrido
+1. **Login Automático** 
+   - URL: `https://rides.ec2dashboard.com/#/page/login`
+   - Aguarda resolução de CAPTCHA (se houver)
+   - Faz login igual ao scraper existente
+
+2. **Verificação de Login**
+   - Redirecionamento para: `https://rides.ec2dashboard.com/#/app/dashboard/`
+   - Confirma que login foi bem-sucedido
+
+3. **Identificação da Cidade**
+   - Navega para: `https://rides.ec2dashboard.com/#/app/active-drivers/`
+   - Extrai cidade do elemento: `<span class="select2-chosen"><span class="ng-binding ng-scope">Matupá</span></span>`
+
+4. **Extração Contínua de Dados Pessoais**
+   - Volta para: `https://rides.ec2dashboard.com/#/app/dashboard/`
+   - Preenche input: `<input type="text" id="driverId" class="form-control text-center ng-pristine ng-valid ng-touched" placeholder="Enter User ID/Phone/Email">`
+   - Clica botão: `<button class="fancyButton md-button md-ink-ripple" ng-click="getDriverInfo(enteredDriverValue)">Details Driver</button>`
+   - Extrai dados pessoais do motorista
+   - Salva no banco de dados
+   - Repete para próximo ID da fila
+
+5. **Interrupção Inteligente para Recarga**
+   - Sistema monitora fila de recargas
+   - Quando chega pedido de recarga, **interrompe** extração
+   - Processa recarga via API específica da cidade
+   - **Retoma** extração contínua após recarga
+
+### URLs Hardcoded no Sistema
 ```javascript
-{
-  tables: [
-    {
-      name: "Nome da Tabela 1",
-      headers: ["Col1", "Col2", "Col3"],
-      rows: [
-        ["dados1", "dados2", "dados3"],
-        // ... mais linhas
-      ]
-    },
-    // ... até 5 tabelas
-  ]
-}
+// URLs fixas no código (NÃO adicionar ao .env)
+const RIDES_DASHBOARD = 'https://rides.ec2dashboard.com/#/app/dashboard/';
+const RIDES_ACTIVE_DRIVERS = 'https://rides.ec2dashboard.com/#/app/active-drivers/';
+const RIDES_LOGIN_CHECK = 'https://rides.ec2dashboard.com/#/app/dashboard/';
+```
+
+### Configuração ENV (Apenas Login)
+```bash
+# Manter apenas URL de login no .env
+RIDES_LOGIN_URL=https://rides.ec2dashboard.com/#/page/login
+RIDES_USERNAME=herbert@urbandobrasil.com.br
+RIDES_PASSWORD=herbert@urban25
+
+# Configuração da cidade (uma por processo)
+CITY_NAME="Matupá"
+CITY_API_URL="https://api-matupa.exemplo.com/drivers"
+FALLBACK_DRIVER_IDS="MAT001,MAT002,MAT003"
 ```
 
 ## 🚀 Endpoints Funcionais Criados
