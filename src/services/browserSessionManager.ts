@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { EnvironmentDetector } from '../config/environmentDetector';
 import { Logger } from '../utils/logger';
+import { WindowManager } from './windowManager';
 
 export interface SessionData {
   isLoggedIn: boolean;
@@ -22,6 +23,7 @@ export class BrowserSessionManager {
   private isHeadless: boolean;
   private instanceName: string; // 🆕 Nome da instância
   private logger: Logger; // ⭐ SISTEMA DE LOGGING
+  private windowManager: WindowManager; // 🖥️ GERENCIADOR DE JANELAS
   
   // 🔄 Cache de status para evitar verificações excessivas
   private lastLoginCheck: number = 0;
@@ -58,6 +60,7 @@ export class BrowserSessionManager {
     this.instanceName = instanceName;
     this.isHeadless = process.env.HEADLESS_MODE === 'true';
     this.logger = Logger.getInstance(); // ⭐ INICIALIZAR LOGGER
+    this.windowManager = WindowManager.getInstance(); // 🖥️ INICIALIZAR WINDOW MANAGER
     
     // 🆕 Diretórios específicos por instância
     this.userDataDir = path.join(process.cwd(), 'browser-data', instanceName);
@@ -87,6 +90,16 @@ export class BrowserSessionManager {
     if (!fs.existsSync(this.userDataDir)) {
       fs.mkdirSync(this.userDataDir, { recursive: true });
     }
+  }
+
+  /**
+   * 🖥️ Arranjar todas as janelas automaticamente para split-screen
+   */
+  public static async arrangeAllWindowsForSplitScreen(): Promise<void> {
+    const windowManager = WindowManager.getInstance();
+    
+    console.log('🖥️ Arranjando janelas para split-screen...');
+    await windowManager.arrangeWindowsForSplitScreen();
   }
 
   /**
@@ -332,7 +345,28 @@ export class BrowserSessionManager {
       const pages = this.context.pages();
       this.page = pages.length > 0 ? pages[0] : await this.context.newPage();
       
-    this.logger.success('BROWSER', 'Browser inicializado com sucesso');
+      // Configurar timeouts para evitar fechamento prematuro
+      this.page.setDefaultTimeout(60000);
+      this.page.setDefaultNavigationTimeout(60000);
+      
+      // 🖥️ POSICIONAMENTO AUTOMÁTICO DE JANELAS (apenas em ambiente VNC)
+      const envConfig2 = envDetector.getConfig();
+      
+      if (!this.isHeadless && (envConfig2.displayMode === 'vnc' || envConfig2.displayMode === 'xvfb')) {
+        this.logger.info('BROWSER', `🖥️ Iniciando posicionamento automático para ${this.instanceName}...`);
+        
+        // Aguardar janela aparecer e tentar posicionar
+        setTimeout(async () => {
+          try {
+            await this.windowManager.moveWindowByInstance(this.instanceName);
+          } catch (error) {
+            this.logger.warn('BROWSER', `Falha no posicionamento automático: ${error}`);
+          }
+        }, 2000);
+      }
+      
+      console.log(`🎯 [${this.instanceName}] Browser inicializado com posicionamento automático`);
+      this.logger.success('BROWSER', `Browser ${this.instanceName} inicializado com sucesso`);
       
     } catch (error) {
       console.error('❌ Erro ao inicializar browser:', error);

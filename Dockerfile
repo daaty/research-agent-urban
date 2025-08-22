@@ -49,6 +49,10 @@ RUN apt-get update && apt-get install -y \
     procps \
     git \
     vim \
+    wmctrl \
+    xdotool \
+    openbox \
+    tint2 \
     fontconfig \
     fonts-dejavu \
     fonts-dejavu-core \
