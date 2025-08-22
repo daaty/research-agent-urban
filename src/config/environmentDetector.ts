@@ -171,7 +171,7 @@ export class EnvironmentDetector {
       headless: config.displayMode === 'headless',
       args: [
         '--no-sandbox',
-        '--disable-setuid-sandbox',
+        // ❌ REMOVIDO: --disable-setuid-sandbox (causava warning)
         '--disable-dev-shm-usage',
         '--disable-web-security',
         '--disable-background-timer-throttling',
@@ -183,7 +183,7 @@ export class EnvironmentDetector {
 
     if (config.displayMode === 'vnc' || config.displayMode === 'xvfb') {
       baseConfig.args.push(`--display=${config.displayVar}`);
-      // Configurações específicas para VNC com melhor interação de mouse
+      // Configurações específicas para VNC com melhor interação
       baseConfig.args.push(
         '--force-device-scale-factor=1',
         '--disable-features=VizDisplayCompositor',
@@ -191,8 +191,13 @@ export class EnvironmentDetector {
         '--disable-infobars',
         '--disable-notifications',
         '--disable-popup-blocking',
-        '--disable-cursor-activation', // 🖱️ Evita captura de cursor
-        '--use-fake-ui-for-media-stream' // 🖱️ Evita prompts que capturam cursor
+        '--enable-logging=stderr',
+        '--log-level=0',
+        '--disable-extensions',
+        '--disable-plugins',
+        '--disable-sync',
+        '--no-default-browser-check',
+        '--no-first-run'
       );
     }
 
