@@ -765,15 +765,92 @@ export class RidesDashboardHybridScraper {
       await this.page.click('button[ng-click="getDriverInfo(enteredDriverValue)"]');
       console.log('🔍 Botão "Details Driver" clicado');
 
-      // ⏳ FASE 6: Aguardar dados carregarem com timeout maior
+      // ⏳ FASE 6: Aguardar dados carregarem com validação do Driver ID correto
       console.log('⏳ FASE 6: Aguardando dados do motorista carregarem...');
       await this.smartWait('pageLoad'); // 5 segundos base * multiplicador
+
+      // 🔍 VALIDAÇÃO: Aguardar o Driver ID correto aparecer na página
+      console.log(`🔍 FASE 6.1: Validando se driver ${driverId} carregou corretamente...`);
+      
+      let validationAttempts = 0;
+      const maxValidationAttempts = 5;
+      let driverIdFound = false;
+      
+      while (!driverIdFound && validationAttempts < maxValidationAttempts) {
+        try {
+          // Buscar pelo Driver ID na página usando diferentes estratégias
+          const pageDriverId = await this.page.evaluate((targetId) => {
+            // Estratégia 1: Buscar em labels próximos a "Driver ID"
+            const labels = Array.from(document.querySelectorAll('label, span, div'));
+            for (const label of labels) {
+              const text = label.textContent?.trim() || '';
+              if (text.includes('Driver ID') || text === 'Driver ID') {
+                const nextElement = label.nextElementSibling;
+                if (nextElement) {
+                  const nextText = nextElement.textContent?.trim() || '';
+                  if (nextText === targetId) return nextText;
+                }
+                // Verificar elementos próximos
+                const parent = label.parentElement;
+                if (parent) {
+                  const siblings = Array.from(parent.children);
+                  for (const sibling of siblings) {
+                    const siblingText = sibling.textContent?.trim() || '';
+                    if (siblingText === targetId) return siblingText;
+                  }
+                }
+              }
+            }
+            
+            // Estratégia 2: Buscar o ID diretamente no texto
+            const allElements = Array.from(document.querySelectorAll('*'));
+            for (const el of allElements) {
+              if (el.textContent?.trim() === targetId) {
+                return targetId;
+              }
+            }
+            
+            return null;
+          }, driverId);
+
+          if (pageDriverId === driverId) {
+            console.log(`✅ Driver ID ${driverId} confirmado na página`);
+            driverIdFound = true;
+          } else {
+            validationAttempts++;
+            console.log(`⚠️ Driver ID ${driverId} não encontrado na página (tentativa ${validationAttempts}/${maxValidationAttempts})`);
+            await this.smartWait('elementWait'); // Aguardar mais um pouco
+          }
+        } catch (error) {
+          validationAttempts++;
+          console.log(`⚠️ Erro na validação do Driver ID (tentativa ${validationAttempts}/${maxValidationAttempts}):`, error);
+          await this.smartWait('elementWait');
+        }
+      }
+
+      if (!driverIdFound) {
+        console.error(`❌ ERRO: Driver ID ${driverId} não apareceu na página após ${maxValidationAttempts} tentativas`);
+        throw new Error(`Driver ID ${driverId} não carregou na página - dados podem ser de outro motorista`);
+      }
 
       // 📊 FASE 7: Extração dos dados
       console.log('📊 FASE 7: Extraindo dados do motorista...');
       const driverData = await this.extractDriverDetails();
 
-      console.log(`✅ Dados extraídos para ${driverId}`);
+      // 🔍 VALIDAÇÃO CRÍTICA: Verificar se o ID extraído corresponde ao ID solicitado
+      const extractedDriverId = driverData?.personal_data?.driver_id;
+      if (extractedDriverId && extractedDriverId !== driverId) {
+        console.error(`❌ ERRO CRÍTICO: Solicitado driver ${driverId}, mas extraiu dados do driver ${extractedDriverId}`);
+        console.error(`❌ DADOS INCORRETOS DETECTADOS - ABORTANDO SALVAMENTO`);
+        throw new Error(`Dados incorretos: esperado ${driverId}, extraído ${extractedDriverId}`);
+      }
+
+      if (!extractedDriverId) {
+        console.error(`❌ ERRO: Driver ID não encontrado nos dados extraídos`);
+        throw new Error(`Driver ID não encontrado nos dados extraídos`);
+      }
+
+      console.log(`✅ VALIDAÇÃO OK: Dados extraídos correspondem ao driver ${driverId}`);
       
       const extractedData = {
         driverId,
