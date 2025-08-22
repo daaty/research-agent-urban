@@ -81,6 +81,13 @@ export class WindowPositioner {
   }
 
   /**
+   * 🔍 Método público para obter janelas do Chrome (para FocusManager)
+   */
+  async getChromeWindows(): Promise<string[]> {
+    return await this.findChromeWindows();
+  }
+
+  /**
    * 📍 Determina índice da janela baseado na instância
    */
   private getWindowIndex(instanceName: string): number {
@@ -232,13 +239,47 @@ export class WindowPositioner {
         return false;
       }
       
-      // Focar e ativar janela
-      await execAsync(`DISPLAY=:99 xdotool windowfocus ${windowId}`);
-      await execAsync(`DISPLAY=:99 xdotool windowactivate ${windowId}`);
-      await execAsync(`DISPLAY=:99 xdotool windowraise ${windowId}`);
-      
-      console.log(`✅ [FOCUS] Janela ${instanceName} (ID: ${windowId}) focada com sucesso`);
-      return true;
+      // Método 1: Tentar wmctrl primeiro (mais compatível com Openbox)
+      try {
+        await execAsync(`DISPLAY=:99 wmctrl -i -a ${windowId}`);
+        console.log(`✅ [FOCUS] Janela ${instanceName} (ID: ${windowId}) focada via wmctrl`);
+        return true;
+      } catch (wmctrlError) {
+        console.log(`⚠️ [FOCUS] wmctrl falhou, tentando xdotool...`);
+      }
+
+      // Método 2: Focar com xdotool (original)
+      try {
+        await execAsync(`DISPLAY=:99 xdotool windowraise ${windowId}`);
+        await execAsync(`DISPLAY=:99 xdotool windowfocus ${windowId}`);
+        await execAsync(`DISPLAY=:99 xdotool windowactivate ${windowId}`);
+        
+        console.log(`✅ [FOCUS] Janela ${instanceName} (ID: ${windowId}) focada via xdotool`);
+        return true;
+      } catch (xdotoolError) {
+        console.log(`⚠️ [FOCUS] xdotool falhou, tentando click simulado...`);
+      }
+
+      // Método 3: Click no centro da janela para forçar foco
+      try {
+        const { stdout: geometry } = await execAsync(`DISPLAY=:99 xdotool getwindowgeometry ${windowId}`);
+        const match = geometry.match(/Geometry: (\d+)x(\d+)/);
+        if (match) {
+          const centerX = Math.floor(parseInt(match[1]) / 2);
+          const centerY = Math.floor(parseInt(match[2]) / 2);
+          
+          await execAsync(`DISPLAY=:99 xdotool windowraise ${windowId}`);
+          await execAsync(`DISPLAY=:99 xdotool mousemove --window ${windowId} ${centerX} ${centerY}`);
+          await execAsync(`DISPLAY=:99 xdotool click --window ${windowId} 1`);
+          
+          console.log(`✅ [FOCUS] Janela ${instanceName} (ID: ${windowId}) focada via click simulado`);
+          return true;
+        }
+      } catch (clickError) {
+        console.log(`❌ [FOCUS] Todos os métodos falharam para ${instanceName}`);
+      }
+
+      return false;
       
     } catch (error) {
       console.error(`❌ [FOCUS] Erro ao focar janela ${instanceName}:`, error);

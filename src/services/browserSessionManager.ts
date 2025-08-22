@@ -339,14 +339,19 @@ export class BrowserSessionManager {
         headless: playwrightConfig.headless,
         args: browserArgs,
         viewport: { width: windowPosition.width, height: windowPosition.height },
-        userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36', // 🖥️ DESKTOP USER AGENT
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', // 🖥️ WINDOWS DESKTOP USER AGENT
         deviceScaleFactor: 1, // 🖥️ ESCALA DESKTOP
         isMobile: false, // 🖥️ FORÇAR DESKTOP
         hasTouch: false, // 🖥️ SEM TOUCH
         ignoreDefaultArgs: ['--enable-automation'], // Remove automação detectável
         handleSIGINT: false,
         handleSIGTERM: false,
-        handleSIGHUP: false
+        handleSIGHUP: false,
+        extraHTTPHeaders: {
+          'sec-ch-ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+          'sec-ch-ua-mobile': '?0',
+          'sec-ch-ua-platform': '"Windows"'
+        }
       });
 
       // Obter referência do browser do context
