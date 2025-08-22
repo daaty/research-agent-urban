@@ -90,47 +90,47 @@ class DriversDataTransformer {
     extractDriverInfo(row, headers) {
         const driverInfo = {};
         // 🔧 CORREÇÃO ESPECÍFICA PARA DIFFERENT TABLES:
-        // 1️⃣ LEADERBOARD (6 campos) - dados embaralhados
+        // 1️⃣ LEADERBOARD (6 campos) - estrutura correta
         if (headers.length === 6 && headers.includes('Driver ID') && headers.includes('Driver Name') && headers.includes('Rides')) {
             // Headers: ["City", "Driver ID", "Driver Name", "Phone Number", "Rank", "Rides"]  
-            // Dados:   [phone,    "0",       real_id,      rank,          city,   real_name]
-            driverInfo.mobile = row[0]; // City -> mobile real
-            driverInfo.driver_id = row[2]; // Driver Name -> ID real  
-            driverInfo.name = row[5]; // Rides -> nome real
-            driverInfo.city = row[4]; // Rank -> cidade real
-            driverInfo.rank = row[3]; // Phone Number -> rank real
-            console.log(`🔧 [LEADERBOARD FIXED] ID: ${driverInfo.driver_id}, Nome: ${driverInfo.name}, Mobile: ${driverInfo.mobile}`);
+            // raw_row: ["12146346","Márcio De Oliveira Cabral","+5566996312650","Matupá","0","2"]
+            driverInfo.driver_id = row[0]; // Driver ID REAL (número) - posição 0
+            driverInfo.name = row[1]; // Driver Name REAL - posição 1
+            driverInfo.mobile = row[2]; // Phone Number REAL - posição 2
+            driverInfo.city = row[3]; // City (Matupá) - posição 3
+            driverInfo.rank = row[4]; // Rank - posição 4
+            driverInfo.rides = row[5]; // Rides (número) - posição 5
+            console.log(`🔧 [LEADERBOARD FIXED V3] ID: ${driverInfo.driver_id}, Nome: ${driverInfo.name}, Mobile: ${driverInfo.mobile}, Rides: ${driverInfo.rides}`);
             // 2️⃣ ACTIVE DRIVERS (15 campos) - estrutura correta
         }
         else if (headers.length === 15 && headers.includes('Driver ID') && headers.includes('Driver Name')) {
             // Headers: ["City","Driver ID","Driver Name","Driver Ratings","Email","Franchise Name","Last Login","Last Ride","Mobile","OTP","Registered On","Rides in Last 30 Days","Rides in Last 7 Days","Status","Vehicle Number"]
             // raw_row: ["12146346","Márcio De Oliveira Cabral","None","Matupá","+5566996312650","eucatur927@hotmail.com","Offline","2025033131-03-2025","HB20 BRANCO - PLACA QCT4E70",...]
-            driverInfo.city = row[0]; // City - posição 0
-            driverInfo.driver_id = row[1]; // Driver Name real - posição 1
-            driverInfo.name = row[1]; // Driver Name (mesmo campo) - posição 1
+            driverInfo.driver_id = row[0]; // Driver ID REAL (número) - posição 0
+            driverInfo.name = row[1]; // Driver Name REAL - posição 1
+            driverInfo.city = row[3]; // City (Matupá) - posição 3
             driverInfo.rating = row[3]; // Driver Ratings - posição 3
-            driverInfo.email = row[5]; // Email CORRETO - posição 5 (não 4!)
-            driverInfo.mobile = row[4]; // Mobile CORRETO - posição 4 (não 8!)
+            driverInfo.email = row[5]; // Email CORRETO - posição 5
+            driverInfo.mobile = row[4]; // Mobile CORRETO - posição 4
             driverInfo.franchise = row[5]; // Franchise Name - posição 5
             driverInfo.last_login = row[6]; // Last Login - posição 6
             driverInfo.last_ride = row[7]; // Last Ride - posição 7
             driverInfo.vehicle = row[8]; // Vehicle - posição 8
-            console.log(`🔧 [ACTIVE FIXED V2] ID: ${driverInfo.driver_id}, Email: ${driverInfo.email}, Mobile: ${driverInfo.mobile}`);
+            console.log(`🔧 [ACTIVE FIXED V3] ID: ${driverInfo.driver_id}, Nome: ${driverInfo.name}, Email: ${driverInfo.email}, Mobile: ${driverInfo.mobile}`);
             // 3️⃣ ENROLLMENT (8 campos) - estrutura específica  
         }
         else if (headers.length === 8 && headers.includes('Driver ID') && headers.includes('Driver Name') && headers.includes('Phone Number')) {
             // Headers: ["Action","Driver ID","Driver Name","Fleet Id","Last Updated","No of docs uploaded","Phone Number","Registered On"]
             // raw_row: ["17177005","valdiceia santos silva","+5566996356157","202505152030 15-05-2025",">","0 out of 5","---","Remove"]
-            driverInfo.action = row[0]; // Action - posição 0
-            driverInfo.driver_id = row[1]; // Driver Name real - posição 1  
-            driverInfo.name = row[1]; // Driver Name (mesmo campo) - posição 1
+            driverInfo.driver_id = row[0]; // Driver ID REAL (número) - posição 0
+            driverInfo.name = row[1]; // Driver Name REAL - posição 1  
             driverInfo.mobile = row[2]; // Phone Number real - posição 2
             driverInfo.fleet_id = row[3]; // Fleet Id - posição 3
             driverInfo.last_updated = row[4]; // Last Updated - posição 4
             driverInfo.docs_uploaded = row[5]; // No of docs uploaded - posição 5
             driverInfo.phone_display = row[6]; // Phone Number (display) - posição 6
             driverInfo.registered_on = row[7]; // Registered On - posição 7
-            console.log(`🔧 [ENROLLMENT FIXED] ID: ${driverInfo.driver_id}, Nome: ${driverInfo.name}, Mobile: ${driverInfo.mobile}`);
+            console.log(`🔧 [ENROLLMENT FIXED V2] ID: ${driverInfo.driver_id}, Nome: ${driverInfo.name}, Mobile: ${driverInfo.mobile}`);
         }
         else {
             // Fallback para mapeamento original se a estrutura for diferente
