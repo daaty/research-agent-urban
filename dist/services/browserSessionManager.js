@@ -41,9 +41,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BrowserSessionManager = void 0;
 const playwright_1 = require("playwright");
@@ -51,27 +48,7 @@ const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const environmentDetector_1 = require("../config/environmentDetector");
 const logger_1 = require("../utils/logger");
-const windowManager_1 = require("./windowManager");
-const windowPositioner_1 = __importDefault(require("../utils/windowPositioner"));
 class BrowserSessionManager {
-    /**
-     * 🖥️ Obter posição da janela baseada na instância para VNC split-screen
-     */
-    getWindowPosition(instanceName) {
-        // 🎯 LÓGICA CORRIGIDA: Posições distintas para cada instância
-        const positions = {
-            // LADO ESQUERDO (rides, monitoramento)
-            'default': { x: 0, y: 0, width: 800, height: 1170 },
-            'rides_scraper': { x: 0, y: 0, width: 800, height: 1170 },
-            'hybrid_operation': { x: 0, y: 0, width: 800, height: 1170 },
-            // LADO DIREITO (drivers, híbrido)  
-            'drivers_scraper': { x: 800, y: 0, width: 800, height: 1170 },
-            'hybrid_scraper': { x: 800, y: 0, width: 800, height: 1170 }
-        };
-        const position = positions[instanceName] || positions['default'];
-        console.log(`📍 [${instanceName}] → Posição: (${position.x}, ${position.y}) Tamanho: ${position.width}x${position.height}`);
-        return position;
-    }
     constructor(instanceName = 'default') {
         this.browser = null;
         this.context = null;
@@ -80,6 +57,9 @@ class BrowserSessionManager {
         this.lastLoginCheck = 0;
         this.lastLoginStatus = false;
         this.loginCheckCacheDuration = 30000; // 30 segundos
+        // 🔄 Cache inteligente - invalida em certas condições
+        this.lastUrl = '';
+        this.urlChangeDetected = false;
         // URLs de configuração (usando variáveis de ambiente)
         this.loginUrl = process.env.RIDES_LOGIN_URL || 'https://rides.ec2dashboard.com/#/page/login';
         this.email = process.env.RIDES_USERNAME || '';
@@ -87,7 +67,6 @@ class BrowserSessionManager {
         this.instanceName = instanceName;
         this.isHeadless = process.env.HEADLESS_MODE === 'true';
         this.logger = logger_1.Logger.getInstance(); // ⭐ INICIALIZAR LOGGER
-        this.windowManager = windowManager_1.WindowManager.getInstance(); // 🖥️ INICIALIZAR WINDOW MANAGER
         // 🆕 Diretórios específicos por instância
         this.userDataDir = path.join(process.cwd(), 'browser-data', instanceName);
         this.sessionFilePath = path.join(process.cwd(), `session-data-${instanceName}.json`);
@@ -114,38 +93,117 @@ class BrowserSessionManager {
         }
     }
     /**
-     * 🖥️ Arranjar todas as janelas automaticamente para split-screen
+     * 🖥️ Obter posição da janela para split-screen (SIMPLES)
      */
-    static arrangeAllWindowsForSplitScreen() {
-        return __awaiter(this, void 0, void 0, function* () {
-            const windowManager = windowManager_1.WindowManager.getInstance();
-            console.log('🖥️ Arranjando janelas para split-screen...');
-            yield windowManager.arrangeWindowsForSplitScreen();
-        });
+    getWindowPosition(instanceName) {
+        const positions = {
+            // LADO ESQUERDO 
+            'default': { x: 0, y: 0, width: 800, height: 1170 },
+            'rides_scraper': { x: 0, y: 0, width: 800, height: 1170 },
+            'hybrid_operation': { x: 0, y: 0, width: 800, height: 1170 },
+            // LADO DIREITO 
+            'drivers_scraper': { x: 800, y: 0, width: 800, height: 1170 },
+            'hybrid_scraper': { x: 800, y: 0, width: 800, height: 1170 }
+        };
+        const position = positions[instanceName] || positions['default'];
+        console.log(`📍 [${instanceName}] → Posição: (${position.x}, ${position.y}) Tamanho: ${position.width}x${position.height}`);
+        return position;
     }
     /**
-     * � Organiza todas as janelas em split-screen (função estática)
-     */
-    static arrangeAllWindows() {
-        return __awaiter(this, void 0, void 0, function* () {
-            try {
-                console.log('🎯 [BROWSER] Organizando todas as janelas em split-screen...');
-                const positioner = windowPositioner_1.default.getInstance();
-                yield positioner.arrangeAllWindows();
-            }
-            catch (error) {
-                console.error('❌ [BROWSER] Erro ao organizar janelas:', error);
-            }
-        });
-    }
-    /**
-     * �🆕 Obtém instância nomeada do BrowserSessionManager
+     * 🆕 Obtém instância nomeada do BrowserSessionManager
      */
     static getInstance(instanceName = 'default') {
         if (!BrowserSessionManager.instances.has(instanceName)) {
             BrowserSessionManager.instances.set(instanceName, new BrowserSessionManager(instanceName));
         }
         return BrowserSessionManager.instances.get(instanceName);
+    }
+    /**
+     * 🔄 COORDENAÇÃO DE LOGIN - Verificar se outro está fazendo login
+     */
+    static isAnotherInstanceLoggingIn(currentInstance) {
+        return BrowserSessionManager.loginCoordination.isLoginInProgress &&
+            BrowserSessionManager.loginCoordination.activeInstance !== currentInstance;
+    }
+    /**
+     * 🔄 COORDENAÇÃO DE LOGIN - Marcar início de login
+     */
+    static startLoginProcess(instanceName) {
+        console.log(`🔒 [${instanceName}] Iniciando processo de login (bloqueando outras instâncias)`);
+        BrowserSessionManager.loginCoordination.isLoginInProgress = true;
+        BrowserSessionManager.loginCoordination.activeInstance = instanceName;
+    }
+    /**
+     * 🔄 COORDENAÇÃO DE LOGIN - Marcar fim de login
+     */
+    static endLoginProcess(instanceName) {
+        console.log(`🔓 [${instanceName}] Finalizando processo de login (liberando outras instâncias)`);
+        BrowserSessionManager.loginCoordination.isLoginInProgress = false;
+        BrowserSessionManager.loginCoordination.activeInstance = null;
+    }
+    /**
+     * 🔒 MUTEX: Adquirir lock de navegação
+     */
+    acquireNavigationLock() {
+        return __awaiter(this, arguments, void 0, function* (timeout = 30000) {
+            const startTime = Date.now();
+            while (BrowserSessionManager.navigationLock.isLocked) {
+                if (Date.now() - startTime > timeout) {
+                    throw new Error(`Timeout aguardando lock de navegação (locked by: ${BrowserSessionManager.navigationLock.lockedBy})`);
+                }
+                // Verificar se lock está preso há muito tempo (mais de 2 minutos)
+                if (Date.now() - BrowserSessionManager.navigationLock.lockTimestamp > 120000) {
+                    console.log(`⚠️ Lock de navegação preso há muito tempo, forçando liberação...`);
+                    this.releaseNavigationLock();
+                    break;
+                }
+                console.log(`⏳ [${this.instanceName}] Aguardando lock de navegação (locked by: ${BrowserSessionManager.navigationLock.lockedBy})`);
+                yield new Promise(resolve => setTimeout(resolve, 1000));
+            }
+            BrowserSessionManager.navigationLock.isLocked = true;
+            BrowserSessionManager.navigationLock.lockedBy = this.instanceName;
+            BrowserSessionManager.navigationLock.lockTimestamp = Date.now();
+            console.log(`🔒 [${this.instanceName}] Lock de navegação adquirido`);
+        });
+    }
+    /**
+     * 🔓 MUTEX: Liberar lock de navegação
+     */
+    releaseNavigationLock() {
+        if (BrowserSessionManager.navigationLock.lockedBy === this.instanceName ||
+            BrowserSessionManager.navigationLock.lockedBy === null) {
+            BrowserSessionManager.navigationLock.isLocked = false;
+            BrowserSessionManager.navigationLock.lockedBy = null;
+            BrowserSessionManager.navigationLock.lockTimestamp = 0;
+            console.log(`🔓 [${this.instanceName}] Lock de navegação liberado`);
+        }
+    }
+    /**
+     * 🔒 SINGLETON: Verificar se outro está inicializando browser
+     */
+    static isAnotherInstanceInitializing(currentInstance) {
+        return BrowserSessionManager.browserInitLock.isInitializing &&
+            BrowserSessionManager.browserInitLock.initializingInstance !== currentInstance;
+    }
+    /**
+     * 🔒 SINGLETON: Marcar início de inicialização
+     */
+    static startBrowserInit(instanceName) {
+        console.log(`🔒 [${instanceName}] Iniciando inicialização do browser (bloqueando outras)`);
+        BrowserSessionManager.browserInitLock.isInitializing = true;
+        BrowserSessionManager.browserInitLock.initializingInstance = instanceName;
+        BrowserSessionManager.browserInitLock.initTimestamp = Date.now();
+    }
+    /**
+     * 🔓 SINGLETON: Finalizar inicialização
+     */
+    static endBrowserInit(instanceName) {
+        if (BrowserSessionManager.browserInitLock.initializingInstance === instanceName) {
+            console.log(`🔓 [${instanceName}] Finalizando inicialização do browser`);
+            BrowserSessionManager.browserInitLock.isInitializing = false;
+            BrowserSessionManager.browserInitLock.initializingInstance = null;
+            BrowserSessionManager.browserInitLock.initTimestamp = 0;
+        }
     }
     /**
      * 🆕 Lista todas as instâncias ativas
@@ -158,6 +216,48 @@ class BrowserSessionManager {
      */
     getInstanceName() {
         return this.instanceName;
+    }
+    /**
+     * 🔒 NAVEGAÇÃO SEGURA: Navegar com mutex para evitar conflitos
+     */
+    navigateWithLock(url, options) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!this.page) {
+                throw new Error('Página não disponível para navegação');
+            }
+            yield this.acquireNavigationLock();
+            try {
+                console.log(`🌐 [${this.instanceName}] Navegando com lock para: ${url.substring(0, 50)}...`);
+                yield this.page.goto(url, options || { waitUntil: 'domcontentloaded', timeout: 30000 });
+                console.log(`✅ [${this.instanceName}] Navegação concluída com sucesso`);
+                // 🔄 Invalidar cache se mudou para página de login
+                this.checkUrlChangeAndInvalidateCache(url);
+            }
+            finally {
+                this.releaseNavigationLock();
+            }
+        });
+    }
+    /**
+     * 🔄 CACHE INTELIGENTE: Invalidar cache quando necessário
+     */
+    invalidateLoginCache() {
+        this.lastLoginCheck = 0;
+        this.lastLoginStatus = false;
+        console.log(`🔄 [${this.instanceName}] Cache de login invalidado`);
+    }
+    /**
+     * 🔄 CACHE INTELIGENTE: Verificar mudança de URL e invalidar se necessário
+     */
+    checkUrlChangeAndInvalidateCache(currentUrl) {
+        if (this.lastUrl !== currentUrl) {
+            this.lastUrl = currentUrl;
+            this.urlChangeDetected = true;
+            // Invalidar cache se detectar mudança para página de login
+            if (currentUrl.includes('login') || currentUrl.includes('#/page/login')) {
+                this.invalidateLoginCache();
+            }
+        }
     }
     /**
      * Carrega dados da sessão do arquivo local
@@ -206,13 +306,19 @@ class BrowserSessionManager {
         return __awaiter(this, arguments, void 0, function* (verbose = true) {
             if (!this.page)
                 return false;
+            // 🔄 Verificar mudança de URL e invalidar cache se necessário
+            const currentUrl = this.page.url();
+            this.checkUrlChangeAndInvalidateCache(currentUrl);
             // 🔄 Usar cache durante scraping para evitar verificações excessivas
             const now = Date.now();
-            if (!verbose && (now - this.lastLoginCheck) < this.loginCheckCacheDuration) {
+            if (!verbose &&
+                !this.urlChangeDetected &&
+                (now - this.lastLoginCheck) < this.loginCheckCacheDuration) {
                 return this.lastLoginStatus;
             }
+            // Reset flag de mudança de URL
+            this.urlChangeDetected = false;
             try {
-                const currentUrl = this.page.url();
                 if (verbose) {
                     console.log('🔍 Verificando URL atual:', currentUrl);
                 }
@@ -232,7 +338,10 @@ class BrowserSessionManager {
                     }
                     // Aguardar um pouco para elementos carregarem (apenas se verbose)
                     if (verbose) {
-                        yield this.page.waitForTimeout(3000);
+                        // 🔒 VERIFICAÇÃO CRÍTICA: Verificar se page ainda é válida antes de waitForTimeout
+                        if (this.page && !this.page.isClosed()) {
+                            yield this.page.waitForTimeout(3000);
+                        }
                     }
                     // Verificações específicas para o site rides.ec2dashboard.com
                     try {
@@ -307,6 +416,32 @@ class BrowserSessionManager {
      */
     initializeBrowser() {
         return __awaiter(this, void 0, void 0, function* () {
+            // 🔒 VERIFICAR SE OUTRA INSTÂNCIA ESTÁ INICIALIZANDO
+            if (BrowserSessionManager.isAnotherInstanceInitializing(this.instanceName)) {
+                console.log(`⏳ [${this.instanceName}] Aguardando outra instância terminar inicialização...`);
+                // Aguardar até a outra instância terminar
+                while (BrowserSessionManager.isAnotherInstanceInitializing(this.instanceName)) {
+                    yield new Promise(resolve => setTimeout(resolve, 2000));
+                    console.log(`⏳ [${this.instanceName}] Ainda aguardando inicialização de ${BrowserSessionManager.browserInitLock.initializingInstance}...`);
+                    // Verificar se não está preso há muito tempo (mais de 2 minutos)
+                    if (Date.now() - BrowserSessionManager.browserInitLock.initTimestamp > 120000) {
+                        console.log(`⚠️ [${this.instanceName}] Inicialização presa há muito tempo, forçando liberação...`);
+                        BrowserSessionManager.endBrowserInit(BrowserSessionManager.browserInitLock.initializingInstance || '');
+                        break;
+                    }
+                }
+                // Verificar se agora temos context ativo (foi criado pela outra instância)
+                if (this.context && this.page) {
+                    try {
+                        yield this.page.title();
+                        console.log(`✅ [${this.instanceName}] Browser foi inicializado pela outra instância!`);
+                        return;
+                    }
+                    catch (error) {
+                        console.log(`⚠️ [${this.instanceName}] Context da outra instância não é válido, continuando...`);
+                    }
+                }
+            }
             if (this.context && this.page) {
                 // Verificar se o context ainda está ativo
                 try {
@@ -319,34 +454,26 @@ class BrowserSessionManager {
                     console.log('⚠️ Sessão anterior inválida, reinicializando...');
                 }
             }
+            // 🔒 MARCAR INÍCIO DA INICIALIZAÇÃO
+            BrowserSessionManager.startBrowserInit(this.instanceName);
             this.logger.info('BROWSER', 'Inicializando browser com persistência...');
             try {
                 // 🔍 Obter configuração de browser baseada no ambiente
                 const envDetector = environmentDetector_1.EnvironmentDetector.getInstance();
                 const playwrightConfig = envDetector.getPlaywrightConfig();
                 console.log(`🖥️ Configuração Playwright: headless=${playwrightConfig.headless}`);
-                // 🖥️ Configurações específicas para VNC com split-screen
+                // 🖥️ ADICIONAR POSICIONAMENTO SPLIT-SCREEN SEM QUEBRAR CONFIGURAÇÃO ORIGINAL
                 const windowPosition = this.getWindowPosition(this.instanceName);
-                const browserArgs = [
+                const splitScreenArgs = [
                     ...playwrightConfig.args,
                     `--window-position=${windowPosition.x},${windowPosition.y}`,
                     `--window-size=${windowPosition.width},${windowPosition.height}`,
-                    '--new-window', // Força nova janela
-                    '--no-first-run',
-                    '--disable-default-apps'
+                    '--new-window'
                 ];
                 this.context = yield playwright_1.chromium.launchPersistentContext(this.userDataDir, {
                     headless: playwrightConfig.headless,
-                    args: browserArgs,
-                    viewport: { width: windowPosition.width, height: windowPosition.height },
-                    userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36', // 🖥️ DESKTOP USER AGENT
-                    deviceScaleFactor: 1, // 🖥️ ESCALA DESKTOP
-                    isMobile: false, // 🖥️ FORÇAR DESKTOP
-                    hasTouch: false, // 🖥️ SEM TOUCH
-                    ignoreDefaultArgs: ['--enable-automation'], // Remove automação detectável
-                    handleSIGINT: false,
-                    handleSIGTERM: false,
-                    handleSIGHUP: false
+                    args: splitScreenArgs, // 🎯 ARGS COM POSICIONAMENTO SIMPLES
+                    viewport: { width: windowPosition.width, height: windowPosition.height } // 🔧 VIEWPORT AJUSTADO PARA SPLIT-SCREEN
                 });
                 // Obter referência do browser do context
                 this.browser = this.context.browser();
@@ -359,33 +486,42 @@ class BrowserSessionManager {
                 // Pegar a página existente ou criar uma nova
                 const pages = this.context.pages();
                 this.page = pages.length > 0 ? pages[0] : yield this.context.newPage();
-                // Configurar timeouts para evitar fechamento prematuro
-                this.page.setDefaultTimeout(60000);
-                this.page.setDefaultNavigationTimeout(60000);
-                // 🖥️ POSICIONAMENTO AUTOMÁTICO DE JANELAS (apenas em ambiente VNC)
-                const envConfig2 = envDetector.getConfig();
-                if (!this.isHeadless && (envConfig2.displayMode === 'vnc' || envConfig2.displayMode === 'xvfb')) {
-                    this.logger.info('BROWSER', `🖥️ Iniciando posicionamento automático para ${this.instanceName}...`);
-                    // Aguardar janela aparecer e tentar posicionar
+                // 🎯 CONFIGURAÇÃO PÓS-INICIALIZAÇÃO PARA FOCO (apenas VNC)
+                if (!this.isHeadless) {
                     setTimeout(() => __awaiter(this, void 0, void 0, function* () {
                         try {
-                            const positioner = windowPositioner_1.default.getInstance();
-                            const success = yield positioner.moveWindow(this.instanceName, windowPosition);
-                            if (!success) {
-                                this.logger.warn('BROWSER', `Falha no posicionamento de ${this.instanceName}`);
+                            console.log(`🎯 [${this.instanceName}] Aplicando foco pós-inicialização...`);
+                            // Tentar focar usando xdotool simples
+                            const { exec } = require('child_process');
+                            const { promisify } = require('util');
+                            const execAsync = promisify(exec);
+                            // Encontrar janela e focar
+                            const windows = yield execAsync('DISPLAY=:99 xdotool search --class "chrome"').catch(() => ({ stdout: '' }));
+                            const windowIds = windows.stdout.trim().split('\n').filter((id) => id.length > 0);
+                            if (windowIds.length > 0) {
+                                const windowIndex = this.instanceName === 'hybrid_scraper' ? 1 : 0;
+                                const targetWindow = windowIds[windowIndex];
+                                if (targetWindow) {
+                                    yield execAsync(`DISPLAY=:99 xdotool windowraise ${targetWindow}`).catch(() => { });
+                                    yield execAsync(`DISPLAY=:99 xdotool windowfocus ${targetWindow}`).catch(() => { });
+                                    console.log(`✅ [${this.instanceName}] Foco aplicado na janela ${targetWindow}`);
+                                }
                             }
                         }
                         catch (error) {
-                            this.logger.warn('BROWSER', `Falha no posicionamento automático: ${error}`);
+                            console.log(`⚠️ [${this.instanceName}] Erro no foco pós-inicialização:`, String(error));
                         }
-                    }), 3000); // Aumentar tempo para garantir que janela esteja visível
+                    }), 3000); // Aguardar 3 segundos
                 }
-                console.log(`🎯 [${this.instanceName}] Browser inicializado com posicionamento automático`);
-                this.logger.success('BROWSER', `Browser ${this.instanceName} inicializado com sucesso`);
+                this.logger.success('BROWSER', 'Browser inicializado com sucesso');
             }
             catch (error) {
                 console.error('❌ Erro ao inicializar browser:', error);
                 throw error;
+            }
+            finally {
+                // 🔓 SEMPRE liberar inicialização
+                BrowserSessionManager.endBrowserInit(this.instanceName);
             }
         });
     }
@@ -397,7 +533,23 @@ class BrowserSessionManager {
             if (!this.context || !this.page) {
                 yield this.initializeBrowser();
             }
-            console.log('🔐 Verificando status de login...');
+            // 🔄 VERIFICAR SE OUTRA INSTÂNCIA ESTÁ FAZENDO LOGIN
+            if (BrowserSessionManager.isAnotherInstanceLoggingIn(this.instanceName)) {
+                console.log(`⏳ [${this.instanceName}] Aguardando outra instância terminar login...`);
+                // Aguardar até a outra instância terminar
+                while (BrowserSessionManager.isAnotherInstanceLoggingIn(this.instanceName)) {
+                    yield new Promise(resolve => setTimeout(resolve, 2000));
+                    console.log(`⏳ [${this.instanceName}] Ainda aguardando login de ${BrowserSessionManager.loginCoordination.activeInstance}...`);
+                }
+                console.log(`✅ [${this.instanceName}] Outra instância terminou login, verificando status...`);
+                // Verificar se agora está logado (pode ter sido resolvido pela outra instância)
+                const isLoggedAfterWait = yield this.isCurrentlyLoggedIn();
+                if (isLoggedAfterWait) {
+                    console.log(`✅ [${this.instanceName}] Login foi resolvido pela outra instância!`);
+                    return true;
+                }
+            }
+            console.log(`🔐 [${this.instanceName}] Verificando status de login...`);
             // Primeiro, verificar se há sessão válida em cache
             if (this.isSessionValid()) {
                 console.log('✅ Sessão válida encontrada no cache');
@@ -466,6 +618,8 @@ class BrowserSessionManager {
      */
     performLogin() {
         return __awaiter(this, void 0, void 0, function* () {
+            // 🔒 COORDENAÇÃO: Marcar início do processo de login
+            BrowserSessionManager.startLoginProcess(this.instanceName);
             try {
                 console.log('📍 Navegando para página de login...');
                 yield this.page.goto(this.loginUrl, {
@@ -515,6 +669,10 @@ class BrowserSessionManager {
                 console.error('❌ Erro durante login:', error);
                 return false;
             }
+            finally {
+                // 🔓 COORDENAÇÃO: SEMPRE liberar processo de login
+                BrowserSessionManager.endLoginProcess(this.instanceName);
+            }
         });
     }
     /**
@@ -523,61 +681,86 @@ class BrowserSessionManager {
      */
     waitForManualLogin() {
         return __awaiter(this, arguments, void 0, function* (timeoutMs = 300000) {
-            console.log('⏳ Aguardando login manual via VNC...');
-            console.log('💡 Acesse o VNC em http://localhost:6080 para resolver o captcha');
-            console.log('🔄 O sistema detectará automaticamente quando você fizer login...');
-            const maxWaitTime = 5 * 60 * 1000; // 5 minutos
-            const checkInterval = 3000; // 3 segundos (mais rápido)
-            const startTime = Date.now();
-            while ((Date.now() - startTime) < maxWaitTime) {
-                try {
-                    const currentUrl = this.page.url();
-                    console.log(`🔍 Verificando URL: ${currentUrl.substring(0, 50)}...`);
-                    // Verificar se saiu da página de login OU se está logado
-                    const notInLogin = !currentUrl.includes('login');
-                    const isLoggedIn = yield this.isCurrentlyLoggedIn(true);
-                    if (notInLogin || isLoggedIn) {
-                        console.log('🔍 Mudança detectada, verificando login completo...');
-                        yield this.page.waitForTimeout(3000); // Aguardar carregamento completo
-                        // Verificação dupla mais robusta
-                        const finalLoginCheck = yield this.isCurrentlyLoggedIn(true);
-                        if (finalLoginCheck) {
-                            console.log('🎉 Login manual detectado com sucesso!');
-                            // Atualizar dados da sessão
-                            const now = Date.now();
-                            this.sessionData = {
-                                isLoggedIn: true,
-                                loginTimestamp: now,
-                                sessionExpiry: now + (2 * 60 * 60 * 1000),
-                                userData: {
-                                    email: this.email,
-                                    manualLogin: true,
-                                    captchaSolved: true,
-                                    detectedAt: new Date().toISOString()
-                                }
-                            };
-                            this.saveSessionData();
-                            // Limpar cache de login para próximas verificações
-                            this.lastLoginCheck = 0;
-                            this.lastLoginStatus = true;
-                            console.log('✅ Sessão atualizada após login manual');
-                            return true;
+            // 🔒 MARCAR INÍCIO DE LOGIN PARA COORDENAÇÃO
+            BrowserSessionManager.startLoginProcess(this.instanceName);
+            try {
+                // 🔒 VERIFICAÇÃO CRÍTICA: Garantir que page não é null
+                if (!this.page) {
+                    console.log(`❌ [${this.instanceName}] Página não disponível para aguardar login manual`);
+                    return false;
+                }
+                console.log(`⏳ [${this.instanceName}] Aguardando login manual via VNC...`);
+                console.log('💡 Acesse o VNC em http://localhost:6080 para resolver o captcha');
+                console.log('🔄 O sistema detectará automaticamente quando você fizer login...');
+                const maxWaitTime = 5 * 60 * 1000; // 5 minutos
+                const checkInterval = 3000; // 3 segundos (mais rápido)
+                const startTime = Date.now();
+                while ((Date.now() - startTime) < maxWaitTime) {
+                    try {
+                        // 🔒 VERIFICAÇÃO CRÍTICA: Verificar se page ainda é válida
+                        if (!this.page) {
+                            console.log(`❌ [${this.instanceName}] Página tornou-se null durante aguardo`);
+                            break;
                         }
-                        else {
-                            console.log('⚠️ URL mudou mas login não confirmado, continuando...');
+                        const currentUrl = this.page.url();
+                        console.log(`🔍 [${this.instanceName}] Verificando URL: ${currentUrl.substring(0, 50)}...`);
+                        // Verificar se saiu da página de login OU se está logado
+                        const notInLogin = !currentUrl.includes('login');
+                        const isLoggedIn = yield this.isCurrentlyLoggedIn(true);
+                        if (notInLogin || isLoggedIn) {
+                            console.log('🔍 Mudança detectada, verificando login completo...');
+                            // 🔒 VERIFICAÇÃO CRÍTICA: Verificar se page ainda é válida antes de waitForTimeout
+                            if (this.page) {
+                                yield this.page.waitForTimeout(3000); // Aguardar carregamento completo
+                            }
+                            else {
+                                console.log(`⚠️ [${this.instanceName}] Página não disponível para timeout`);
+                                yield new Promise(resolve => setTimeout(resolve, 3000)); // Fallback com setTimeout
+                            }
+                            // Verificação dupla mais robusta
+                            const finalLoginCheck = yield this.isCurrentlyLoggedIn(true);
+                            if (finalLoginCheck) {
+                                console.log('🎉 Login manual detectado com sucesso!');
+                                // Atualizar dados da sessão
+                                const now = Date.now();
+                                this.sessionData = {
+                                    isLoggedIn: true,
+                                    loginTimestamp: now,
+                                    sessionExpiry: now + (2 * 60 * 60 * 1000),
+                                    userData: {
+                                        email: this.email,
+                                        manualLogin: true,
+                                        captchaSolved: true,
+                                        detectedAt: new Date().toISOString()
+                                    }
+                                };
+                                this.saveSessionData();
+                                // Limpar cache de login para próximas verificações
+                                this.lastLoginCheck = 0;
+                                this.lastLoginStatus = true;
+                                console.log(`✅ [${this.instanceName}] Sessão atualizada após login manual`);
+                                return true;
+                            }
+                            else {
+                                console.log('⚠️ URL mudou mas login não confirmado, continuando...');
+                            }
                         }
+                        // Aguardar antes da próxima verificação
+                        console.log(`⏳ Aguardando... (${Math.round((Date.now() - startTime) / 1000)}s/${Math.round(maxWaitTime / 1000)}s)`);
+                        yield this.page.waitForTimeout(checkInterval);
                     }
-                    // Aguardar antes da próxima verificação
-                    console.log(`⏳ Aguardando... (${Math.round((Date.now() - startTime) / 1000)}s/${Math.round(maxWaitTime / 1000)}s)`);
-                    yield this.page.waitForTimeout(checkInterval);
+                    catch (error) {
+                        console.log('⚠️ Erro durante polling de login manual:', error);
+                        yield this.page.waitForTimeout(checkInterval);
+                    }
                 }
-                catch (error) {
-                    console.log('⚠️ Erro durante polling de login manual:', error);
-                    yield this.page.waitForTimeout(checkInterval);
-                }
+                console.log(`⏰ [${this.instanceName}] Timeout aguardando login manual`);
+                return false;
             }
-            console.log('⏰ Timeout aguardando login manual');
-            return false;
+            finally {
+                // 🔓 FINALIZAR PROCESSO DE LOGIN PARA COORDENAÇÃO
+                BrowserSessionManager.endLoginProcess(this.instanceName);
+            }
         });
     }
     /**
@@ -723,7 +906,10 @@ class BrowserSessionManager {
                     timeout: 15000
                 });
             }
-            yield this.page.waitForTimeout(3000);
+            // 🔒 VERIFICAÇÃO CRÍTICA: Verificar se page ainda é válida antes de waitForTimeout
+            if (this.page && !this.page.isClosed()) {
+                yield this.page.waitForTimeout(3000);
+            }
         });
     }
     /**
@@ -830,7 +1016,10 @@ class BrowserSessionManager {
                         // Se não está na página de login, pode ter feito login manual
                         if (!currentUrl.includes('login') && (currentUrl.includes('dashboard') || currentUrl.includes('app/'))) {
                             console.log('🔍 URL sugere login manual, verificando...');
-                            yield this.page.waitForTimeout(2000); // Aguardar carregamento
+                            // 🔒 VERIFICAÇÃO CRÍTICA: Verificar se page ainda é válida antes de waitForTimeout
+                            if (this.page && !this.page.isClosed()) {
+                                yield this.page.waitForTimeout(2000); // Aguardar carregamento
+                            }
                             currentlyLoggedIn = yield this.isCurrentlyLoggedIn(true); // Verificação detalhada
                             if (currentlyLoggedIn) {
                                 console.log('✅ Login manual detectado e confirmado!');
@@ -1044,3 +1233,19 @@ class BrowserSessionManager {
 }
 exports.BrowserSessionManager = BrowserSessionManager;
 BrowserSessionManager.instances = new Map();
+BrowserSessionManager.loginCoordination = {
+    isLoginInProgress: false,
+    activeInstance: null
+}; // 🔄 COORDENAÇÃO DE LOGIN
+// 🔒 MUTEX PARA NAVEGAÇÃO CRÍTICA
+BrowserSessionManager.navigationLock = {
+    isLocked: false,
+    lockedBy: null,
+    lockTimestamp: 0
+};
+// 🔒 PROTEÇÃO CONTRA MÚLTIPLAS INICIALIZAÇÕES
+BrowserSessionManager.browserInitLock = {
+    isInitializing: false,
+    initializingInstance: null,
+    initTimestamp: 0
+};

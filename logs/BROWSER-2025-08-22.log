@@ -70,3 +70,9 @@
 [2025-08-22T01:49:40.822Z] [INFO] [BROWSER] Inicializando browser com persistência...
 [2025-08-22T01:49:41.347Z] [SUCCESS] [BROWSER] Browser inicializado com sucesso
 [2025-08-22T01:49:41.432Z] [SUCCESS] [BROWSER] Browser inicializado com sucesso
+[2025-08-22T09:34:40.340Z] [INFO] [BROWSER] Browser [rides_scraper] configurado para modo: VNC
+[2025-08-22T09:34:40.341Z] [INFO] [BROWSER] Headless [rides_scraper]: NÃO
+[2025-08-22T09:34:40.349Z] [INFO] [BROWSER] Browser [default] configurado para modo: VNC
+[2025-08-22T09:34:40.349Z] [INFO] [BROWSER] Headless [default]: NÃO
+[2025-08-22T09:34:40.353Z] [INFO] [BROWSER] Browser [hybrid_scraper] configurado para modo: VNC
+[2025-08-22T09:34:40.354Z] [INFO] [BROWSER] Headless [hybrid_scraper]: NÃO

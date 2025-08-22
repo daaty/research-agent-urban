@@ -307,13 +307,26 @@ class MonitoringService {
         await this.databaseManager.initialize();
       }
 
-      // 🚀 EXECUTAR RIDES E DRIVERS EM PARALELO (compartilhando sessão rides_scraper)
-      this.logger.info('MONITORING', 'Executando scraping de rides e drivers EM PARALELO...');
+      // 🚀 EXECUTAR RIDES E DRIVERS EM SEQUÊNCIA (evita race conditions na sessão compartilhada)
+      this.logger.info('MONITORING', 'Executando scraping SEQUENCIAL (rides → drivers)...');
       
-      const [scrapingResult, driversResult] = await Promise.all([
-        scrapeAllRidesDataPersistent(),    // ✅ USA rides_scraper (sessão principal)
-        scrapeAllDriversDataPersistent()   // ✅ USA rides_scraper (mesma sessão)
-      ]);
+      // 1. RIDES primeiro (estabelece e valida sessão)
+      console.log('📋 1/2 Executando scraping de RIDES...');
+      const scrapingResult = await scrapeAllRidesDataPersistent(); // ✅ USA rides_scraper (sessão principal)
+      
+      // 2. DRIVERS depois (usa sessão já estabelecida)
+      let driversResult;
+      if (scrapingResult.success && scrapingResult.sessionInfo?.sessionValid) {
+        console.log('📋 2/2 Executando scraping de DRIVERS (sessão válida)...');
+        driversResult = await scrapeAllDriversDataPersistent(); // ✅ USA rides_scraper (mesma sessão)
+      } else {
+        console.log('⚠️ Sessão de rides inválida, pulando scraping de drivers');
+        driversResult = {
+          success: false,
+          data: [],
+          message: 'Dependência: sessão de rides não foi estabelecida com sucesso'
+        };
+      }
       
       // 1. PROCESSAR RESULTADO DE RIDES
       if (!scrapingResult.success || !scrapingResult.data || scrapingResult.data.length === 0) {

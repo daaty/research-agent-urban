@@ -17,10 +17,11 @@ const dataTransformer_1 = require("../services/dataTransformer");
  * Integra com o sistema híbrido de extração + recarga
  */
 class RidesDashboardHybridScraper {
-    constructor(instanceName = 'hybrid_scraper') {
+    constructor(instanceName = 'rides_scraper') {
         this.page = null;
         this.isLoggedIn = false;
         this.currentCity = '';
+        this.isExtractingIds = false; // Flag para evitar extrações simultâneas
         // URLs hardcoded conforme solicitado
         this.DASHBOARD_URL = 'https://rides.ec2dashboard.com/#/app/dashboard';
         this.ACTIVE_DRIVERS_URL = 'https://rides.ec2dashboard.com/#/app/active-drivers';
@@ -60,38 +61,108 @@ class RidesDashboardHybridScraper {
         });
     }
     /**
-     * Faz login usando o método que já funciona
+     * Faz login usando o método que já funciona - ADAPTADO DO RIDES_SCRAPER
      */
     performLogin(loginUrl, username, password) {
         return __awaiter(this, void 0, void 0, function* () {
             if (!this.page)
                 throw new Error('Página não disponível');
-            yield this.page.goto(loginUrl, { waitUntil: 'networkidle' });
-            // Verificar se já está logado
-            const isAlreadyLoggedIn = yield this.checkIfLoggedIn();
-            if (isAlreadyLoggedIn) {
+            yield this.browserManager.navigateWithLock(loginUrl, { waitUntil: 'networkidle' });
+            // 🔍 Verificar se já está logado primeiro
+            const currentUrl = this.page.url();
+            console.log('🔍 URL sugere login manual, verificando...');
+            if (currentUrl.includes('/app/dashboard') || currentUrl.includes('#/app/')) {
                 console.log('✅ Já está logado! Pulando processo de login...');
                 this.isLoggedIn = true;
                 return;
             }
-            console.log('🔐 Fazendo login...');
-            // Aguarda campos de login aparecerem
-            yield this.page.waitForSelector('#exampleInputEmail1', { timeout: 10000 });
-            yield this.page.waitForSelector('#exampleInputPassword1', { timeout: 10000 });
-            // Preenche credenciais
-            yield this.page.fill('#exampleInputEmail1', username);
-            yield this.page.fill('#exampleInputPassword1', password);
-            console.log('⌨️ Pressionando Enter para fazer login...');
-            yield this.page.press('#exampleInputPassword1', 'Enter');
-            // Aguarda redirecionamento para dashboard
-            yield this.page.waitForURL('**/app/dashboard/**', { timeout: 15000 });
-            const currentUrl = this.page.url();
-            console.log(`✅ Login bem-sucedido! Redirecionado para: ${currentUrl}`);
-            this.isLoggedIn = true;
+            console.log('� Verificando presença de captcha na página...');
+            // Verificar se há captcha visível
+            const captchaVisible = yield this.page.isVisible('div[id*="captcha"]:visible, iframe[src*="captcha"]:visible, .g-recaptcha:visible');
+            if (captchaVisible) {
+                console.log('📋 Captcha detectado na página');
+                console.log('❌ Login automático não possível com captcha presente');
+                yield this.waitForManualLogin();
+                return;
+            }
+            // Verificar se não há captcha oculto
+            const captchaPresent = yield this.page.isVisible('div[id*="captcha"], iframe[src*="captcha"], .g-recaptcha');
+            if (captchaPresent) {
+                console.log('📋 Captcha encontrado mas não visível:', (yield this.page.getAttribute('div[id*="captcha"]', 'id')) || 'captcha element');
+                console.log('✅ Nenhum captcha detectado - prosseguindo com login automático');
+            }
+            else {
+                console.log('✅ Nenhum captcha detectado - prosseguindo com login automático');
+            }
+            // Tentar login automático
+            try {
+                console.log('📝 Preenchendo credenciais...');
+                yield this.page.fill('#exampleInputEmail1', username);
+                yield this.page.fill('#exampleInputPassword1', password);
+                console.log('🚪 Fazendo login...');
+                yield this.page.press('#exampleInputPassword1', 'Enter');
+                // Aguardar um pouco para ver se o login funcionou
+                yield this.page.waitForTimeout(3000);
+                const newUrl = this.page.url();
+                console.log('🔍 URL após login:', newUrl);
+                if (newUrl.includes('/app/dashboard') || newUrl.includes('#/app/')) {
+                    console.log('✅ Login automático bem-sucedido!');
+                    this.isLoggedIn = true;
+                    return;
+                }
+                else {
+                    console.log('❌ Ainda na página de login');
+                    console.log('❌ Falha no login automático, pode ter captcha não detectado');
+                    yield this.waitForManualLogin();
+                }
+            }
+            catch (error) {
+                console.log('❌ Erro no login automático:', error);
+                yield this.waitForManualLogin();
+            }
         });
     }
     /**
-     * Verifica se já está logado checando se está na dashboard
+     * Aguarda login manual via VNC - IGUAL AO RIDES_SCRAPER
+     */
+    waitForManualLogin() {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!this.page)
+                throw new Error('Página não disponível');
+            console.log('🔄 Tentando aguardar login manual como fallback...');
+            console.log('⏳ Aguardando login manual via VNC...');
+            console.log('💡 Acesse o VNC em http://localhost:6080 para resolver o captcha');
+            console.log('🔄 O sistema detectará automaticamente quando você fizer login...');
+            const maxWaitTime = 300; // 5 minutos
+            let elapsedTime = 0;
+            while (elapsedTime < maxWaitTime) {
+                const currentUrl = this.page.url();
+                console.log(`🔍 Verificando URL: ${currentUrl}...`);
+                // Verificar se conseguiu fazer login
+                if (currentUrl.includes('/app/dashboard') || currentUrl.includes('#/app/')) {
+                    console.log('✅ Login manual detectado com sucesso!');
+                    this.isLoggedIn = true;
+                    return;
+                }
+                // Verificar se ainda está na página de login
+                if (currentUrl.includes('/page/login') || currentUrl.includes('#/page/login')) {
+                    console.log('🔍 Verificando URL atual:', currentUrl);
+                    console.log('❌ Ainda na página de login');
+                    console.log(`⏳ Aguardando... (${elapsedTime}s/${maxWaitTime}s)`);
+                    yield this.page.waitForTimeout(3000);
+                    elapsedTime += 3;
+                }
+                else {
+                    // URL mudou, aguardar um pouco mais para ver se vai para dashboard
+                    yield this.page.waitForTimeout(2000);
+                    elapsedTime += 2;
+                }
+            }
+            throw new Error('Timeout aguardando login manual via VNC');
+        });
+    }
+    /**
+     * Verifica se já está logado - VERSÃO MAIS SEGURA
      */
     checkIfLoggedIn() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -99,20 +170,38 @@ class RidesDashboardHybridScraper {
                 return false;
             try {
                 const currentUrl = this.page.url();
-                // Se já está na dashboard ou em alguma página do app, está logado
+                console.log('🔍 Verificando URL atual:', currentUrl);
+                // Se está na página de login, definitivamente não está logado
+                if (currentUrl.includes('/page/login') || currentUrl.includes('#/page/login')) {
+                    console.log('⚠️ URL não reconhecida, assumindo não logado');
+                    return false;
+                }
+                // Se já está numa página do app, verificar se realmente está logado
                 if (currentUrl.includes('/app/dashboard') ||
                     currentUrl.includes('/app/active-drivers') ||
                     currentUrl.includes('#/app/')) {
-                    return true;
+                    // Tentar encontrar elementos que só existem quando logado
+                    try {
+                        // Aguardar brevemente por elementos da dashboard
+                        yield this.page.waitForSelector('body', { timeout: 3000 });
+                        // Verificar se não foi redirecionado para login
+                        const newUrl = this.page.url();
+                        if (newUrl.includes('/page/login')) {
+                            console.log('❌ Foi redirecionado para login');
+                            return false;
+                        }
+                        console.log('✅ URL indica dashboard');
+                        return true;
+                    }
+                    catch (error) {
+                        console.log('⚠️ Erro ao verificar elementos da dashboard');
+                        return false;
+                    }
                 }
-                // Tenta navegar para dashboard para verificar
-                yield this.page.goto(this.DASHBOARD_URL, { waitUntil: 'networkidle', timeout: 5000 });
-                const newUrl = this.page.url();
-                // Se conseguiu navegar para dashboard sem ser redirecionado para login, está logado
-                return newUrl.includes('/app/dashboard') || newUrl.includes('#/app/');
+                return false;
             }
             catch (error) {
-                // Se der erro, provavelmente não está logado
+                console.log('❌ Erro ao verificar login:', error);
                 return false;
             }
         });
@@ -239,6 +328,31 @@ class RidesDashboardHybridScraper {
         return __awaiter(this, void 0, void 0, function* () {
             if (!this.page)
                 throw new Error('Página não disponível');
+            const now = Date.now();
+            const minInterval = 60000; // 1 minuto mínimo entre extrações
+            // 🔒 DEBOUNCE: Verificar se extração é muito recente
+            if (RidesDashboardHybridScraper.idExtractionDebounce.isExtracting) {
+                console.log('⚠️ Extração de IDs já em andamento por outra instância, retornando cache...');
+                return RidesDashboardHybridScraper.idExtractionDebounce.lastResult;
+            }
+            if ((now - RidesDashboardHybridScraper.idExtractionDebounce.lastExtraction) < minInterval) {
+                const waitTime = Math.ceil((minInterval - (now - RidesDashboardHybridScraper.idExtractionDebounce.lastExtraction)) / 1000);
+                console.log(`⏳ Extração de IDs muito recente, retornando cache (próxima em ${waitTime}s)`);
+                return RidesDashboardHybridScraper.idExtractionDebounce.lastResult;
+            }
+            // Verificar se já está extraindo para evitar chamadas simultâneas
+            if (this.isExtractingIds) {
+                console.log('⚠️ Extração de IDs já em andamento, aguardando...');
+                // Aguardar um pouco e tentar novamente
+                yield new Promise(resolve => setTimeout(resolve, 2000));
+                if (this.isExtractingIds) {
+                    throw new Error('Extração de IDs já em andamento por muito tempo');
+                }
+            }
+            // 🔒 Marcar início da extração
+            this.isExtractingIds = true;
+            RidesDashboardHybridScraper.idExtractionDebounce.isExtracting = true;
+            RidesDashboardHybridScraper.idExtractionDebounce.lastExtraction = now;
             console.log('🔍 Extraindo IDs dos motoristas da página Active Drivers...');
             try {
                 // Garantir que estamos na página Active Drivers
@@ -253,9 +367,15 @@ class RidesDashboardHybridScraper {
                     // Aguardar a tabela carregar
                     console.log('⏳ Aguardando tabela de motoristas carregar...');
                     yield this.page.waitForTimeout(3000);
-                    // Aguardar tabela aparecer
-                    yield this.page.waitForSelector('#activeDriver tbody tr', { timeout: 10000 });
-                    console.log('✅ Tabela de motoristas carregada');
+                    // Aguardar tabela aparecer com timeout maior e melhor error handling
+                    try {
+                        yield this.page.waitForSelector('#activeDriver tbody tr', { timeout: 20000 });
+                        console.log('✅ Tabela de motoristas carregada');
+                    }
+                    catch (waitError) {
+                        console.log('⚠️ Timeout aguardando tabela, tentando sem wait...');
+                        // Continuar mesmo sem wait - talvez a tabela já esteja lá
+                    }
                 }
                 else {
                     console.log('⚠️ Botão "See All" não encontrado, tentando extrair IDs diretamente...');
@@ -267,6 +387,8 @@ class RidesDashboardHybridScraper {
                 driverIds.forEach((id, index) => {
                     console.log(`   ${index + 1}. ${id}`);
                 });
+                // 💾 Armazenar resultado no cache
+                RidesDashboardHybridScraper.idExtractionDebounce.lastResult = driverIds;
                 return driverIds;
             }
             catch (error) {
@@ -280,6 +402,8 @@ class RidesDashboardHybridScraper {
                         alternativeIds.forEach((id, index) => {
                             console.log(`   ${index + 1}. ${id}`);
                         });
+                        // 💾 Armazenar resultado no cache
+                        RidesDashboardHybridScraper.idExtractionDebounce.lastResult = alternativeIds;
                         return alternativeIds;
                     }
                     throw new Error('Nenhuma abordagem funcionou');
@@ -288,6 +412,10 @@ class RidesDashboardHybridScraper {
                     console.error('❌ Abordagem alternativa também falhou:', altError.message);
                     return [];
                 }
+            }
+            finally {
+                this.isExtractingIds = false; // Limpar flag sempre
+                RidesDashboardHybridScraper.idExtractionDebounce.isExtracting = false; // Limpar flag global
             }
         });
     }
@@ -353,22 +481,77 @@ class RidesDashboardHybridScraper {
      */
     extractDriverData(driverId) {
         return __awaiter(this, void 0, void 0, function* () {
+            var _a;
             if (!this.page || !this.isLoggedIn) {
                 throw new Error('Scraper não inicializado ou não logado');
             }
             console.log(`📊 Extraindo dados do motorista: ${driverId}`);
             try {
+                // 🔍 VERIFICAR SE AINDA ESTÁ LOGADO ANTES DE CONTINUAR
+                const currentUrl = this.page.url();
+                if (currentUrl.includes('/page/login') || currentUrl.includes('#/page/login')) {
+                    console.log('❌ SESSÃO PERDIDA! Retornando à página de login...');
+                    this.isLoggedIn = false;
+                    throw new Error('Sessão perdida - necessário login manual');
+                }
                 // Garantir que estamos na página Dashboard (onde está o campo #driverId)
                 console.log('🌐 Navegando para Dashboard para extração de dados...');
-                yield this.page.goto(this.DASHBOARD_URL, { waitUntil: 'networkidle', timeout: 15000 });
-                console.log(`📍 URL atual: ${this.page.url()}`);
-                // Aguarda o campo de input aparecer
+                yield this.browserManager.navigateWithLock(this.DASHBOARD_URL, { waitUntil: 'networkidle', timeout: 15000 }); // Verificar se foi redirecionado para login após navegação
+                const newUrl = this.page.url();
+                console.log(`📍 URL atual: ${newUrl}`);
+                if (newUrl.includes('/page/login') || newUrl.includes('#/page/login')) {
+                    console.log('❌ REDIRECIONADO PARA LOGIN! Sessão expirou...');
+                    this.isLoggedIn = false;
+                    throw new Error('Sessão expirou - redirecionado para login');
+                }
+                // 🎯 VERIFICAÇÃO ROBUSTA DO CAMPO driverId
                 console.log('🔍 Procurando campo #driverId...');
-                yield this.page.waitForSelector('#driverId', { timeout: 10000 });
+                // Aguardar página carregar completamente
+                yield this.page.waitForLoadState('domcontentloaded');
+                yield this.page.waitForTimeout(2000);
+                // Tentar múltiplos seletores para o campo driverId
+                const possibleSelectors = [
+                    '#driverId',
+                    'input[placeholder*="driver"]',
+                    'input[placeholder*="Driver"]',
+                    'input[ng-model*="driver"]',
+                    'input[name="driverId"]',
+                    'input[id*="driver"]'
+                ];
+                let driverIdField = null;
+                let usedSelector = '';
+                for (const selector of possibleSelectors) {
+                    try {
+                        yield this.page.waitForSelector(selector, { timeout: 3000 });
+                        driverIdField = selector;
+                        usedSelector = selector;
+                        console.log(`✅ Campo encontrado com seletor: ${selector}`);
+                        break;
+                    }
+                    catch (_b) {
+                        console.log(`⚠️ Seletor ${selector} não encontrado, tentando próximo...`);
+                    }
+                }
+                if (!driverIdField) {
+                    console.log('❌ Nenhum campo de driverId encontrado!');
+                    console.log('🔍 Verificando se ainda está logado...');
+                    // Verificar se perdeu o login
+                    const currentUrl = this.page.url();
+                    if (currentUrl.includes('login')) {
+                        console.log('❌ SESSÃO PERDIDA - Voltou para página de login!');
+                        this.isLoggedIn = false;
+                        throw new Error('Sessão perdida - necessário fazer login novamente');
+                    }
+                    // Imprimir HTML para debug
+                    const bodyHTML = yield this.page.locator('body').innerHTML();
+                    console.log('🔍 HTML da página (primeiros 500 chars):');
+                    console.log(bodyHTML.substring(0, 500));
+                    throw new Error('Campo driverId não encontrado em nenhum seletor');
+                }
                 // Limpa e preenche o campo
-                yield this.page.fill('#driverId', '');
-                yield this.page.fill('#driverId', driverId);
-                console.log(`⌨️ Preenchido ID: ${driverId}`);
+                yield this.page.fill(usedSelector, '');
+                yield this.page.fill(usedSelector, driverId);
+                console.log(`⌨️ Preenchido ID: ${driverId} usando seletor: ${usedSelector}`);
                 // Aguarda e clica no botão "Details Driver"
                 yield this.page.waitForSelector('button[ng-click="getDriverInfo(enteredDriverValue)"]', { timeout: 5000 });
                 yield this.page.click('button[ng-click="getDriverInfo(enteredDriverValue)"]');
@@ -402,6 +585,24 @@ class RidesDashboardHybridScraper {
             }
             catch (error) {
                 console.error(`❌ Erro ao extrair dados de ${driverId}:`, error);
+                // 🔍 DETECTAR SESSÃO PERDIDA E PARAR LOOP INFINITO
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                if (errorMessage.includes('Sessão perdida') ||
+                    errorMessage.includes('Sessão expirou') ||
+                    errorMessage.includes('redirecionado para login')) {
+                    console.log('🛑 SESSÃO PERDIDA DETECTADA - PARANDO EXTRAÇÃO');
+                    this.isLoggedIn = false;
+                    throw new Error('SESSÃO_PERDIDA: Necessário login manual via VNC');
+                }
+                // Se é timeout do campo #driverId, verificar se ainda está logado
+                if (errorMessage.includes('Timeout') && errorMessage.includes('#driverId')) {
+                    const currentUrl = ((_a = this.page) === null || _a === void 0 ? void 0 : _a.url()) || '';
+                    if (currentUrl.includes('/page/login')) {
+                        console.log('🛑 TIMEOUT + PÁGINA LOGIN = SESSÃO PERDIDA');
+                        this.isLoggedIn = false;
+                        throw new Error('SESSÃO_PERDIDA: Campo não encontrado porque voltou ao login');
+                    }
+                }
                 throw error;
             }
         });
@@ -933,7 +1134,7 @@ class RidesDashboardHybridScraper {
                     throw new Error('Página não disponível');
                 // 1. Navegar para dashboard principal (forçar URL correta)
                 console.log('🌐 Navegando para Dashboard para recarga...');
-                yield this.page.goto('https://rides.ec2dashboard.com/#/app/dashboard', { waitUntil: 'networkidle' });
+                yield this.browserManager.navigateWithLock('https://rides.ec2dashboard.com/#/app/dashboard', { waitUntil: 'networkidle' });
                 yield this.page.waitForTimeout(3000);
                 // 2. Verificar URL atual
                 const currentUrl = this.page.url();
@@ -1059,3 +1260,9 @@ class RidesDashboardHybridScraper {
     }
 }
 exports.RidesDashboardHybridScraper = RidesDashboardHybridScraper;
+// 🔒 DEBOUNCE PARA EXTRAÇÃO DE IDs (static para compartilhar entre instâncias)
+RidesDashboardHybridScraper.idExtractionDebounce = {
+    lastExtraction: 0,
+    isExtracting: false,
+    lastResult: []
+};

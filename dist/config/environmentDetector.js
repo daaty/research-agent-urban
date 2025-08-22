@@ -145,21 +145,21 @@ class EnvironmentDetector {
         const baseConfig = {
             headless: config.displayMode === 'headless',
             args: [
-                // ❌ REMOVIDO: --no-sandbox (causava warning)
+                '--no-sandbox', // ✅ RESTAURADO: Essencial para funcionamento
+                '--disable-setuid-sandbox',
                 '--disable-dev-shm-usage',
                 '--disable-web-security',
                 '--disable-background-timer-throttling',
                 '--disable-backgrounding-occluded-windows',
-                '--disable-renderer-backgrounding'
-                // ❌ REMOVIDO: --window-size e --window-position (conflitam com split-screen)
+                '--disable-renderer-backgrounding',
+                '--window-size=1600,1200', // ✅ RESTAURADO: Tamanho padrão funcionando
+                '--window-position=0,0' // ✅ RESTAURADO: Posição padrão (será sobrescrita no split-screen)
             ]
         };
         if (config.displayMode === 'vnc' || config.displayMode === 'xvfb') {
             baseConfig.args.push(`--display=${config.displayVar}`);
-            // Configurações específicas para VNC com melhor interação
-            baseConfig.args.push('--force-device-scale-factor=1', '--disable-features=VizDisplayCompositor', '--start-maximized', '--disable-infobars', '--disable-notifications', '--disable-popup-blocking', '--enable-logging=stderr', '--log-level=0', '--disable-extensions', '--disable-plugins', '--disable-sync', '--no-default-browser-check', '--no-first-run', '--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36', // 🖥️ FORÇAR DESKTOP
-            '--window-size=800,1170' // 🖥️ TAMANHO DESKTOP EXPLÍCITO
-            );
+            // ✅ CONFIGURAÇÕES VNC DO COMMIT FUNCIONANDO
+            baseConfig.args.push('--force-device-scale-factor=1', '--disable-features=VizDisplayCompositor', '--disable-gpu-sandbox', '--start-maximized');
         }
         if (config.isDocker) {
             baseConfig.args.push('--disable-gpu', '--disable-software-rasterizer', '--no-first-run');

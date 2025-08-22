@@ -81,16 +81,26 @@ export class DriversPersistentScraper {
       
       // Verificar se a sessão está ativa (deve estar devido ao scraping de rides)
       if (!this.sessionManager.isActive()) {
-        return {
-          success: false,
-          data: [],
-          message: 'Sessão do browser não está ativa. Execute primeiro o scraping de rides.',
-          sessionInfo: {
-            isNewLogin: false,
-            browserStatus: 'inactive',
-            sessionValid: false
-          }
-        };
+        console.log('⏳ Sessão não ativa, aguardando estabelecimento via rides scraper...');
+        
+        // Aguardar um pouco para a sessão ser estabelecida pelo rides scraper
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        // Verificar novamente após aguardar
+        if (!this.sessionManager.isActive()) {
+          return {
+            success: false,
+            data: [],
+            message: 'Sessão não ativa após aguardar. Verifique se rides scraper foi executado primeiro e estabeleceu sessão válida.',
+            sessionInfo: {
+              isNewLogin: false,
+              browserStatus: 'inactive',
+              sessionValid: false
+            }
+          };
+        }
+        
+        console.log('✅ Sessão agora está ativa após aguardar');
       }
 
       console.log('✅ Usando sessão existente do browser para drivers');

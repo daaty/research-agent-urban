@@ -106,7 +106,9 @@ class CitySpecificDriverProvider {
                 const loaded = JSON.parse(data);
                 // Converter datas de string para Date
                 this.cache = Object.assign(Object.assign({}, loaded), { lastUpdated: new Date(loaded.lastUpdated), expiresAt: new Date(loaded.expiresAt) });
-                console.log(`💾 Cache carregado para ${this.config.cityName}: ${this.cache.drivers.length} motoristas`);
+                if (this.cache && this.cache.drivers) {
+                    console.log(`💾 Cache carregado para ${this.config.cityName}: ${this.cache.drivers.length} motoristas`);
+                }
             }
         }
         catch (error) {

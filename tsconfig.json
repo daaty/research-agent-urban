@@ -16,7 +16,8 @@
       "node_modules",
       "dist",
       "examples",
-      "**/*.test.ts"
+      "**/*.test.ts",
+      "src/api/**/*"
     ]
   }
   

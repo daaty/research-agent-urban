@@ -78,6 +78,14 @@ class WindowPositioner {
         });
     }
     /**
+     * 🔍 Método público para obter janelas do Chrome (para FocusManager)
+     */
+    getChromeWindows() {
+        return __awaiter(this, void 0, void 0, function* () {
+            return yield this.findChromeWindows();
+        });
+    }
+    /**
      * 📍 Determina índice da janela baseado na instância
      */
     getWindowIndex(instanceName) {
@@ -187,6 +195,107 @@ class WindowPositioner {
             }
             catch (error) {
                 console.log('⚠️ [WINDOW] Erro ao listar janelas:', error);
+            }
+        });
+    }
+    /**
+     * 🎯 Focar em uma janela específica por instância
+     */
+    focusWindow(instanceName) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                console.log(`🎯 [FOCUS] Focando janela: ${instanceName}`);
+                // Encontrar janela do Chrome por título/classe
+                const { stdout } = yield execAsync(`DISPLAY=:99 xdotool search --class chrome 2>/dev/null || echo ""`);
+                const windowIds = stdout.trim().split('\n').filter(id => id.length > 0);
+                if (windowIds.length === 0) {
+                    console.log('❌ [FOCUS] Nenhuma janela do Chrome encontrada');
+                    return false;
+                }
+                // Mapear instância para índice da janela
+                const instanceWindowMap = {
+                    'rides_scraper': 0,
+                    'hybrid_scraper': 1,
+                    'drivers_scraper': 1,
+                    'hybrid_operation': 0,
+                    'default': 0
+                };
+                const windowIndex = instanceWindowMap[instanceName] || 0;
+                const windowId = windowIds[windowIndex];
+                if (!windowId) {
+                    console.log(`❌ [FOCUS] Janela ${windowIndex} não encontrada para ${instanceName}`);
+                    return false;
+                }
+                // Método 1: Tentar wmctrl primeiro (mais compatível com Openbox)
+                try {
+                    yield execAsync(`DISPLAY=:99 wmctrl -i -a ${windowId}`);
+                    console.log(`✅ [FOCUS] Janela ${instanceName} (ID: ${windowId}) focada via wmctrl`);
+                    return true;
+                }
+                catch (wmctrlError) {
+                    console.log(`⚠️ [FOCUS] wmctrl falhou, tentando xdotool...`);
+                }
+                // Método 2: Focar com xdotool (original)
+                try {
+                    yield execAsync(`DISPLAY=:99 xdotool windowraise ${windowId}`);
+                    yield execAsync(`DISPLAY=:99 xdotool windowfocus ${windowId}`);
+                    yield execAsync(`DISPLAY=:99 xdotool windowactivate ${windowId}`);
+                    console.log(`✅ [FOCUS] Janela ${instanceName} (ID: ${windowId}) focada via xdotool`);
+                    return true;
+                }
+                catch (xdotoolError) {
+                    console.log(`⚠️ [FOCUS] xdotool falhou, tentando click simulado...`);
+                }
+                // Método 3: Click no centro da janela para forçar foco
+                try {
+                    const { stdout: geometry } = yield execAsync(`DISPLAY=:99 xdotool getwindowgeometry ${windowId}`);
+                    const match = geometry.match(/Geometry: (\d+)x(\d+)/);
+                    if (match) {
+                        const centerX = Math.floor(parseInt(match[1]) / 2);
+                        const centerY = Math.floor(parseInt(match[2]) / 2);
+                        yield execAsync(`DISPLAY=:99 xdotool windowraise ${windowId}`);
+                        yield execAsync(`DISPLAY=:99 xdotool mousemove --window ${windowId} ${centerX} ${centerY}`);
+                        yield execAsync(`DISPLAY=:99 xdotool click --window ${windowId} 1`);
+                        console.log(`✅ [FOCUS] Janela ${instanceName} (ID: ${windowId}) focada via click simulado`);
+                        return true;
+                    }
+                }
+                catch (clickError) {
+                    console.log(`❌ [FOCUS] Todos os métodos falharam para ${instanceName}`);
+                }
+                return false;
+            }
+            catch (error) {
+                console.error(`❌ [FOCUS] Erro ao focar janela ${instanceName}:`, error);
+                return false;
+            }
+        });
+    }
+    /**
+     * 🔄 Alternar foco entre janelas
+     */
+    switchFocus() {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                console.log('🔄 [FOCUS] Alternando foco entre janelas...');
+                const { stdout } = yield execAsync(`DISPLAY=:99 xdotool search --class chrome 2>/dev/null || echo ""`);
+                const windowIds = stdout.trim().split('\n').filter(id => id.length > 0);
+                if (windowIds.length < 2) {
+                    console.log('❌ [FOCUS] Menos de 2 janelas encontradas para alternar');
+                    return;
+                }
+                // Pegar janela com foco atual
+                const { stdout: activeWindow } = yield execAsync(`DISPLAY=:99 xdotool getwindowfocus 2>/dev/null || echo ""`);
+                const currentFocus = activeWindow.trim();
+                // Alternar para a próxima janela
+                const nextWindowIndex = windowIds.indexOf(currentFocus) === 0 ? 1 : 0;
+                const nextWindowId = windowIds[nextWindowIndex];
+                yield execAsync(`DISPLAY=:99 xdotool windowfocus ${nextWindowId}`);
+                yield execAsync(`DISPLAY=:99 xdotool windowactivate ${nextWindowId}`);
+                console.log(`✅ [FOCUS] Foco alternado para janela ${nextWindowId}`);
+            }
+            catch (error) {
+                console.error('❌ [FOCUS] Erro ao alternar foco:', error);
             }
         });
     }

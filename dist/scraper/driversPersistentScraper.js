@@ -15,8 +15,8 @@ const browserSessionManager_1 = require("../services/browserSessionManager");
 const driverCacheManager_1 = require("../services/driverCacheManager");
 class DriversPersistentScraper {
     constructor() {
-        // 🖥️ Usar instância específica para drivers (lado direito do split-screen)
-        this.sessionManager = browserSessionManager_1.BrowserSessionManager.getInstance('drivers_scraper');
+        // 🖥️ Compartilhar sessão com rides scraper para manter login sincronizado
+        this.sessionManager = browserSessionManager_1.BrowserSessionManager.getInstance('rides_scraper');
         this.cacheManager = driverCacheManager_1.DriverCacheManager.getInstance();
         // Extrair domínio base da URL de login (sem barra final)
         const loginUrl = process.env.RIDES_LOGIN_URL || 'https://rides.ec2dashboard.com/#/page/login';
@@ -39,16 +39,23 @@ class DriversPersistentScraper {
                 console.log('🚗 Iniciando scraping de drivers com sessão persistente...');
                 // Verificar se a sessão está ativa (deve estar devido ao scraping de rides)
                 if (!this.sessionManager.isActive()) {
-                    return {
-                        success: false,
-                        data: [],
-                        message: 'Sessão do browser não está ativa. Execute primeiro o scraping de rides.',
-                        sessionInfo: {
-                            isNewLogin: false,
-                            browserStatus: 'inactive',
-                            sessionValid: false
-                        }
-                    };
+                    console.log('⏳ Sessão não ativa, aguardando estabelecimento via rides scraper...');
+                    // Aguardar um pouco para a sessão ser estabelecida pelo rides scraper
+                    yield new Promise(resolve => setTimeout(resolve, 3000));
+                    // Verificar novamente após aguardar
+                    if (!this.sessionManager.isActive()) {
+                        return {
+                            success: false,
+                            data: [],
+                            message: 'Sessão não ativa após aguardar. Verifique se rides scraper foi executado primeiro e estabeleceu sessão válida.',
+                            sessionInfo: {
+                                isNewLogin: false,
+                                browserStatus: 'inactive',
+                                sessionValid: false
+                            }
+                        };
+                    }
+                    console.log('✅ Sessão agora está ativa após aguardar');
                 }
                 console.log('✅ Usando sessão existente do browser para drivers');
                 // Extrair dados de todas as páginas de drivers

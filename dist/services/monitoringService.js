@@ -271,6 +271,7 @@ class MonitoringService {
     }
     performScraping() {
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
             if (this.isRunning) {
                 this.logger.warn('MONITORING', 'Scraping já em execução, pulando...');
                 return;
@@ -283,102 +284,142 @@ class MonitoringService {
                     this.logger.warn('MONITORING', 'Banco de dados não conectado, tentando reconectar...');
                     yield this.databaseManager.initialize();
                 }
-                // 1. EXECUTAR SCRAPING DE RIDES
-                this.logger.info('MONITORING', 'Executando scraping de rides...');
-                const scrapingResult = yield (0, ridesPersistentScraper_1.scrapeAllRidesDataPersistent)();
-                if (!scrapingResult.success || !scrapingResult.data || scrapingResult.data.length === 0) {
-                    this.logger.warn('MONITORING', `Nenhum dado de rides extraído: ${scrapingResult.message}`);
-                    return;
-                }
-                // 🔧 ADAPTAÇÃO PARA ESTRUTURA ATUAL DO BANCO
-                // Processar dados para formato compatível: {tableName, newRecords}
-                const adaptedData = [];
-                const rawData = []; // Para compatibilidade com cache/webhook
-                this.logger.info('MONITORING', `Processando ${scrapingResult.data.length} tabelas de dados para estrutura compatível...`);
-                scrapingResult.data.forEach((table) => {
-                    var _a;
-                    this.logger.debug('MONITORING', `Tabela: ${table.name}, Rows: ${((_a = table.rows) === null || _a === void 0 ? void 0 : _a.length) || 0}, isEmpty: ${table.isEmpty}`);
-                    // ⭐ ADAPTAÇÃO: Ignorar isEmpty - só verificar se há rows
-                    if (table.rows && table.rows.length > 0) {
-                        this.logger.info('MONITORING', `Processando ${table.rows.length} registros da tabela ${table.name}`);
-                        // 🔧 NOVO FORMATO: Estrutura compatível com dados existentes
-                        const adaptedTableData = {
-                            tableName: table.name, // Nome da página/aba
-                            newRecords: table.rows.map((row) => {
-                                // 🚫 FILTRAR VALORES INVÁLIDOS (NaN, null, undefined)
-                                return row.map(cell => {
-                                    if (cell === null || cell === undefined ||
-                                        (typeof cell === 'number' && Number.isNaN(cell))) {
-                                        return ''; // Substituir por string vazia
-                                    }
-                                    return cell;
-                                });
-                            })
-                        };
-                        adaptedData.push(adaptedTableData);
-                        // Converter para formato plano para compatibilidade com cache/webhook
-                        table.rows.forEach((row) => {
-                            const rowData = {};
-                            table.headers.forEach((header, index) => {
-                                rowData[header.toLowerCase().replace(/\s+/g, '_')] = row[index] || '';
-                            });
-                            rowData.table_name = table.name;
-                            rawData.push(rowData);
-                        });
-                    }
-                    else {
-                        console.log(`⚠️ Tabela ${table.name} vazia ou sem rows`);
-                    }
-                });
-                console.log(`📊 Total de registros convertidos: ${rawData.length}`);
-                console.log(`📊 Total de tabelas adaptadas: ${adaptedData.length}`);
-                // ⭐ ARMAZENAR DADOS PARA WEBHOOK
-                this.lastRawData = rawData;
-                // ⭐ USAR SISTEMA DE CACHE SOFISTICADO - detectar mudanças nos dados de tabela originais
-                const changes = this.detectChanges(scrapingResult.data);
-                // 🔧 SALVAR DADOS ADAPTADOS NO BANCO DE DADOS
-                console.log(`🔍 Debug - adaptedData.length: ${adaptedData.length}, rawData.length: ${rawData.length}, changes: ${JSON.stringify(changes.summary)}`);
-                if (adaptedData.length > 0) {
-                    console.log(`💾 Salvando ${adaptedData.length} tabelas de dados no banco...`);
-                    try {
-                        // 🔧 SALVAR CADA TABELA COM ESTRUTURA ADAPTADA
-                        for (const tableData of adaptedData) {
-                            const rideId = this.extractRideId(tableData);
-                            // Hash baseado em table_name + rideId
-                            const uniqueHash = (0, crypto_1.createHash)('md5')
-                                .update(`${tableData.tableName || 'unknown'}|${rideId}`)
-                                .digest('hex');
-                            const rideRecord = {
-                                table_name: tableData.tableName, // Nome da página como table_name
-                                data_hash: uniqueHash,
-                                ride_data: tableData, // Estrutura completa {tableName, newRecords}
-                                session_info: scrapingResult.sessionInfo || {},
-                                source: 'monitoring-service-adapted'
-                            };
-                            console.log(`� Salvando tabela: ${tableData.tableName} com ${tableData.newRecords.length} registros`);
-                            yield this.databaseManager.insertRideData([rideRecord]);
-                        }
-                        console.log(`✅ Dados adaptados salvos no banco de dados`);
-                        // ⭐ FORÇAR hasChanges se há dados para salvar na primeira execução
-                        if (changes.summary.newCount === 0 && changes.summary.updatedCount === 0) {
-                            console.log(`🔄 Primeira execução detectada - forçando mudanças para webhook`);
-                            changes.summary.newCount = rawData.length;
-                            changes.newRecords = this.normalizeRideData(rawData);
-                        }
-                    }
-                    catch (ridesError) {
-                        console.error('❌ Erro ao salvar dados adaptados:', ridesError);
-                        console.error('❌ Stack trace:', ridesError.stack);
-                        // Continuar execução mesmo se rides falharem
-                    }
+                // 🚀 EXECUTAR RIDES E DRIVERS EM SEQUÊNCIA (evita race conditions na sessão compartilhada)
+                this.logger.info('MONITORING', 'Executando scraping SEQUENCIAL (rides → drivers)...');
+                // 1. RIDES primeiro (estabelece e valida sessão)
+                console.log('📋 1/2 Executando scraping de RIDES...');
+                const scrapingResult = yield (0, ridesPersistentScraper_1.scrapeAllRidesDataPersistent)(); // ✅ USA rides_scraper (sessão principal)
+                // 2. DRIVERS depois (usa sessão já estabelecida)
+                let driversResult;
+                if (scrapingResult.success && ((_a = scrapingResult.sessionInfo) === null || _a === void 0 ? void 0 : _a.sessionValid)) {
+                    console.log('📋 2/2 Executando scraping de DRIVERS (sessão válida)...');
+                    driversResult = yield (0, driversPersistentScraper_1.scrapeAllDriversDataPersistent)(); // ✅ USA rides_scraper (mesma sessão)
                 }
                 else {
-                    console.log('⚠️ Nenhum dado adaptado para salvar no banco');
-                    console.log(`⚠️ Debug - scrapingResult.data: ${JSON.stringify(scrapingResult.data.map(t => { var _a; return ({ name: t.name, rows: (_a = t.rows) === null || _a === void 0 ? void 0 : _a.length, isEmpty: t.isEmpty }); }))}`);
+                    console.log('⚠️ Sessão de rides inválida, pulando scraping de drivers');
+                    driversResult = {
+                        success: false,
+                        data: [],
+                        message: 'Dependência: sessão de rides não foi estabelecida com sucesso'
+                    };
                 }
-                // 2. EXECUTAR SCRAPING DE DRIVERS (usando a mesma sessão do browser)
-                console.log('👥 Executando scraping de drivers...');
-                const driversResult = yield (0, driversPersistentScraper_1.scrapeAllDriversDataPersistent)();
+                // 1. PROCESSAR RESULTADO DE RIDES
+                if (!scrapingResult.success || !scrapingResult.data || scrapingResult.data.length === 0) {
+                    this.logger.warn('MONITORING', `Nenhum dado de rides extraído: ${scrapingResult.message}`);
+                }
+                else {
+                    this.logger.info('MONITORING', `✅ Rides extraído: ${scrapingResult.data.length} tabelas`);
+                }
+                // 2. PROCESSAR RESULTADO DE DRIVERS
+                if (!driversResult.success || !driversResult.data || driversResult.data.length === 0) {
+                    this.logger.warn('MONITORING', `Nenhum dado de drivers extraído: ${driversResult.message}`);
+                }
+                else {
+                    this.logger.info('MONITORING', `✅ Drivers extraído: ${driversResult.data.length} tabelas`);
+                }
+                // Se ambos falharam, retornar
+                if ((!scrapingResult.success || !scrapingResult.data || scrapingResult.data.length === 0) &&
+                    (!driversResult.success || !driversResult.data || driversResult.data.length === 0)) {
+                    this.logger.warn('MONITORING', 'Nenhum dado extraído de rides nem drivers');
+                    return;
+                }
+                // 🔧 PROCESSAR DADOS DE RIDES (se disponíveis)
+                const adaptedData = [];
+                const rawData = [];
+                let changes = {
+                    timestamp: new Date().toISOString(),
+                    totalRecords: 0,
+                    newRecords: [],
+                    updatedRecords: [],
+                    cancelledRecords: [],
+                    completedRecords: [],
+                    summary: { newCount: 0, updatedCount: 0, cancelledCount: 0, completedCount: 0 }
+                };
+                if (scrapingResult.success && scrapingResult.data && scrapingResult.data.length > 0) {
+                    this.logger.info('MONITORING', `Processando ${scrapingResult.data.length} tabelas de dados para estrutura compatível...`);
+                    scrapingResult.data.forEach((table) => {
+                        var _a;
+                        this.logger.debug('MONITORING', `Tabela: ${table.name}, Rows: ${((_a = table.rows) === null || _a === void 0 ? void 0 : _a.length) || 0}, isEmpty: ${table.isEmpty}`);
+                        // ⭐ ADAPTAÇÃO: Ignorar isEmpty - só verificar se há rows
+                        if (table.rows && table.rows.length > 0) {
+                            this.logger.info('MONITORING', `Processando ${table.rows.length} registros da tabela ${table.name}`);
+                            // 🔧 NOVO FORMATO: Estrutura compatível com dados existentes
+                            const adaptedTableData = {
+                                tableName: table.name, // Nome da página/aba
+                                newRecords: table.rows.map((row) => {
+                                    // 🚫 FILTRAR VALORES INVÁLIDOS (NaN, null, undefined)
+                                    return row.map(cell => {
+                                        if (cell === null || cell === undefined ||
+                                            (typeof cell === 'number' && Number.isNaN(cell))) {
+                                            return ''; // Substituir por string vazia
+                                        }
+                                        return cell;
+                                    });
+                                })
+                            };
+                            adaptedData.push(adaptedTableData);
+                            // Converter para formato plano para compatibilidade com cache/webhook
+                            table.rows.forEach((row) => {
+                                const rowData = {};
+                                table.headers.forEach((header, index) => {
+                                    rowData[header.toLowerCase().replace(/\s+/g, '_')] = row[index] || '';
+                                });
+                                rowData.table_name = table.name;
+                                rawData.push(rowData);
+                            });
+                        }
+                        else {
+                            console.log(`⚠️ Tabela ${table.name} vazia ou sem rows`);
+                        }
+                    });
+                    console.log(`📊 Total de registros convertidos: ${rawData.length}`);
+                    console.log(`📊 Total de tabelas adaptadas: ${adaptedData.length}`);
+                    // ⭐ ARMAZENAR DADOS PARA WEBHOOK
+                    this.lastRawData = rawData;
+                    // ⭐ USAR SISTEMA DE CACHE SOFISTICADO - detectar mudanças nos dados de tabela originais
+                    changes = this.detectChanges(scrapingResult.data);
+                    // 🔧 SALVAR DADOS ADAPTADOS NO BANCO DE DADOS
+                    console.log(`🔍 Debug - adaptedData.length: ${adaptedData.length}, rawData.length: ${rawData.length}, changes: ${JSON.stringify(changes.summary)}`);
+                    if (adaptedData.length > 0) {
+                        console.log(`💾 Salvando ${adaptedData.length} tabelas de dados no banco...`);
+                        try {
+                            // 🔧 SALVAR CADA TABELA COM ESTRUTURA ADAPTADA
+                            for (const tableData of adaptedData) {
+                                const rideId = this.extractRideId(tableData);
+                                // Hash baseado em table_name + rideId
+                                const uniqueHash = (0, crypto_1.createHash)('md5')
+                                    .update(`${tableData.tableName || 'unknown'}|${rideId}`)
+                                    .digest('hex');
+                                const rideRecord = {
+                                    table_name: tableData.tableName, // Nome da página como table_name
+                                    data_hash: uniqueHash,
+                                    ride_data: tableData, // Estrutura completa {tableName, newRecords}
+                                    session_info: scrapingResult.sessionInfo || {},
+                                    source: 'monitoring-service-adapted'
+                                };
+                                console.log(`💾 Salvando tabela: ${tableData.tableName} com ${tableData.newRecords.length} registros`);
+                                yield this.databaseManager.insertRideData([rideRecord]);
+                            }
+                            console.log(`✅ Dados adaptados salvos no banco de dados`);
+                            // ⭐ FORÇAR hasChanges se há dados para salvar na primeira execução
+                            if (changes.summary.newCount === 0 && changes.summary.updatedCount === 0) {
+                                console.log(`🔄 Primeira execução detectada - forçando mudanças para webhook`);
+                                changes.summary.newCount = rawData.length;
+                                changes.newRecords = this.normalizeRideData(rawData);
+                            }
+                        }
+                        catch (ridesError) {
+                            console.error('❌ Erro ao salvar dados adaptados:', ridesError);
+                            console.error('❌ Stack trace:', ridesError.stack);
+                            // Continuar execução mesmo se rides falharem
+                        }
+                    }
+                    else {
+                        console.log('⚠️ Nenhum dado adaptado para salvar no banco');
+                        console.log(`⚠️ Debug - scrapingResult.data: ${JSON.stringify(((_b = scrapingResult.data) === null || _b === void 0 ? void 0 : _b.map(t => { var _a; return ({ name: t.name, rows: (_a = t.rows) === null || _a === void 0 ? void 0 : _a.length, isEmpty: t.isEmpty }); })) || [])}`);
+                    }
+                }
+                // 🔧 PROCESSAR DRIVERS EM PARALELO (já executado acima)
                 let driversTransformed = null;
                 if (driversResult.success && driversResult.data && driversResult.data.length > 0) {
                     console.log(`📊 Dados de drivers extraídos: ${driversResult.data.reduce((sum, table) => sum + table.rows.length, 0)} registros`);
