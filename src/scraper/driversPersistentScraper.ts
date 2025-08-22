@@ -54,8 +54,8 @@ export class DriversPersistentScraper {
   private driversPages: Array<{name: string, url: string}>;
 
   constructor() {
-    // 🖥️ Usar instância específica para drivers (lado direito do split-screen)
-    this.sessionManager = BrowserSessionManager.getInstance('drivers_scraper');
+    // 🖥️ Usar a mesma sessão do RidesPersistentScraper para compartilhar login
+    this.sessionManager = BrowserSessionManager.getInstance('rides_scraper');
     this.cacheManager = DriverCacheManager.getInstance();
     
     // Extrair domínio base da URL de login (sem barra final)
@@ -79,44 +79,21 @@ export class DriversPersistentScraper {
     try {
       console.log('🚗 Iniciando scraping de drivers com sessão persistente...');
       
-      // ✅ NOVA LÓGICA: Inicializar browser se não estiver ativo (para execução paralela)
+      // Verificar se a sessão está ativa (deve estar devido ao scraping de rides)
       if (!this.sessionManager.isActive()) {
-        console.log('🔧 Sessão de drivers não está ativa, inicializando browser...');
-        
-        try {
-          // Inicializar browser e fazer login
-          const loginSuccess = await this.sessionManager.ensureLoginWithCaptchaHandling();
-          
-          if (!loginSuccess) {
-            return {
-              success: false,
-              data: [],
-              message: 'Falha no login para sessão de drivers',
-              sessionInfo: {
-                isNewLogin: true,
-                browserStatus: 'login_failed',
-                sessionValid: false
-              }
-            };
+        return {
+          success: false,
+          data: [],
+          message: 'Sessão do browser não está ativa. Execute primeiro o scraping de rides.',
+          sessionInfo: {
+            isNewLogin: false,
+            browserStatus: 'inactive',
+            sessionValid: false
           }
-          
-          console.log('✅ Sessão de drivers inicializada com sucesso');
-        } catch (initError: any) {
-          console.error('❌ Erro ao inicializar sessão de drivers:', initError.message);
-          return {
-            success: false,
-            data: [],
-            message: `Erro ao inicializar sessão de drivers: ${initError.message}`,
-            sessionInfo: {
-              isNewLogin: false,
-              browserStatus: 'init_error',
-              sessionValid: false
-            }
-          };
-        }
-      } else {
-        console.log('✅ Usando sessão existente do browser para drivers');
+        };
       }
+
+      console.log('✅ Usando sessão existente do browser para drivers');
       
       // Extrair dados de todas as páginas de drivers
       const allDriversData: DriverTableData[] = [];

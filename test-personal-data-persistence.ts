@@ -87,10 +87,7 @@ async function testPersonalDataPersistence() {
     for (const driverId of driverIds) {
       const driverData = await databaseManager.getDriverPersonalDetails(driverId);
       if (driverData) {
-        const personalData = typeof driverData.personal_data === 'string' 
-          ? JSON.parse(driverData.personal_data) 
-          : driverData.personal_data;
-        console.log(`   ✅ ${driverId}: ${personalData.driver_name}`);
+        console.log(`   ✅ ${driverId}: ${JSON.parse(driverData.personal_data as string).driver_name}`);
       } else {
         console.log(`   ⚠️ ${driverId}: Não encontrado no banco`);
       }
