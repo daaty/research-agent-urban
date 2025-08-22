@@ -68,12 +68,12 @@ export class HybridOperationService {
   public static getInstance(config?: HybridOperationConfig): HybridOperationService {
     if (!HybridOperationService.instance) {
       const defaultConfig: HybridOperationConfig = {
-        extractionBatchSize: 5,
+        extractionBatchSize: 1,      // ✅ Processar 1 por vez para evitar conflitos
         rechargePauseThreshold: 1,
-        maxConcurrentRecharges: 3,
-        stateCheckInterval: 5000,
+        maxConcurrentRecharges: 1,   // ✅ Apenas 1 recarga simultânea também
+        stateCheckInterval: 8000,    // ✅ Verificar estado a cada 8 segundos
         recoveryOnStart: true,
-        autoFeedInterval: 300000, // 5 minutos
+        autoFeedInterval: 300000,    // 5 minutos
         citiesRefreshInterval: 1800000 // 30 minutos
       };
       

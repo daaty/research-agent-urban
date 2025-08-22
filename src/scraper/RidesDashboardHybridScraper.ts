@@ -13,6 +13,8 @@ export class RidesDashboardHybridScraper {
   private isLoggedIn: boolean = false;
   private currentCity: string = '';
   private isExtractingIds: boolean = false; // Flag para evitar extrações simultâneas
+  private isProcessingDriverData: boolean = false; // Flag para evitar extrações de dados simultâneas
+  private lastProcessingTime: number = 0; // Controle de timing entre operações
 
   // � CONTROLE DE VELOCIDADE CONFIGURÁVEL
   private readonly speedConfig = {
@@ -69,6 +71,42 @@ export class RidesDashboardHybridScraper {
     if (this.page && !this.page.isClosed()) {
       await this.page.waitForTimeout(delay);
     }
+  }
+
+  /**
+   * 🔒 CONTROLE DE CONCORRÊNCIA: Evita múltiplas extrações simultâneas de dados pessoais
+   */
+  private async waitForExtractionSlot(): Promise<void> {
+    const maxWaitTime = 30000; // 30 segundos máximo
+    const checkInterval = 500; // Verificar a cada 500ms
+    let waitedTime = 0;
+
+    while (this.isProcessingDriverData && waitedTime < maxWaitTime) {
+      console.log(`⏳ Aguardando slot livre para extração (${waitedTime/1000}s)...`);
+      await this.smartWait('coordination');
+      waitedTime += checkInterval;
+    }
+
+    if (waitedTime >= maxWaitTime) {
+      throw new Error('Timeout aguardando slot de extração - possível processo travado');
+    }
+  }
+
+  /**
+   * 🕒 THROTTLING HUMANO: Garante delay mínimo entre operações
+   */
+  private async ensureHumanDelay(): Promise<void> {
+    const now = Date.now();
+    const timeSinceLastProcess = now - this.lastProcessingTime;
+    const minDelay = this.getDelay('extraction');
+
+    if (timeSinceLastProcess < minDelay) {
+      const waitTime = minDelay - timeSinceLastProcess;
+      console.log(`🐌 Aplicando delay humano: ${waitTime}ms`);
+      await this.smartWait('extraction', waitTime);
+    }
+
+    this.lastProcessingTime = Date.now();
   }
 
   /**
@@ -421,6 +459,19 @@ export class RidesDashboardHybridScraper {
       return RidesDashboardHybridScraper.idExtractionDebounce.lastResult;
     }
 
+    // 🔒 Verificar se há conflito com extração de dados pessoais
+    if (this.isProcessingDriverData) {
+      console.log('⚠️ Extração de dados pessoais em andamento, aguardando...');
+      let waitTime = 0;
+      while (this.isProcessingDriverData && waitTime < 30000) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        waitTime += 1000;
+      }
+      if (this.isProcessingDriverData) {
+        throw new Error('Conflito: Extração de dados pessoais em andamento há muito tempo');
+      }
+    }
+
     // Verificar se já está extraindo para evitar chamadas simultâneas
     if (this.isExtractingIds) {
       console.log('⚠️ Extração de IDs já em andamento, aguardando...');
@@ -588,10 +639,33 @@ export class RidesDashboardHybridScraper {
       throw new Error('Scraper não inicializado ou não logado');
     }
 
-    console.log(`📊 Extraindo dados do motorista: ${driverId}`);
+    // 🔒 Verificar se há conflito com extração de IDs
+    if (this.isExtractingIds) {
+      console.log('⚠️ Extração de IDs em andamento, aguardando...');
+      let waitTime = 0;
+      while (this.isExtractingIds && waitTime < 30000) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        waitTime += 1000;
+      }
+      if (this.isExtractingIds) {
+        throw new Error('Conflito: Extração de IDs em andamento há muito tempo');
+      }
+    }
+
+    // 🔒 CONTROLE DE CONCORRÊNCIA: Aguardar slot livre
+    await this.waitForExtractionSlot();
+
+    // 🕒 THROTTLING: Garantir delay humano entre operações
+    await this.ensureHumanDelay();
+
+    // 🔒 MARCAR COMO EM PROCESSAMENTO
+    this.isProcessingDriverData = true;
+
+    console.log(`📊 🎯 INICIANDO EXTRAÇÃO DO MOTORISTA: ${driverId}`);
 
     try {
-      // 🔍 VERIFICAR SE AINDA ESTÁ LOGADO ANTES DE CONTINUAR
+      // 🔍 FASE 1: Validar sessão
+      console.log('🔍 FASE 1: Validando sessão...');
       const currentUrl = this.page.url();
       if (currentUrl.includes('/page/login') || currentUrl.includes('#/page/login')) {
         console.log('❌ SESSÃO PERDIDA! Retornando à página de login...');
@@ -599,9 +673,11 @@ export class RidesDashboardHybridScraper {
         throw new Error('Sessão perdida - necessário login manual');
       }
 
-    // Garantir que estamos na página Dashboard (onde está o campo #driverId)
-    console.log('🌐 Navegando para Dashboard para extração de dados...');
-    await this.browserManager.navigateWithLock(this.DASHBOARD_URL, { waitUntil: 'networkidle', timeout: 15000 });      // Verificar se foi redirecionado para login após navegação
+      // 🌐 FASE 1: Navegação segura para Dashboard
+      console.log('🌐 FASE 1: Navegando para Dashboard...');
+      await this.browserManager.navigateWithLock(this.DASHBOARD_URL, { waitUntil: 'networkidle', timeout: 15000 });
+      
+      // Verificar se foi redirecionado para login após navegação
       const newUrl = this.page.url();
       console.log(`📍 URL atual: ${newUrl}`);
       
@@ -611,14 +687,19 @@ export class RidesDashboardHybridScraper {
         throw new Error('Sessão expirou - redirecionado para login');
       }
 
-      // 🎯 VERIFICAÇÃO ROBUSTA DO CAMPO driverId
-      console.log('🔍 Procurando campo #driverId...');
-      
-      // Aguardar página carregar completamente
+      // ⏳ FASE 2: Aguardar carregamento completo da página
+      console.log('⏳ FASE 2: Aguardando carregamento completo da página...');
       await this.page.waitForLoadState('domcontentloaded');
-      await this.page.waitForTimeout(2000);
+      console.log('✅ DOM carregado');
       
-      // Tentar múltiplos seletores para o campo driverId
+      // Aguardar AngularJS carregar (mais tempo)
+      console.log('⏳ Aguardando AngularJS carregar (5 segundos)...');
+      await this.smartWait('pageLoad');
+
+      // 🎯 FASE 3: Buscar campo driverId com validação robusta
+      console.log('🔍 FASE 3: Procurando campo #driverId...');
+      
+      // Tentar múltiplos seletores para o campo driverId (MANTENDO OS SELETORES ORIGINAIS)
       const possibleSelectors = [
         '#driverId',
         'input[placeholder*="driver"]',
@@ -633,7 +714,7 @@ export class RidesDashboardHybridScraper {
       
       for (const selector of possibleSelectors) {
         try {
-          await this.page.waitForSelector(selector, { timeout: 3000 });
+          await this.page.waitForSelector(selector, { timeout: 5000 }); // Aumentei o timeout
           driverIdField = selector;
           usedSelector = selector;
           console.log(`✅ Campo encontrado com seletor: ${selector}`);
@@ -655,30 +736,39 @@ export class RidesDashboardHybridScraper {
           throw new Error('Sessão perdida - necessário fazer login novamente');
         }
         
-        // Imprimir HTML para debug
-        const bodyHTML = await this.page.locator('body').innerHTML();
-        console.log('🔍 HTML da página (primeiros 500 chars):');
-        console.log(bodyHTML.substring(0, 500));
-        
         throw new Error('Campo driverId não encontrado em nenhum seletor');
       }
 
-      // Limpa e preenche o campo
+      // � FASE 4: Preenchimento seguro do campo
+      console.log('📝 FASE 4: Preenchendo campo de driver ID...');
+      
+      // Limpar campo com delay humano
       await this.page.fill(usedSelector, '');
+      await this.smartWait('elementWait');
+      
+      // Preencher campo com delay humano
       await this.page.fill(usedSelector, driverId);
+      await this.smartWait('elementWait');
 
       console.log(`⌨️ Preenchido ID: ${driverId} usando seletor: ${usedSelector}`);
 
-      // Aguarda e clica no botão "Details Driver"
-      await this.page.waitForSelector('button[ng-click="getDriverInfo(enteredDriverValue)"]', { timeout: 5000 });
+      // 🔘 FASE 5: Clique no botão com validação
+      console.log('🔘 FASE 5: Procurando e clicando no botão Details Driver...');
+      
+      // Aguardar botão estar disponível (MANTENDO O SELETOR ORIGINAL)
+      await this.page.waitForSelector('button[ng-click="getDriverInfo(enteredDriverValue)"]', { timeout: 10000 });
+      await this.smartWait('elementWait');
+      
+      // Clicar no botão
       await this.page.click('button[ng-click="getDriverInfo(enteredDriverValue)"]');
-
       console.log('🔍 Botão "Details Driver" clicado');
 
-      // Aguarda os dados carregarem (pode demorar)
-      await this.page.waitForTimeout(3000);
+      // ⏳ FASE 6: Aguardar dados carregarem com timeout maior
+      console.log('⏳ FASE 6: Aguardando dados do motorista carregarem...');
+      await this.smartWait('pageLoad'); // 5 segundos base * multiplicador
 
-      // Extrai dados da página (adaptar conforme estrutura real)
+      // 📊 FASE 7: Extração dos dados
+      console.log('📊 FASE 7: Extraindo dados do motorista...');
       const driverData = await this.extractDriverDetails();
 
       console.log(`✅ Dados extraídos para ${driverId}`);
@@ -730,12 +820,16 @@ export class RidesDashboardHybridScraper {
       }
       
       throw error;
+      
+    } finally {
+      // 🔓 SEMPRE LIBERAR O LOCK DE PROCESSAMENTO
+      this.isProcessingDriverData = false;
+      console.log('🔓 Slot de extração liberado');
     }
   }
 
   /**
    * Extrai detalhes do motorista da página atual
-   * TODO: Adaptar conforme estrutura real da página
    */
   private async extractDriverDetails(): Promise<any> {
     if (!this.page) throw new Error('Página não disponível');
@@ -743,14 +837,40 @@ export class RidesDashboardHybridScraper {
     try {
       console.log('📊 Aguardando página de detalhes carregar...');
       
-      // Aguardar mais tempo para a página carregar completamente
-      await this.page.waitForTimeout(5000);
-
-      // Verificar se elementos carregaram - sem timeout desnecessário
-      console.log('🔍 Elementos ainda carregando, iniciando extração...');
-
-      // Aguardar um pouco mais para garantir que o AngularJS carregou os dados
-      await this.page.waitForTimeout(3000);
+      // ⏳ FASE 1: Aguardar estrutura HTML estar disponível
+      console.log('⏳ FASE 1: Aguardando estrutura básica carregar...');
+      await this.smartWait('pageLoad'); // 5 segundos base
+      
+      // ⏳ FASE 2: Aguardar dados AngularJS carregarem com validação
+      console.log('⏳ FASE 2: Aguardando dados AngularJS carregarem...');
+      
+      // Tentar aguardar por elementos que indicam que os dados carregaram
+      const dataLoadIndicators = [
+        'label.ng-binding',
+        '[ng-bind]',
+        '.col-lg-5 label',
+        '.row .col-lg-5'
+      ];
+      
+      let dataLoaded = false;
+      for (const indicator of dataLoadIndicators) {
+        try {
+          await this.page.waitForSelector(indicator, { timeout: 8000 });
+          console.log(`✅ Indicador de dados encontrado: ${indicator}`);
+          dataLoaded = true;
+          break;
+        } catch {
+          console.log(`⚠️ Indicador ${indicator} não encontrado, tentando próximo...`);
+        }
+      }
+      
+      if (!dataLoaded) {
+        console.log('⚠️ Nenhum indicador de dados encontrado, continuando com extração...');
+      }
+      
+      // ⏳ FASE 3: Aguardar conteúdo específico carregar
+      console.log('⏳ FASE 3: Aguardando conteúdo específico carregar...');
+      await this.smartWait('extraction'); // 3 segundos para dados estabilizarem
 
       console.log('📋 Iniciando extração dos dados...');
 

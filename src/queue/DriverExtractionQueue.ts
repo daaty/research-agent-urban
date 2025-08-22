@@ -28,11 +28,11 @@ export class DriverExtractionQueue extends EventEmitter {
   private failed: Map<string, QueueItem> = new Map();
   
   private config: QueueConfig = {
-    maxConcurrent: 3,        // Máximo 3 extrações simultâneas
-    retryDelay: 5000,        // 5 segundos entre tentativas
+    maxConcurrent: 1,        // ✅ APENAS 1 extração simultânea para evitar conflitos de navegação
+    retryDelay: 8000,        // ✅ 8 segundos entre tentativas (mais tempo para recuperar)
     maxRetries: 3,           // Máximo 3 tentativas por item
-    processingTimeout: 60000, // Timeout de 60 segundos por extração
-    rateLimitDelay: 2000     // 2 segundos entre cada nova extração
+    processingTimeout: 90000, // ✅ 90 segundos timeout (mais tempo para carregamento lento)
+    rateLimitDelay: 5000     // ✅ 5 segundos entre cada nova extração (delay humano)
   };
 
   private isRunning: boolean = false;
@@ -132,21 +132,31 @@ export class DriverExtractionQueue extends EventEmitter {
       return;
     }
 
-    // Aplicar rate limiting
+    // ✅ APLICAR RATE LIMITING HUMANO MAIS ROBUSTO
     const now = Date.now();
     const timeSinceLastProcess = now - this.lastProcessTime;
-    if (timeSinceLastProcess < this.config.rateLimitDelay) {
-      await this.sleep(this.config.rateLimitDelay - timeSinceLastProcess);
+    const minDelay = this.config.rateLimitDelay;
+    
+    if (timeSinceLastProcess < minDelay) {
+      const waitTime = minDelay - timeSinceLastProcess;
+      console.log(`🐌 Aplicando delay humano na fila: ${waitTime}ms`);
+      await this.sleep(waitTime);
     }
 
-    // Processar itens disponíveis
-    const itemsToProcess = Math.min(availableSlots, this.queue.length);
+    // Processar itens disponíveis (agora apenas 1 por vez)
+    const itemsToProcess = Math.min(availableSlots, this.queue.length, 1); // ✅ Máximo 1 item por vez
     
     for (let i = 0; i < itemsToProcess; i++) {
       const item = this.queue.shift();
       if (item) {
+        console.log(`🎯 Processando item ${i+1}/${itemsToProcess}: ${item.driverId}`);
         this.startProcessingItem(item);
         this.lastProcessTime = Date.now();
+        
+        // ✅ Delay entre início de processamentos (se houver múltiplos no futuro)
+        if (i < itemsToProcess - 1) {
+          await this.sleep(1000);
+        }
       }
     }
   }
