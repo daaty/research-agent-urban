@@ -77,18 +77,19 @@ export class RidesDashboardHybridScraper {
    * 🔒 CONTROLE DE CONCORRÊNCIA: Evita múltiplas extrações simultâneas de dados pessoais
    */
   private async waitForExtractionSlot(): Promise<void> {
-    const maxWaitTime = 30000; // 30 segundos máximo
+    const maxWaitTime = 5000; // Reduzido para 5 segundos
     const checkInterval = 500; // Verificar a cada 500ms
     let waitedTime = 0;
 
     while (this.isProcessingDriverData && waitedTime < maxWaitTime) {
-      console.log(`⏳ Aguardando slot livre para extração (${waitedTime/1000}s)...`);
       await this.smartWait('coordination');
       waitedTime += checkInterval;
     }
 
-    if (waitedTime >= maxWaitTime) {
-      throw new Error('Timeout aguardando slot de extração - possível processo travado');
+    // Se ainda estiver ocupado após 5s, força a liberação
+    if (this.isProcessingDriverData) {
+      console.log('⚠️ Forçando liberação de slot após timeout');
+      this.isProcessingDriverData = false;
     }
   }
 
@@ -659,6 +660,7 @@ export class RidesDashboardHybridScraper {
     await this.ensureHumanDelay();
 
     // 🔒 MARCAR COMO EM PROCESSAMENTO
+    console.log(`🔒 Adquirindo slot de extração para driver ${driverId}...`);
     this.isProcessingDriverData = true;
 
     console.log(`📊 🎯 INICIANDO EXTRAÇÃO DO MOTORISTA: ${driverId}`);
@@ -823,6 +825,7 @@ export class RidesDashboardHybridScraper {
       
     } finally {
       // 🔓 SEMPRE LIBERAR O LOCK DE PROCESSAMENTO
+      console.log(`🔓 Liberando slot de extração para driver ${driverId}...`);
       this.isProcessingDriverData = false;
       console.log('🔓 Slot de extração liberado');
     }
