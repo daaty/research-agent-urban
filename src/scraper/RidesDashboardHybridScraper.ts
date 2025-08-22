@@ -14,6 +14,17 @@ export class RidesDashboardHybridScraper {
   private currentCity: string = '';
   private isExtractingIds: boolean = false; // Flag para evitar extrações simultâneas
 
+  // 🔒 DEBOUNCE PARA EXTRAÇÃO DE IDs (static para compartilhar entre instâncias)
+  private static idExtractionDebounce: {
+    lastExtraction: number,
+    isExtracting: boolean,
+    lastResult: string[]
+  } = { 
+    lastExtraction: 0, 
+    isExtracting: false,
+    lastResult: []
+  };
+
   // URLs hardcoded conforme solicitado
   private readonly DASHBOARD_URL = 'https://rides.ec2dashboard.com/#/app/dashboard';
   private readonly ACTIVE_DRIVERS_URL = 'https://rides.ec2dashboard.com/#/app/active-drivers';
@@ -67,7 +78,7 @@ export class RidesDashboardHybridScraper {
   private async performLogin(loginUrl: string, username: string, password: string): Promise<void> {
     if (!this.page) throw new Error('Página não disponível');
 
-    await this.page.goto(loginUrl, { waitUntil: 'networkidle' });
+    await this.browserManager.navigateWithLock(loginUrl, { waitUntil: 'networkidle' });
 
     // 🔍 Verificar se já está logado primeiro
     const currentUrl = this.page.url();
@@ -358,6 +369,21 @@ export class RidesDashboardHybridScraper {
   async extractAllDriverIds(): Promise<string[]> {
     if (!this.page) throw new Error('Página não disponível');
 
+    const now = Date.now();
+    const minInterval = 60000; // 1 minuto mínimo entre extrações
+    
+    // 🔒 DEBOUNCE: Verificar se extração é muito recente
+    if (RidesDashboardHybridScraper.idExtractionDebounce.isExtracting) {
+      console.log('⚠️ Extração de IDs já em andamento por outra instância, retornando cache...');
+      return RidesDashboardHybridScraper.idExtractionDebounce.lastResult;
+    }
+    
+    if ((now - RidesDashboardHybridScraper.idExtractionDebounce.lastExtraction) < minInterval) {
+      const waitTime = Math.ceil((minInterval - (now - RidesDashboardHybridScraper.idExtractionDebounce.lastExtraction)) / 1000);
+      console.log(`⏳ Extração de IDs muito recente, retornando cache (próxima em ${waitTime}s)`);
+      return RidesDashboardHybridScraper.idExtractionDebounce.lastResult;
+    }
+
     // Verificar se já está extraindo para evitar chamadas simultâneas
     if (this.isExtractingIds) {
       console.log('⚠️ Extração de IDs já em andamento, aguardando...');
@@ -368,7 +394,11 @@ export class RidesDashboardHybridScraper {
       }
     }
 
+    // 🔒 Marcar início da extração
     this.isExtractingIds = true;
+    RidesDashboardHybridScraper.idExtractionDebounce.isExtracting = true;
+    RidesDashboardHybridScraper.idExtractionDebounce.lastExtraction = now;
+    
     console.log('🔍 Extraindo IDs dos motoristas da página Active Drivers...');
 
     try {
@@ -411,6 +441,8 @@ export class RidesDashboardHybridScraper {
         console.log(`   ${index + 1}. ${id}`);
       });
 
+      // 💾 Armazenar resultado no cache
+      RidesDashboardHybridScraper.idExtractionDebounce.lastResult = driverIds as string[];
       return driverIds as string[];
 
     } catch (error: any) {
@@ -429,6 +461,8 @@ export class RidesDashboardHybridScraper {
           alternativeIds.forEach((id, index) => {
             console.log(`   ${index + 1}. ${id}`);
           });
+          // 💾 Armazenar resultado no cache
+          RidesDashboardHybridScraper.idExtractionDebounce.lastResult = alternativeIds as string[];
           return alternativeIds as string[];
         }
 
@@ -440,6 +474,7 @@ export class RidesDashboardHybridScraper {
       }
     } finally {
       this.isExtractingIds = false; // Limpar flag sempre
+      RidesDashboardHybridScraper.idExtractionDebounce.isExtracting = false; // Limpar flag global
     }
   }
 
@@ -527,11 +562,9 @@ export class RidesDashboardHybridScraper {
         throw new Error('Sessão perdida - necessário login manual');
       }
 
-      // Garantir que estamos na página Dashboard (onde está o campo #driverId)
-      console.log('🌐 Navegando para Dashboard para extração de dados...');
-      await this.page.goto(this.DASHBOARD_URL, { waitUntil: 'networkidle', timeout: 15000 });
-      
-      // Verificar se foi redirecionado para login após navegação
+    // Garantir que estamos na página Dashboard (onde está o campo #driverId)
+    console.log('🌐 Navegando para Dashboard para extração de dados...');
+    await this.browserManager.navigateWithLock(this.DASHBOARD_URL, { waitUntil: 'networkidle', timeout: 15000 });      // Verificar se foi redirecionado para login após navegação
       const newUrl = this.page.url();
       console.log(`📍 URL atual: ${newUrl}`);
       
@@ -1256,7 +1289,7 @@ export class RidesDashboardHybridScraper {
 
       // 1. Navegar para dashboard principal (forçar URL correta)
       console.log('🌐 Navegando para Dashboard para recarga...');
-      await this.page.goto('https://rides.ec2dashboard.com/#/app/dashboard', { waitUntil: 'networkidle' });
+      await this.browserManager.navigateWithLock('https://rides.ec2dashboard.com/#/app/dashboard', { waitUntil: 'networkidle' });
       await this.page.waitForTimeout(3000);
 
       // 2. Verificar URL atual

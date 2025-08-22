@@ -18,6 +18,17 @@ export class BrowserSessionManager {
     activeInstance: null 
   }; // 🔄 COORDENAÇÃO DE LOGIN
   
+  // 🔒 MUTEX PARA NAVEGAÇÃO CRÍTICA
+  private static navigationLock: { 
+    isLocked: boolean, 
+    lockedBy: string | null,
+    lockTimestamp: number 
+  } = { 
+    isLocked: false, 
+    lockedBy: null,
+    lockTimestamp: 0
+  };
+  
   private browser: Browser | null = null;
   private context: BrowserContext | null = null;
   private page: Page | null = null;
@@ -32,6 +43,10 @@ export class BrowserSessionManager {
   private lastLoginCheck: number = 0;
   private lastLoginStatus: boolean = false;
   private loginCheckCacheDuration: number = 30000; // 30 segundos
+  
+  // 🔄 Cache inteligente - invalida em certas condições
+  private lastUrl: string = '';
+  private urlChangeDetected: boolean = false;
   
   // URLs de configuração (usando variáveis de ambiente)
   private loginUrl: string = process.env.RIDES_LOGIN_URL || 'https://rides.ec2dashboard.com/#/page/login';
@@ -130,6 +145,47 @@ export class BrowserSessionManager {
   }
 
   /**
+   * 🔒 MUTEX: Adquirir lock de navegação
+   */
+  private async acquireNavigationLock(timeout: number = 30000): Promise<void> {
+    const startTime = Date.now();
+    
+    while (BrowserSessionManager.navigationLock.isLocked) {
+      if (Date.now() - startTime > timeout) {
+        throw new Error(`Timeout aguardando lock de navegação (locked by: ${BrowserSessionManager.navigationLock.lockedBy})`);
+      }
+      
+      // Verificar se lock está preso há muito tempo (mais de 2 minutos)
+      if (Date.now() - BrowserSessionManager.navigationLock.lockTimestamp > 120000) {
+        console.log(`⚠️ Lock de navegação preso há muito tempo, forçando liberação...`);
+        this.releaseNavigationLock();
+        break;
+      }
+      
+      console.log(`⏳ [${this.instanceName}] Aguardando lock de navegação (locked by: ${BrowserSessionManager.navigationLock.lockedBy})`);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    
+    BrowserSessionManager.navigationLock.isLocked = true;
+    BrowserSessionManager.navigationLock.lockedBy = this.instanceName;
+    BrowserSessionManager.navigationLock.lockTimestamp = Date.now();
+    console.log(`🔒 [${this.instanceName}] Lock de navegação adquirido`);
+  }
+
+  /**
+   * 🔓 MUTEX: Liberar lock de navegação
+   */
+  private releaseNavigationLock(): void {
+    if (BrowserSessionManager.navigationLock.lockedBy === this.instanceName || 
+        BrowserSessionManager.navigationLock.lockedBy === null) {
+      BrowserSessionManager.navigationLock.isLocked = false;
+      BrowserSessionManager.navigationLock.lockedBy = null;
+      BrowserSessionManager.navigationLock.lockTimestamp = 0;
+      console.log(`🔓 [${this.instanceName}] Lock de navegação liberado`);
+    }
+  }
+
+  /**
    * 🆕 Lista todas as instâncias ativas
    */
   public static getActiveInstances(): string[] {
@@ -141,6 +197,52 @@ export class BrowserSessionManager {
    */
   public getInstanceName(): string {
     return this.instanceName;
+  }
+
+  /**
+   * 🔒 NAVEGAÇÃO SEGURA: Navegar com mutex para evitar conflitos
+   */
+  public async navigateWithLock(url: string, options?: any): Promise<void> {
+    if (!this.page) {
+      throw new Error('Página não disponível para navegação');
+    }
+    
+    await this.acquireNavigationLock();
+    
+    try {
+      console.log(`🌐 [${this.instanceName}] Navegando com lock para: ${url.substring(0, 50)}...`);
+      await this.page.goto(url, options || { waitUntil: 'domcontentloaded', timeout: 30000 });
+      console.log(`✅ [${this.instanceName}] Navegação concluída com sucesso`);
+      
+      // 🔄 Invalidar cache se mudou para página de login
+      this.checkUrlChangeAndInvalidateCache(url);
+    } finally {
+      this.releaseNavigationLock();
+    }
+  }
+
+  /**
+   * 🔄 CACHE INTELIGENTE: Invalidar cache quando necessário
+   */
+  private invalidateLoginCache(): void {
+    this.lastLoginCheck = 0;
+    this.lastLoginStatus = false;
+    console.log(`🔄 [${this.instanceName}] Cache de login invalidado`);
+  }
+
+  /**
+   * 🔄 CACHE INTELIGENTE: Verificar mudança de URL e invalidar se necessário
+   */
+  private checkUrlChangeAndInvalidateCache(currentUrl: string): void {
+    if (this.lastUrl !== currentUrl) {
+      this.lastUrl = currentUrl;
+      this.urlChangeDetected = true;
+      
+      // Invalidar cache se detectar mudança para página de login
+      if (currentUrl.includes('login') || currentUrl.includes('#/page/login')) {
+        this.invalidateLoginCache();
+      }
+    }
   }
 
   /**
@@ -191,14 +293,22 @@ export class BrowserSessionManager {
   private async isCurrentlyLoggedIn(verbose: boolean = true): Promise<boolean> {
     if (!this.page) return false;
     
+    // 🔄 Verificar mudança de URL e invalidar cache se necessário
+    const currentUrl = this.page.url();
+    this.checkUrlChangeAndInvalidateCache(currentUrl);
+    
     // 🔄 Usar cache durante scraping para evitar verificações excessivas
     const now = Date.now();
-    if (!verbose && (now - this.lastLoginCheck) < this.loginCheckCacheDuration) {
+    if (!verbose && 
+        !this.urlChangeDetected && 
+        (now - this.lastLoginCheck) < this.loginCheckCacheDuration) {
       return this.lastLoginStatus;
     }
     
+    // Reset flag de mudança de URL
+    this.urlChangeDetected = false;
+    
     try {
-      const currentUrl = this.page.url();
       if (verbose) {
         console.log('🔍 Verificando URL atual:', currentUrl);
       }
@@ -501,6 +611,9 @@ export class BrowserSessionManager {
    * Executa o processo de login
    */
   private async performLogin(): Promise<boolean> {
+    // 🔒 COORDENAÇÃO: Marcar início do processo de login
+    BrowserSessionManager.startLoginProcess(this.instanceName);
+    
     try {
       console.log('📍 Navegando para página de login...');
       await this.page!.goto(this.loginUrl, { 
@@ -557,6 +670,9 @@ export class BrowserSessionManager {
     } catch (error) {
       console.error('❌ Erro durante login:', error);
       return false;
+    } finally {
+      // 🔓 COORDENAÇÃO: SEMPRE liberar processo de login
+      BrowserSessionManager.endLoginProcess(this.instanceName);
     }
   }
 
