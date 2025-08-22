@@ -183,12 +183,16 @@ export class EnvironmentDetector {
 
     if (config.displayMode === 'vnc' || config.displayMode === 'xvfb') {
       baseConfig.args.push(`--display=${config.displayVar}`);
-      // Configurações específicas para VNC
+      // Configurações específicas para VNC com melhor interação de mouse
       baseConfig.args.push(
         '--force-device-scale-factor=1',
         '--disable-features=VizDisplayCompositor',
-        '--disable-gpu-sandbox',
-        '--start-maximized'
+        '--start-maximized',
+        '--disable-infobars',
+        '--disable-notifications',
+        '--disable-popup-blocking',
+        '--disable-cursor-activation', // 🖱️ Evita captura de cursor
+        '--use-fake-ui-for-media-stream' // 🖱️ Evita prompts que capturam cursor
       );
     }
 
