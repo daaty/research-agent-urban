@@ -86,15 +86,19 @@ export class WindowPositioner {
   private getWindowIndex(instanceName: string): number {
     // Mapear instâncias para índices de janela
     const indexMap: { [key: string]: number } = {
-      'rides_scraper': 0,      // Primeira janela (lado esquerdo)
-      'hybrid_operation': 0,   // Primeira janela (lado esquerdo)
-      'default': 0,            // Primeira janela (lado esquerdo)
+      // LADO ESQUERDO (primeira janela)
+      'rides_scraper': 0,      
+      'hybrid_operation': 0,   
+      'default': 0,            
       
-      'drivers_scraper': 1,    // Segunda janela (lado direito)
-      'hybrid_scraper': 1      // Segunda janela (lado direito)
+      // LADO DIREITO (segunda janela) 
+      'drivers_scraper': 1,    
+      'hybrid_scraper': 1      
     };
 
-    return indexMap[instanceName] ?? 0;
+    const index = indexMap[instanceName] ?? 0;
+    console.log(`📋 [WINDOW] Instância ${instanceName} → Índice: ${index}`);
+    return index;
   }
 
   /**

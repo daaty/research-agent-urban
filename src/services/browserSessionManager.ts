@@ -40,7 +40,7 @@ export class BrowserSessionManager {
    * 🖥️ Obter posição da janela baseada na instância para VNC split-screen
    */
   private getWindowPosition(instanceName: string): { x: number, y: number, width: number, height: number } {
-    // 🎯 LÓGICA SIMPLIFICADA: Apenas 2 posições principais
+    // 🎯 LÓGICA CORRIGIDA: Posições distintas para cada instância
     const positions: { [key: string]: { x: number, y: number, width: number, height: number } } = {
       // LADO ESQUERDO (rides, monitoramento)
       'default': { x: 0, y: 0, width: 800, height: 1170 },
