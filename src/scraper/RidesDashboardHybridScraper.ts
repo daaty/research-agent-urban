@@ -61,68 +61,164 @@ export class RidesDashboardHybridScraper {
   }
 
   /**
-   * Faz login usando o método que já funciona
+   * Faz login usando o método que já funciona - ADAPTADO DO RIDES_SCRAPER
    */
   private async performLogin(loginUrl: string, username: string, password: string): Promise<void> {
     if (!this.page) throw new Error('Página não disponível');
 
     await this.page.goto(loginUrl, { waitUntil: 'networkidle' });
 
-    // Verificar se já está logado
-    const isAlreadyLoggedIn = await this.checkIfLoggedIn();
-    if (isAlreadyLoggedIn) {
+    // 🔍 Verificar se já está logado primeiro
+    const currentUrl = this.page.url();
+    console.log('🔍 URL sugere login manual, verificando...');
+    
+    if (currentUrl.includes('/app/dashboard') || currentUrl.includes('#/app/')) {
       console.log('✅ Já está logado! Pulando processo de login...');
       this.isLoggedIn = true;
       return;
     }
 
-    console.log('🔐 Fazendo login...');
-
-    // Aguarda campos de login aparecerem
-    await this.page.waitForSelector('#exampleInputEmail1', { timeout: 10000 });
-    await this.page.waitForSelector('#exampleInputPassword1', { timeout: 10000 });
-
-    // Preenche credenciais
-    await this.page.fill('#exampleInputEmail1', username);
-    await this.page.fill('#exampleInputPassword1', password);
-
-    console.log('⌨️ Pressionando Enter para fazer login...');
-    await this.page.press('#exampleInputPassword1', 'Enter');
-
-    // Aguarda redirecionamento para dashboard
-    await this.page.waitForURL('**/app/dashboard/**', { timeout: 15000 });
+    console.log('� Verificando presença de captcha na página...');
     
-    const currentUrl = this.page.url();
-    console.log(`✅ Login bem-sucedido! Redirecionado para: ${currentUrl}`);
+    // Verificar se há captcha visível
+    const captchaVisible = await this.page.isVisible('div[id*="captcha"]:visible, iframe[src*="captcha"]:visible, .g-recaptcha:visible');
     
-    this.isLoggedIn = true;
+    if (captchaVisible) {
+      console.log('📋 Captcha detectado na página');
+      console.log('❌ Login automático não possível com captcha presente');
+      await this.waitForManualLogin();
+      return;
+    }
+
+    // Verificar se não há captcha oculto
+    const captchaPresent = await this.page.isVisible('div[id*="captcha"], iframe[src*="captcha"], .g-recaptcha');
+    
+    if (captchaPresent) {
+      console.log('📋 Captcha encontrado mas não visível:', await this.page.getAttribute('div[id*="captcha"]', 'id') || 'captcha element');
+      console.log('✅ Nenhum captcha detectado - prosseguindo com login automático');
+    } else {
+      console.log('✅ Nenhum captcha detectado - prosseguindo com login automático');
+    }
+
+    // Tentar login automático
+    try {
+      console.log('📝 Preenchendo credenciais...');
+      await this.page.fill('#exampleInputEmail1', username);
+      await this.page.fill('#exampleInputPassword1', password);
+
+      console.log('🚪 Fazendo login...');
+      await this.page.press('#exampleInputPassword1', 'Enter');
+
+      // Aguardar um pouco para ver se o login funcionou
+      await this.page.waitForTimeout(3000);
+      
+      const newUrl = this.page.url();
+      console.log('🔍 URL após login:', newUrl);
+      
+      if (newUrl.includes('/app/dashboard') || newUrl.includes('#/app/')) {
+        console.log('✅ Login automático bem-sucedido!');
+        this.isLoggedIn = true;
+        return;
+      } else {
+        console.log('❌ Ainda na página de login');
+        console.log('❌ Falha no login automático, pode ter captcha não detectado');
+        await this.waitForManualLogin();
+      }
+      
+    } catch (error) {
+      console.log('❌ Erro no login automático:', error);
+      await this.waitForManualLogin();
+    }
   }
 
   /**
-   * Verifica se já está logado checando se está na dashboard
+   * Aguarda login manual via VNC - IGUAL AO RIDES_SCRAPER
+   */
+  private async waitForManualLogin(): Promise<void> {
+    if (!this.page) throw new Error('Página não disponível');
+    
+    console.log('🔄 Tentando aguardar login manual como fallback...');
+    console.log('⏳ Aguardando login manual via VNC...');
+    console.log('💡 Acesse o VNC em http://localhost:6080 para resolver o captcha');
+    console.log('🔄 O sistema detectará automaticamente quando você fizer login...');
+    
+    const maxWaitTime = 300; // 5 minutos
+    let elapsedTime = 0;
+    
+    while (elapsedTime < maxWaitTime) {
+      const currentUrl = this.page.url();
+      console.log(`🔍 Verificando URL: ${currentUrl}...`);
+      
+      // Verificar se conseguiu fazer login
+      if (currentUrl.includes('/app/dashboard') || currentUrl.includes('#/app/')) {
+        console.log('✅ Login manual detectado com sucesso!');
+        this.isLoggedIn = true;
+        return;
+      }
+      
+      // Verificar se ainda está na página de login
+      if (currentUrl.includes('/page/login') || currentUrl.includes('#/page/login')) {
+        console.log('🔍 Verificando URL atual:', currentUrl);
+        console.log('❌ Ainda na página de login');
+        console.log(`⏳ Aguardando... (${elapsedTime}s/${maxWaitTime}s)`);
+        
+        await this.page.waitForTimeout(3000);
+        elapsedTime += 3;
+      } else {
+        // URL mudou, aguardar um pouco mais para ver se vai para dashboard
+        await this.page.waitForTimeout(2000);
+        elapsedTime += 2;
+      }
+    }
+    
+    throw new Error('Timeout aguardando login manual via VNC');
+  }
+
+  /**
+   * Verifica se já está logado - VERSÃO MAIS SEGURA
    */
   private async checkIfLoggedIn(): Promise<boolean> {
     if (!this.page) return false;
 
     try {
       const currentUrl = this.page.url();
+      console.log('🔍 Verificando URL atual:', currentUrl);
       
-      // Se já está na dashboard ou em alguma página do app, está logado
+      // Se está na página de login, definitivamente não está logado
+      if (currentUrl.includes('/page/login') || currentUrl.includes('#/page/login')) {
+        console.log('⚠️ URL não reconhecida, assumindo não logado');
+        return false;
+      }
+      
+      // Se já está numa página do app, verificar se realmente está logado
       if (currentUrl.includes('/app/dashboard') || 
           currentUrl.includes('/app/active-drivers') ||
           currentUrl.includes('#/app/')) {
-        return true;
+        
+        // Tentar encontrar elementos que só existem quando logado
+        try {
+          // Aguardar brevemente por elementos da dashboard
+          await this.page.waitForSelector('body', { timeout: 3000 });
+          
+          // Verificar se não foi redirecionado para login
+          const newUrl = this.page.url();
+          if (newUrl.includes('/page/login')) {
+            console.log('❌ Foi redirecionado para login');
+            return false;
+          }
+          
+          console.log('✅ URL indica dashboard');
+          return true;
+        } catch (error) {
+          console.log('⚠️ Erro ao verificar elementos da dashboard');
+          return false;
+        }
       }
 
-      // Tenta navegar para dashboard para verificar
-      await this.page.goto(this.DASHBOARD_URL, { waitUntil: 'networkidle', timeout: 5000 });
-      const newUrl = this.page.url();
-      
-      // Se conseguiu navegar para dashboard sem ser redirecionado para login, está logado
-      return newUrl.includes('/app/dashboard') || newUrl.includes('#/app/');
+      return false;
       
     } catch (error) {
-      // Se der erro, provavelmente não está logado
+      console.log('❌ Erro ao verificar login:', error);
       return false;
     }
   }
@@ -404,21 +500,85 @@ export class RidesDashboardHybridScraper {
     console.log(`📊 Extraindo dados do motorista: ${driverId}`);
 
     try {
+      // 🔍 VERIFICAR SE AINDA ESTÁ LOGADO ANTES DE CONTINUAR
+      const currentUrl = this.page.url();
+      if (currentUrl.includes('/page/login') || currentUrl.includes('#/page/login')) {
+        console.log('❌ SESSÃO PERDIDA! Retornando à página de login...');
+        this.isLoggedIn = false;
+        throw new Error('Sessão perdida - necessário login manual');
+      }
+
       // Garantir que estamos na página Dashboard (onde está o campo #driverId)
       console.log('🌐 Navegando para Dashboard para extração de dados...');
       await this.page.goto(this.DASHBOARD_URL, { waitUntil: 'networkidle', timeout: 15000 });
       
-      console.log(`📍 URL atual: ${this.page.url()}`);
+      // Verificar se foi redirecionado para login após navegação
+      const newUrl = this.page.url();
+      console.log(`📍 URL atual: ${newUrl}`);
+      
+      if (newUrl.includes('/page/login') || newUrl.includes('#/page/login')) {
+        console.log('❌ REDIRECIONADO PARA LOGIN! Sessão expirou...');
+        this.isLoggedIn = false;
+        throw new Error('Sessão expirou - redirecionado para login');
+      }
 
-      // Aguarda o campo de input aparecer
+      // 🎯 VERIFICAÇÃO ROBUSTA DO CAMPO driverId
       console.log('🔍 Procurando campo #driverId...');
-      await this.page.waitForSelector('#driverId', { timeout: 10000 });
+      
+      // Aguardar página carregar completamente
+      await this.page.waitForLoadState('domcontentloaded');
+      await this.page.waitForTimeout(2000);
+      
+      // Tentar múltiplos seletores para o campo driverId
+      const possibleSelectors = [
+        '#driverId',
+        'input[placeholder*="driver"]',
+        'input[placeholder*="Driver"]', 
+        'input[ng-model*="driver"]',
+        'input[name="driverId"]',
+        'input[id*="driver"]'
+      ];
+      
+      let driverIdField = null;
+      let usedSelector = '';
+      
+      for (const selector of possibleSelectors) {
+        try {
+          await this.page.waitForSelector(selector, { timeout: 3000 });
+          driverIdField = selector;
+          usedSelector = selector;
+          console.log(`✅ Campo encontrado com seletor: ${selector}`);
+          break;
+        } catch {
+          console.log(`⚠️ Seletor ${selector} não encontrado, tentando próximo...`);
+        }
+      }
+      
+      if (!driverIdField) {
+        console.log('❌ Nenhum campo de driverId encontrado!');
+        console.log('🔍 Verificando se ainda está logado...');
+        
+        // Verificar se perdeu o login
+        const currentUrl = this.page.url();
+        if (currentUrl.includes('login')) {
+          console.log('❌ SESSÃO PERDIDA - Voltou para página de login!');
+          this.isLoggedIn = false;
+          throw new Error('Sessão perdida - necessário fazer login novamente');
+        }
+        
+        // Imprimir HTML para debug
+        const bodyHTML = await this.page.locator('body').innerHTML();
+        console.log('🔍 HTML da página (primeiros 500 chars):');
+        console.log(bodyHTML.substring(0, 500));
+        
+        throw new Error('Campo driverId não encontrado em nenhum seletor');
+      }
 
       // Limpa e preenche o campo
-      await this.page.fill('#driverId', '');
-      await this.page.fill('#driverId', driverId);
+      await this.page.fill(usedSelector, '');
+      await this.page.fill(usedSelector, driverId);
 
-      console.log(`⌨️ Preenchido ID: ${driverId}`);
+      console.log(`⌨️ Preenchido ID: ${driverId} usando seletor: ${usedSelector}`);
 
       // Aguarda e clica no botão "Details Driver"
       await this.page.waitForSelector('button[ng-click="getDriverInfo(enteredDriverValue)"]', { timeout: 5000 });
@@ -458,6 +618,28 @@ export class RidesDashboardHybridScraper {
 
     } catch (error) {
       console.error(`❌ Erro ao extrair dados de ${driverId}:`, error);
+      
+      // 🔍 DETECTAR SESSÃO PERDIDA E PARAR LOOP INFINITO
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      
+      if (errorMessage.includes('Sessão perdida') || 
+          errorMessage.includes('Sessão expirou') ||
+          errorMessage.includes('redirecionado para login')) {
+        console.log('🛑 SESSÃO PERDIDA DETECTADA - PARANDO EXTRAÇÃO');
+        this.isLoggedIn = false;
+        throw new Error('SESSÃO_PERDIDA: Necessário login manual via VNC');
+      }
+      
+      // Se é timeout do campo #driverId, verificar se ainda está logado
+      if (errorMessage.includes('Timeout') && errorMessage.includes('#driverId')) {
+        const currentUrl = this.page?.url() || '';
+        if (currentUrl.includes('/page/login')) {
+          console.log('🛑 TIMEOUT + PÁGINA LOGIN = SESSÃO PERDIDA');
+          this.isLoggedIn = false;
+          throw new Error('SESSÃO_PERDIDA: Campo não encontrado porque voltou ao login');
+        }
+      }
+      
       throw error;
     }
   }
