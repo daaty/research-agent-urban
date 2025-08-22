@@ -34,15 +34,21 @@ curl -X GET "https://aiagent.urbanmt.com.br/"
 ### 2. 💰 Solicitar Recarga
 **Endpoint:** `POST /api/recharge/request`
 
+⚠️ **Requer autenticação:** Token obrigatório via header `Authorization`
+
 ```bash
 # PowerShell
-Invoke-RestMethod -Uri "https://aiagent.urbanmt.com.br/api/recharge/request" -Method POST -ContentType "application/json" -Body '{"driverId": "17147322", "amount": 10, "priority": "normal"}'
+Invoke-RestMethod -Uri "https://aiagent.urbanmt.com.br/api/recharge/request" -Method POST -Headers @{"Authorization"="Bearer e4c5417942b022424e7bb23dada2e2593ebfebc2bb94f3999dfe6b9d95de8f9a"} -ContentType "application/json" -Body '{"driverId": "17147322", "amount": 10, "priority": "normal"}'
 
 # cURL (Linux/Mac)
 curl -X POST "https://aiagent.urbanmt.com.br/api/recharge/request" \
+  -H "Authorization: Bearer e4c5417942b022424e7bb23dada2e2593ebfebc2bb94f3999dfe6b9d95de8f9a" \
   -H "Content-Type: application/json" \
   -d '{"driverId": "17147322", "amount": 10, "priority": "normal"}'
 ```
+
+**Headers obrigatórios:**
+- `Authorization: Bearer {RECHARGE_API_TOKEN}` - Token de autenticação
 
 **Parâmetros:**
 - `driverId` (string, obrigatório): ID do motorista
@@ -69,12 +75,15 @@ curl -X POST "https://aiagent.urbanmt.com.br/api/recharge/request" \
 ### 3. 📊 Rastrear Recarga
 **Endpoint:** `GET /api/recharge/track/{rechargeId}`
 
+⚠️ **Requer autenticação:** Token obrigatório via header `Authorization`
+
 ```bash
 # PowerShell
-Invoke-RestMethod -Uri "https://aiagent.urbanmt.com.br/api/recharge/track/recharge_1755857195839_02pp09uu2" -Method GET
+Invoke-RestMethod -Uri "https://aiagent.urbanmt.com.br/api/recharge/track/recharge_1755858349108_i37987tyx" -Method GET -Headers @{"Authorization"="Bearer e4c5417942b022424e7bb23dada2e2593ebfebc2bb94f3999dfe6b9d95de8f9a"}
 
 # cURL (Linux/Mac)
-curl -X GET "https://aiagent.urbanmt.com.br/api/recharge/track/recharge_1755857195839_02pp09uu2"
+curl -X GET "https://aiagent.urbanmt.com.br/api/recharge/track/recharge_1755858349108_i37987tyx" \
+  -H "Authorization: Bearer e4c5417942b022424e7bb23dada2e2593ebfebc2bb94f3999dfe6b9d95de8f9a"
 ```
 
 ### 4. 🎯 Controles de VNC
@@ -109,20 +118,20 @@ curl -X POST "https://aiagent.urbanmt.com.br/api/vnc/focus-right"
 
 ### Teste Básico de Recarga
 ```bash
-# Solicitar recarga de R$ 1,00 para motorista
-Invoke-RestMethod -Uri "https://aiagent.urbanmt.com.br/api/recharge/request" -Method POST -ContentType "application/json" -Body '{"driverId": "17147322", "amount": 100, "priority": "normal"}'
+# Solicitar recarga de R$ 1,00 para motorista (COM TOKEN)
+Invoke-RestMethod -Uri "https://aiagent.urbanmt.com.br/api/recharge/request" -Method POST -Headers @{"Authorization"="Bearer e4c5417942b022424e7bb23dada2e2593ebfebc2bb94f3999dfe6b9d95de8f9a"} -ContentType "application/json" -Body '{"driverId": "17147322", "amount": 100, "priority": "normal"}'
 ```
 
 ### Teste de Recarga Urgente
 ```bash
-# Solicitar recarga urgente de R$ 0,50
-Invoke-RestMethod -Uri "https://aiagent.urbanmt.com.br/api/recharge/request" -Method POST -ContentType "application/json" -Body '{"driverId": "17147322", "amount": 50, "priority": "urgent"}'
+# Solicitar recarga urgente de R$ 0,50 (COM TOKEN)
+Invoke-RestMethod -Uri "https://aiagent.urbanmt.com.br/api/recharge/request" -Method POST -Headers @{"Authorization"="Bearer e4c5417942b022424e7bb23dada2e2593ebfebc2bb94f3999dfe6b9d95de8f9a"} -ContentType "application/json" -Body '{"driverId": "17147322", "amount": 50, "priority": "urgent"}'
 ```
 
 ### Verificar Resposta Completa
 ```bash
-# PowerShell - Ver resposta formatada
-$result = Invoke-RestMethod -Uri "https://aiagent.urbanmt.com.br/api/recharge/request" -Method POST -ContentType "application/json" -Body '{"driverId": "17147322", "amount": 10, "priority": "normal"}'
+# PowerShell - Ver resposta formatada (COM TOKEN)
+$result = Invoke-RestMethod -Uri "https://aiagent.urbanmt.com.br/api/recharge/request" -Method POST -Headers @{"Authorization"="Bearer e4c5417942b022424e7bb23dada2e2593ebfebc2bb94f3999dfe6b9d95de8f9a"} -ContentType "application/json" -Body '{"driverId": "17147322", "amount": 10, "priority": "normal"}'
 $result | ConvertTo-Json -Depth 10
 ```
 
@@ -136,6 +145,24 @@ Base de motoristas extraídos pelo sistema:
 - `17101714` - Disponível
 
 ## 🚨 Códigos de Erro
+
+### 401 - Unauthorized (Sem Token)
+```json
+{
+  "success": false,
+  "error": "Token de acesso obrigatório",
+  "message": "Forneça o token via Authorization header (Bearer) ou query parameter (?token=...)"
+}
+```
+
+### 403 - Forbidden (Token Inválido)
+```json
+{
+  "success": false,
+  "error": "Token inválido",
+  "message": "Token fornecido não é válido"
+}
+```
 
 ### 400 - Bad Request
 ```json

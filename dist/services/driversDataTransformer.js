@@ -89,27 +89,32 @@ class DriversDataTransformer {
      */
     extractDriverInfo(row, headers) {
         const driverInfo = {};
-        // 🔧 CORREÇÃO ESPECÍFICA: Dados vêm na ordem errada!
-        // Headers: ["City", "Driver ID", "Driver Name", "Phone Number", "Rank", "Rides"]  
-        // Dados:   [phone,    "0",       real_id,      rank,          city,   real_name]
-        if (headers.length >= 6 && headers.includes('Driver ID') && headers.includes('Driver Name')) {
-            // Mapeamento correto baseado na análise dos dados reais
-            const phoneIndex = headers.indexOf('City'); // Posição 0 = telefone real
-            const idIndex = headers.indexOf('Driver Name'); // Posição 2 = ID real  
-            const nameIndex = headers.indexOf('Rides'); // Posição 5 = nome real
-            const cityIndex = headers.indexOf('Rank'); // Posição 4 = cidade real
-            const rankIndex = headers.indexOf('Phone Number'); // Posição 3 = rank real
-            if (phoneIndex >= 0 && row[phoneIndex])
-                driverInfo.mobile = row[phoneIndex];
-            if (idIndex >= 0 && row[idIndex])
-                driverInfo.driver_id = row[idIndex];
-            if (nameIndex >= 0 && row[nameIndex])
-                driverInfo.name = row[nameIndex];
-            if (cityIndex >= 0 && row[cityIndex])
-                driverInfo.city = row[cityIndex];
-            if (rankIndex >= 0 && row[rankIndex])
-                driverInfo.rank = row[rankIndex];
-            console.log(`🔧 [FIXED MAPPING] ID: ${driverInfo.driver_id}, Nome: ${driverInfo.name}, City: ${driverInfo.city}`);
+        // 🔧 CORREÇÃO ESPECÍFICA PARA DIFFERENT TABLES:
+        // 1️⃣ LEADERBOARD (6 campos) - dados embaralhados
+        if (headers.length === 6 && headers.includes('Driver ID') && headers.includes('Driver Name') && headers.includes('Rides')) {
+            // Headers: ["City", "Driver ID", "Driver Name", "Phone Number", "Rank", "Rides"]  
+            // Dados:   [phone,    "0",       real_id,      rank,          city,   real_name]
+            driverInfo.mobile = row[0]; // City -> mobile real
+            driverInfo.driver_id = row[2]; // Driver Name -> ID real  
+            driverInfo.name = row[5]; // Rides -> nome real
+            driverInfo.city = row[4]; // Rank -> cidade real
+            driverInfo.rank = row[3]; // Phone Number -> rank real
+            console.log(`🔧 [LEADERBOARD FIXED] ID: ${driverInfo.driver_id}, Nome: ${driverInfo.name}, Mobile: ${driverInfo.mobile}`);
+            // 2️⃣ ACTIVE DRIVERS (15 campos) - estrutura correta
+        }
+        else if (headers.length === 15 && headers.includes('Driver ID') && headers.includes('Driver Name')) {
+            // Headers: ["City","Driver ID","Driver Name","Driver Ratings","Email","Franchise Name","Last Login","Last Ride","Mobile","OTP","Registered On","Rides in Last 30 Days","Rides in Last 7 Days","Status","Vehicle Number"]
+            // Dados corretos na posição certa:
+            driverInfo.city = row[0]; // City
+            driverInfo.driver_id = row[1]; // Driver Name real
+            driverInfo.name = row[1]; // Driver Name (mesmo campo)
+            driverInfo.rating = row[3]; // Driver Ratings  
+            driverInfo.email = row[4]; // Email
+            driverInfo.mobile = row[8]; // Mobile real
+            driverInfo.franchise = row[5]; // Franchise Name
+            driverInfo.last_login = row[6]; // Last Login
+            driverInfo.last_ride = row[7]; // Last Ride
+            console.log(`🔧 [ACTIVE FIXED] ID: ${driverInfo.driver_id}, Nome: ${driverInfo.name}, Mobile: ${driverInfo.mobile}`);
         }
         else {
             // Fallback para mapeamento original se a estrutura for diferente

@@ -11,17 +11,21 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const hybridOperationServiceV2_1 = require("../services/hybridOperationServiceV2");
+const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)();
+// 🛡️ Aplicar rate limiting a todas as rotas (100 requests por 15 min)
+router.use((0, auth_1.simpleRateLimit)(100, 15 * 60 * 1000));
 /**
  * Controller para operações de recarga
- * Endpoints internos para pausar scraper e processar recargas
+ * Endpoints protegidos por token de acesso
  */
 /**
  * POST /api/recharge/request
  * Endpoint para solicitar recarga de um motorista
  * PARA o scraper automaticamente e processa a recarga
+ * 🔐 PROTEGIDO: Requer token de acesso
  */
-router.post('/request', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.post('/request', auth_1.validateApiToken, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         console.log('💰 Recebido pedido de recarga:', req.body);
         const { driverId, amount, priority = 'normal' } = req.body;
@@ -78,8 +82,9 @@ router.post('/request', (req, res) => __awaiter(void 0, void 0, void 0, function
 /**
  * GET /api/recharge/track/:id
  * Rastreia o resultado específico de uma recarga
+ * 🔐 PROTEGIDO: Requer token de acesso
  */
-router.get('/track/:id', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.get('/track/:id', auth_1.validateApiToken, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { id } = req.params;
         const hybridService = hybridOperationServiceV2_1.HybridOperationService.getInstance({
@@ -116,8 +121,9 @@ router.get('/track/:id', (req, res) => __awaiter(void 0, void 0, void 0, functio
 /**
  * GET /api/recharge/status
  * Verifica status das recargas e do sistema híbrido
+ * 🔐 PROTEGIDO: Requer token de acesso
  */
-router.get('/status', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.get('/status', auth_1.validateApiToken, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const hybridService = hybridOperationServiceV2_1.HybridOperationService.getInstance({
             extractionBatchSize: 5,
