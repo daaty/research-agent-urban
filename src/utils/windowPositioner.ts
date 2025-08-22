@@ -198,6 +198,86 @@ export class WindowPositioner {
       console.log('⚠️ [WINDOW] Erro ao listar janelas:', error);
     }
   }
+
+  /**
+   * 🎯 Focar em uma janela específica por instância
+   */
+  async focusWindow(instanceName: string): Promise<boolean> {
+    try {
+      console.log(`🎯 [FOCUS] Focando janela: ${instanceName}`);
+      
+      // Encontrar janela do Chrome por título/classe
+      const { stdout } = await execAsync(`DISPLAY=:99 xdotool search --class chrome 2>/dev/null || echo ""`);
+      const windowIds = stdout.trim().split('\n').filter(id => id.length > 0);
+      
+      if (windowIds.length === 0) {
+        console.log('❌ [FOCUS] Nenhuma janela do Chrome encontrada');
+        return false;
+      }
+      
+      // Mapear instância para índice da janela
+      const instanceWindowMap: { [key: string]: number } = {
+        'rides_scraper': 0,
+        'hybrid_scraper': 1,
+        'drivers_scraper': 1,
+        'hybrid_operation': 0,
+        'default': 0
+      };
+      
+      const windowIndex = instanceWindowMap[instanceName] || 0;
+      const windowId = windowIds[windowIndex];
+      
+      if (!windowId) {
+        console.log(`❌ [FOCUS] Janela ${windowIndex} não encontrada para ${instanceName}`);
+        return false;
+      }
+      
+      // Focar e ativar janela
+      await execAsync(`DISPLAY=:99 xdotool windowfocus ${windowId}`);
+      await execAsync(`DISPLAY=:99 xdotool windowactivate ${windowId}`);
+      await execAsync(`DISPLAY=:99 xdotool windowraise ${windowId}`);
+      
+      console.log(`✅ [FOCUS] Janela ${instanceName} (ID: ${windowId}) focada com sucesso`);
+      return true;
+      
+    } catch (error) {
+      console.error(`❌ [FOCUS] Erro ao focar janela ${instanceName}:`, error);
+      return false;
+    }
+  }
+  
+  /**
+   * 🔄 Alternar foco entre janelas
+   */
+  async switchFocus(): Promise<void> {
+    try {
+      console.log('🔄 [FOCUS] Alternando foco entre janelas...');
+      
+      const { stdout } = await execAsync(`DISPLAY=:99 xdotool search --class chrome 2>/dev/null || echo ""`);
+      const windowIds = stdout.trim().split('\n').filter(id => id.length > 0);
+      
+      if (windowIds.length < 2) {
+        console.log('❌ [FOCUS] Menos de 2 janelas encontradas para alternar');
+        return;
+      }
+      
+      // Pegar janela com foco atual
+      const { stdout: activeWindow } = await execAsync(`DISPLAY=:99 xdotool getwindowfocus 2>/dev/null || echo ""`);
+      const currentFocus = activeWindow.trim();
+      
+      // Alternar para a próxima janela
+      const nextWindowIndex = windowIds.indexOf(currentFocus) === 0 ? 1 : 0;
+      const nextWindowId = windowIds[nextWindowIndex];
+      
+      await execAsync(`DISPLAY=:99 xdotool windowfocus ${nextWindowId}`);
+      await execAsync(`DISPLAY=:99 xdotool windowactivate ${nextWindowId}`);
+      
+      console.log(`✅ [FOCUS] Foco alternado para janela ${nextWindowId}`);
+      
+    } catch (error) {
+      console.error('❌ [FOCUS] Erro ao alternar foco:', error);
+    }
+  }
 }
 
 export default WindowPositioner;

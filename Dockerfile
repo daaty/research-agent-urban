@@ -119,6 +119,10 @@ COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY vnc-setup.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/vnc-setup.sh
 
+# Scripts de gerenciamento de janelas e foco
+COPY setup-window-focus.sh reset-vnc-cursor.sh organize-windows.sh vnc-focus-helper.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/setup-window-focus.sh /usr/local/bin/reset-vnc-cursor.sh /usr/local/bin/organize-windows.sh /usr/local/bin/vnc-focus-helper.sh
+
 # Scripts de inicialização
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh

@@ -1032,15 +1032,50 @@ app.post('/api/hybrid/start', (req, res) => __awaiter(void 0, void 0, void 0, fu
     try {
         console.log('🚀 Iniciando Sistema Híbrido via API...');
         yield hybridService.start();
+        // 🪟 Organizar janelas automaticamente após inicialização
+        console.log('🪟 Organizando janelas dos browsers...');
+        try {
+            // Aguardar browsers abrirem
+            yield new Promise(resolve => setTimeout(resolve, 5000));
+            const { WindowPositioner } = yield Promise.resolve().then(() => __importStar(require('./utils/windowPositioner')));
+            const positioner = new WindowPositioner();
+            yield positioner.arrangeAllWindows();
+            console.log('✅ Janelas organizadas em split-screen');
+        }
+        catch (windowError) {
+            console.error('❌ Erro ao organizar janelas:', windowError);
+        }
         res.json({
             success: true,
-            message: 'Sistema híbrido iniciado com sucesso',
+            message: 'Sistema híbrido iniciado com sucesso (janelas organizadas automaticamente)',
             status: hybridService.getStats(),
             timestamp: new Date().toISOString()
         });
     }
     catch (error) {
         console.error('❌ Erro ao iniciar sistema híbrido:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+}));
+// 🪟 Organizar Janelas em Split-Screen (Endpoint Manual)
+app.post('/api/windows/arrange', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        console.log('🪟 Organizando janelas em split-screen via API...');
+        const { WindowPositioner } = yield Promise.resolve().then(() => __importStar(require('./utils/windowPositioner')));
+        const positioner = new WindowPositioner();
+        yield positioner.arrangeAllWindows();
+        res.json({
+            success: true,
+            message: 'Janelas organizadas em split-screen com sucesso',
+            timestamp: new Date().toISOString()
+        });
+    }
+    catch (error) {
+        console.error('❌ Erro ao organizar janelas:', error);
         res.status(500).json({
             success: false,
             error: error.message,
@@ -1321,6 +1356,20 @@ app.listen(PORT, () => __awaiter(void 0, void 0, void 0, function* () {
                     // Executar uma vez imediatamente
                     yield monitoringService.runOnce();
                     logger_1.logger.success('MONITORING', 'Execução inicial de Rides + Drivers concluída');
+                    // 🪟 Organizar janelas automaticamente após abertura dos browsers
+                    logger_1.logger.info('WINDOWS', 'Organizando janelas dos browsers em split-screen...');
+                    try {
+                        // Aguardar 3 segundos para browsers terminarem inicialização
+                        yield new Promise(resolve => setTimeout(resolve, 3000));
+                        // Importar e usar WindowPositioner
+                        const { WindowPositioner } = yield Promise.resolve().then(() => __importStar(require('./utils/windowPositioner')));
+                        const positioner = new WindowPositioner();
+                        yield positioner.arrangeAllWindows();
+                        logger_1.logger.success('WINDOWS', 'Janelas organizadas em split-screen automaticamente');
+                    }
+                    catch (windowError) {
+                        logger_1.logger.error('WINDOWS', 'Erro ao organizar janelas', windowError);
+                    }
                     // 🔄 Iniciar monitoramento automático
                     monitoringService.startMonitoring();
                     logger_1.logger.success('MONITORING', 'Monitoramento automático iniciado (frequência: 2,5 min)');

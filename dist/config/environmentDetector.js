@@ -145,8 +145,7 @@ class EnvironmentDetector {
         const baseConfig = {
             headless: config.displayMode === 'headless',
             args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
+                // ❌ REMOVIDO: --no-sandbox (causava warning)
                 '--disable-dev-shm-usage',
                 '--disable-web-security',
                 '--disable-background-timer-throttling',
@@ -157,8 +156,10 @@ class EnvironmentDetector {
         };
         if (config.displayMode === 'vnc' || config.displayMode === 'xvfb') {
             baseConfig.args.push(`--display=${config.displayVar}`);
-            // Configurações específicas para VNC
-            baseConfig.args.push('--force-device-scale-factor=1', '--disable-features=VizDisplayCompositor', '--disable-gpu-sandbox', '--start-maximized');
+            // Configurações específicas para VNC com melhor interação
+            baseConfig.args.push('--force-device-scale-factor=1', '--disable-features=VizDisplayCompositor', '--start-maximized', '--disable-infobars', '--disable-notifications', '--disable-popup-blocking', '--enable-logging=stderr', '--log-level=0', '--disable-extensions', '--disable-plugins', '--disable-sync', '--no-default-browser-check', '--no-first-run', '--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36', // 🖥️ FORÇAR DESKTOP
+            '--window-size=800,1170' // 🖥️ TAMANHO DESKTOP EXPLÍCITO
+            );
         }
         if (config.isDocker) {
             baseConfig.args.push('--disable-gpu', '--disable-software-rasterizer', '--no-first-run');

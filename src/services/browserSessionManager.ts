@@ -339,6 +339,10 @@ export class BrowserSessionManager {
         headless: playwrightConfig.headless,
         args: browserArgs,
         viewport: { width: windowPosition.width, height: windowPosition.height },
+        userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36', // 🖥️ DESKTOP USER AGENT
+        deviceScaleFactor: 1, // 🖥️ ESCALA DESKTOP
+        isMobile: false, // 🖥️ FORÇAR DESKTOP
+        hasTouch: false, // 🖥️ SEM TOUCH
         ignoreDefaultArgs: ['--enable-automation'], // Remove automação detectável
         handleSIGINT: false,
         handleSIGTERM: false,
@@ -367,20 +371,33 @@ export class BrowserSessionManager {
       const envConfig2 = envDetector.getConfig();
       
       if (!this.isHeadless && (envConfig2.displayMode === 'vnc' || envConfig2.displayMode === 'xvfb')) {
-        this.logger.info('BROWSER', `🖥️ Iniciando posicionamento automático para ${this.instanceName}...`);
+        this.logger.info('BROWSER', `🖥️ Iniciando posicionamento e foco automático para ${this.instanceName}...`);
         
-        // Aguardar janela aparecer e tentar posicionar
+        // Aguardar janela aparecer e tentar posicionar + focar
         setTimeout(async () => {
           try {
             const positioner = WindowPositioner.getInstance();
+            
+            // 1. Posicionar janela
             const success = await positioner.moveWindow(this.instanceName, windowPosition);
             if (!success) {
               this.logger.warn('BROWSER', `Falha no posicionamento de ${this.instanceName}`);
             }
+            
+            // 2. Aguardar um pouco e focar na janela
+            setTimeout(async () => {
+              try {
+                await positioner.focusWindow(this.instanceName);
+                this.logger.info('BROWSER', `🎯 Foco aplicado para ${this.instanceName}`);
+              } catch (error) {
+                this.logger.warn('BROWSER', `Falha ao focar janela: ${error}`);
+              }
+            }, 2000);
+            
           } catch (error) {
             this.logger.warn('BROWSER', `Falha no posicionamento automático: ${error}`);
           }
-        }, 3000); // Aumentar tempo para garantir que janela esteja visível
+        }, 3000); // Aguardar janela aparecer
       }
       
       console.log(`🎯 [${this.instanceName}] Browser inicializado com posicionamento automático`);

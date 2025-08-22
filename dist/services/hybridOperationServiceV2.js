@@ -33,7 +33,7 @@ class HybridOperationService {
         this.rechargeQueue = rechargeQueue_1.RechargeQueue.getInstance();
         this.stateManager = operationStateManager_1.OperationStateManager.getInstance();
         this.driverIdProvider = driverIdProvider_1.DriverIdProvider.getInstance();
-        this.dashboardScraper = new RidesDashboardHybridScraper_1.RidesDashboardHybridScraper('hybrid_operation');
+        this.dashboardScraper = new RidesDashboardHybridScraper_1.RidesDashboardHybridScraper('hybrid_scraper');
         this.stats = {
             totalExtracted: 0,
             totalRecharges: 0,
