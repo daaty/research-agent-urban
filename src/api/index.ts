@@ -28,4 +28,40 @@ router.post('/vnc/reset-cursor', async (req, res) => {
   }
 });
 
+// 🎯 Endpoint para dar foco à janela da esquerda (Rides)
+router.post('/vnc/focus-left', async (req, res) => {
+  try {
+    console.log('🎯 Dando foco à janela esquerda...');
+    await execAsync('bash /app/focus-left.sh');
+    res.json({ 
+      success: true, 
+      message: 'Foco na janela esquerda (Rides) ativado' 
+    });
+  } catch (error) {
+    console.error('❌ Erro ao dar foco:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Erro ao dar foco à janela esquerda' 
+    });
+  }
+});
+
+// 🎯 Endpoint para dar foco à janela da direita (Drivers/Híbrido)
+router.post('/vnc/focus-right', async (req, res) => {
+  try {
+    console.log('🎯 Dando foco à janela direita...');
+    await execAsync('bash /app/focus-right.sh');
+    res.json({ 
+      success: true, 
+      message: 'Foco na janela direita (Drivers/Híbrido) ativado' 
+    });
+  } catch (error) {
+    console.error('❌ Erro ao dar foco:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Erro ao dar foco à janela direita' 
+    });
+  }
+});
+
 export default router;

@@ -158,6 +158,15 @@ export class WindowPositioner {
     }
 
     console.log('🎉 [WINDOW] Split-screen organizado com sucesso!');
+    
+    // 🎯 Configurar sistema de foco após organizar janelas
+    try {
+      console.log('🎯 [WINDOW] Configurando sistema de foco automático...');
+      await execAsync('bash /app/manage-window-focus.sh');
+      console.log('✅ [WINDOW] Sistema de foco configurado!');
+    } catch (error) {
+      console.log('⚠️ [WINDOW] Erro ao configurar foco:', error);
+    }
   }
 
   /**
