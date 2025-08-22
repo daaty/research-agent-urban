@@ -1,4 +1,5 @@
 import { EventEmitter } from 'events';
+import { humanDelayGenerator } from '../config/humanDelayConfig';
 
 export interface QueueItem {
   id: string;
@@ -132,19 +133,36 @@ export class DriverExtractionQueue extends EventEmitter {
       return;
     }
 
-    // Aplicar rate limiting
+    // ===== APLICAR DELAYS HUMANOS E RATE LIMITING INTELIGENTE =====
     const now = Date.now();
     const timeSinceLastProcess = now - this.lastProcessTime;
+    
+    // Rate limiting básico
     if (timeSinceLastProcess < this.config.rateLimitDelay) {
       await this.sleep(this.config.rateLimitDelay - timeSinceLastProcess);
     }
+    
+    // Delay humano adicional baseado na carga de trabalho
+    const processingLoad = this.processing.size / this.config.maxConcurrent;
+    if (processingLoad > 0.7) { // Se está processando mais de 70% da capacidade
+      const loadDelay = humanDelayGenerator.getLoadBasedDelay(processingLoad);
+      console.log(`⏳ Alta carga detectada (${Math.round(processingLoad * 100)}%), aplicando delay humano: ${loadDelay}ms`);
+      await this.sleep(loadDelay);
+    }
 
-    // Processar itens disponíveis
+    // Processar itens disponíveis com delays escalonados
     const itemsToProcess = Math.min(availableSlots, this.queue.length);
     
     for (let i = 0; i < itemsToProcess; i++) {
       const item = this.queue.shift();
       if (item) {
+        // Delay escalonado entre processamentos simultâneos
+        if (i > 0) {
+          const staggerDelay = humanDelayGenerator.getStaggeredProcessingDelay();
+          console.log(`⏳ Delay escalonado ${i + 1}/${itemsToProcess}: ${staggerDelay}ms`);
+          await this.sleep(staggerDelay);
+        }
+        
         this.startProcessingItem(item);
         this.lastProcessTime = Date.now();
       }
@@ -307,6 +325,17 @@ export class DriverExtractionQueue extends EventEmitter {
     this.queue.sort((a, b) => b.priority - a.priority);
     console.log(`🔄 ${failedItems.length} itens falhados readicionados à fila`);
     this.emit('queueUpdated', this.getQueueStats());
+  }
+
+  /**
+   * Gera delay humano aleatório entre min e max (comportamento natural)
+   */
+  private generateHumanDelay(min: number, max: number): number {
+    // Gerar delay aleatório mais próximo de valores médios (distribuição normal-ish)
+    const base = Math.random() * (max - min) + min;
+    const variation = (Math.random() - 0.5) * (max - min) * 0.2; // Variação de ±10%
+    const delay = Math.max(min, Math.min(max, base + variation));
+    return Math.round(delay);
   }
 
   /**

@@ -1,6 +1,7 @@
 import { BrowserSessionManager } from '../services/browserSessionManager';
 import { DataTransformer } from '../services/dataTransformer';
 import { Page } from 'playwright';
+import { humanDelayGenerator, HumanDelayGenerator } from '../config/humanDelayConfig';
 
 /**
  * Scraper específico para dashboard do Rides
@@ -581,17 +582,18 @@ export class RidesDashboardHybridScraper {
   }
 
   /**
-   * Extrai dados pessoais de um motorista específico
+   * Extrai dados pessoais de um motorista específico com padrões de reconhecimento de carregamento
    */
   async extractDriverData(driverId: string): Promise<any> {
     if (!this.page || !this.isLoggedIn) {
       throw new Error('Scraper não inicializado ou não logado');
     }
 
-    console.log(`📊 Extraindo dados do motorista: ${driverId}`);
+    console.log(`📊 🎯 INICIANDO EXTRAÇÃO DO MOTORISTA: ${driverId}`);
 
     try {
-      // 🔍 VERIFICAR SE AINDA ESTÁ LOGADO ANTES DE CONTINUAR
+      // ===== FASE 1: VALIDAÇÃO DE SESSÃO E NAVEGAÇÃO =====
+      console.log('🔍 FASE 1: Validando sessão...');
       const currentUrl = this.page.url();
       if (currentUrl.includes('/page/login') || currentUrl.includes('#/page/login')) {
         console.log('❌ SESSÃO PERDIDA! Retornando à página de login...');
@@ -599,9 +601,11 @@ export class RidesDashboardHybridScraper {
         throw new Error('Sessão perdida - necessário login manual');
       }
 
-    // Garantir que estamos na página Dashboard (onde está o campo #driverId)
-    console.log('🌐 Navegando para Dashboard para extração de dados...');
-    await this.browserManager.navigateWithLock(this.DASHBOARD_URL, { waitUntil: 'networkidle', timeout: 15000 });      // Verificar se foi redirecionado para login após navegação
+      // Garantir que estamos na página Dashboard
+      console.log('🌐 FASE 1: Navegando para Dashboard...');
+      await this.browserManager.navigateWithLock(this.DASHBOARD_URL, { waitUntil: 'networkidle', timeout: 15000 });
+      
+      // Verificar se foi redirecionado para login
       const newUrl = this.page.url();
       console.log(`📍 URL atual: ${newUrl}`);
       
@@ -611,12 +615,32 @@ export class RidesDashboardHybridScraper {
         throw new Error('Sessão expirou - redirecionado para login');
       }
 
-      // 🎯 VERIFICAÇÃO ROBUSTA DO CAMPO driverId
-      console.log('🔍 Procurando campo #driverId...');
+      // ===== FASE 2: AGUARDAR CARREGAMENTO COMPLETO DA PÁGINA =====
+      console.log('⏳ FASE 2: Aguardando carregamento completo da página...');
       
-      // Aguardar página carregar completamente
+      // Aguardar DOM carregar
       await this.page.waitForLoadState('domcontentloaded');
-      await this.page.waitForTimeout(2000);
+      console.log('✅ DOM carregado');
+      
+      // Aguardar AngularJS carregar (delay humano)
+      console.log('⏳ Aguardando AngularJS carregar (5 segundos)...');
+      await this.page.waitForTimeout(5000);
+      
+      // Aguardar elementos específicos carregarem
+      console.log('⏳ Aguardando elementos da interface carregarem...');
+      await this.page.waitForFunction(() => {
+        // Verificar se AngularJS carregou
+        const hasAngular = typeof (window as any).angular !== 'undefined';
+        const bodyElement = document.querySelector('body');
+        const hasNgScope = bodyElement ? bodyElement.classList.contains('ng-scope') : false;
+        return hasAngular && bodyElement !== null && hasNgScope;
+      }, { timeout: 10000 });
+      console.log('✅ AngularJS carregado e elementos prontos');
+
+      // ===== FASE 3: LOCALIZAR E VALIDAR CAMPO DRIVER ID =====
+      console.log('🔍 FASE 3: Localizando campo #driverId...');
+      // ===== FASE 3: LOCALIZAR E VALIDAR CAMPO DRIVER ID =====
+      console.log('🔍 FASE 3: Localizando campo #driverId...');
       
       // Tentar múltiplos seletores para o campo driverId
       const possibleSelectors = [
@@ -631,9 +655,11 @@ export class RidesDashboardHybridScraper {
       let driverIdField = null;
       let usedSelector = '';
       
+      // Aguardar e tentar cada seletor com tempo suficiente
       for (const selector of possibleSelectors) {
         try {
-          await this.page.waitForSelector(selector, { timeout: 3000 });
+          console.log(`🔍 Tentando seletor: ${selector}...`);
+          await this.page.waitForSelector(selector, { timeout: 5000 });
           driverIdField = selector;
           usedSelector = selector;
           console.log(`✅ Campo encontrado com seletor: ${selector}`);
@@ -644,12 +670,12 @@ export class RidesDashboardHybridScraper {
       }
       
       if (!driverIdField) {
-        console.log('❌ Nenhum campo de driverId encontrado!');
+        console.log('❌ Nenhum campo de driverId encontrado após 30 segundos!');
         console.log('🔍 Verificando se ainda está logado...');
         
         // Verificar se perdeu o login
-        const currentUrl = this.page.url();
-        if (currentUrl.includes('login')) {
+        const currentUrlCheck = this.page.url();
+        if (currentUrlCheck.includes('login')) {
           console.log('❌ SESSÃO PERDIDA - Voltou para página de login!');
           this.isLoggedIn = false;
           throw new Error('Sessão perdida - necessário fazer login novamente');
@@ -660,28 +686,83 @@ export class RidesDashboardHybridScraper {
         console.log('🔍 HTML da página (primeiros 500 chars):');
         console.log(bodyHTML.substring(0, 500));
         
-        throw new Error('Campo driverId não encontrado em nenhum seletor');
+        throw new Error('Campo driverId não encontrado em nenhum seletor após aguardar carregamento');
       }
 
-      // Limpa e preenche o campo
+      // ===== FASE 4: PREENCHIMENTO DO CAMPO COM VALIDAÇÃO =====
+      console.log(`⌨️ FASE 4: Preenchendo campo com ID ${driverId}...`);
+      
+      // Delay humano antes de preencher (comportamento natural)
+      const beforeFillDelay = humanDelayGenerator.getBeforeFieldFillDelay();
+      console.log(`⏳ Delay humano antes de preencher: ${beforeFillDelay}ms`);
+      await this.page.waitForTimeout(beforeFillDelay);
+      
+      // Limpar campo completamente
       await this.page.fill(usedSelector, '');
+      
+      // Delay entre limpar e preencher
+      const betweenClearFillDelay = humanDelayGenerator.getBetweenClearAndFillDelay();
+      await this.page.waitForTimeout(betweenClearFillDelay);
+      
+      // Preencher com o ID do motorista
       await this.page.fill(usedSelector, driverId);
+      console.log(`✅ Campo preenchido com: ${driverId} usando seletor: ${usedSelector}`);
+      
+      // Delay após preencher
+      const afterFillDelay = humanDelayGenerator.getAfterFieldFillDelay();
+      console.log(`⏳ Delay após preencher: ${afterFillDelay}ms`);
+      await this.page.waitForTimeout(afterFillDelay);
+      
+      // Validar se o valor foi realmente preenchido
+      const fieldValue = await this.page.inputValue(usedSelector);
+      if (fieldValue !== driverId) {
+        console.log(`⚠️ Valor no campo (${fieldValue}) não confere com o esperado (${driverId}), tentando novamente...`);
+        await this.page.fill(usedSelector, driverId);
+        await this.page.waitForTimeout(1000);
+      }
 
-      console.log(`⌨️ Preenchido ID: ${driverId} usando seletor: ${usedSelector}`);
-
-      // Aguarda e clica no botão "Details Driver"
-      await this.page.waitForSelector('button[ng-click="getDriverInfo(enteredDriverValue)"]', { timeout: 5000 });
+      // ===== FASE 5: AGUARDAR E CLICAR NO BOTÃO DETAILS =====
+      console.log('🔍 FASE 5: Aguardando botão "Details Driver"...');
+      
+      // Aguardar botão aparecer com timeout generoso
+      await this.page.waitForSelector('button[ng-click="getDriverInfo(enteredDriverValue)"]', { timeout: 8000 });
+      
+      // Delay humano antes de clicar
+      const beforeClickDelay = humanDelayGenerator.getBeforeClickDelay();
+      console.log(`⏳ Delay humano antes de clicar: ${beforeClickDelay}ms`);
+      await this.page.waitForTimeout(beforeClickDelay);
+      
+      console.log('🖱️ Clicando no botão "Details Driver"...');
       await this.page.click('button[ng-click="getDriverInfo(enteredDriverValue)"]');
+      console.log('✅ Botão "Details Driver" clicado');
+      
+      // Delay humano após clicar
+      const afterClickDelay = humanDelayGenerator.getAfterClickDelay();
+      console.log(`⏳ Delay humano após clicar: ${afterClickDelay}ms`);
+      await this.page.waitForTimeout(afterClickDelay);
 
-      console.log('🔍 Botão "Details Driver" clicado');
+      // ===== FASE 6: AGUARDAR CARREGAMENTO DOS DADOS DO MOTORISTA COM VALIDAÇÃO ROBUSTA =====
+      console.log(`⏳ FASE 6: Aguardando dados do motorista ${driverId} carregarem com validação...`);
+      
+      // Usar método especializado para aguardar carregamento completo
+      const dataLoaded = await this.waitForDriverDataLoaded(driverId, 25000); // 25 segundos máximo
+      
+      if (!dataLoaded) {
+        console.log(`❌ FALHA NO CARREGAMENTO: Dados do motorista ${driverId} não carregaram completamente`);
+        throw new Error(`Timeout: Dados do motorista ${driverId} não carregaram após aguardar 25 segundos`);
+      }
+      
+      console.log(`✅ DADOS VALIDADOS E CARREGADOS para motorista ${driverId}!`);
+      
+      // Delay final para garantir estabilização total
+      console.log('⏳ Aguardando 2 segundos finais para estabilização completa...');
+      await this.page.waitForTimeout(2000);
 
-      // Aguarda os dados carregarem (pode demorar)
-      await this.page.waitForTimeout(3000);
-
-      // Extrai dados da página (adaptar conforme estrutura real)
+      // ===== FASE 7: EXTRAIR DADOS DO MOTORISTA =====
+      console.log(`📊 FASE 7: Extraindo dados do motorista ${driverId}...`);
       const driverData = await this.extractDriverDetails();
-
-      console.log(`✅ Dados extraídos para ${driverId}`);
+      
+      console.log(`✅ EXTRAÇÃO CONCLUÍDA para ${driverId}`);
       
       const extractedData = {
         driverId,
@@ -690,8 +771,8 @@ export class RidesDashboardHybridScraper {
         data: driverData
       };
 
-      // 💾 Salvar dados no PostgreSQL
-      console.log(`💾 Salvando dados do motorista ${driverId} no PostgreSQL...`);
+      // ===== FASE 8: SALVAR NO BANCO DE DADOS =====
+      console.log(`💾 FASE 8: Salvando dados do motorista ${driverId} no PostgreSQL...`);
       try {
         const saved = await this.dataTransformer.saveDriverPersonalDetails(extractedData);
         if (saved) {
@@ -734,25 +815,52 @@ export class RidesDashboardHybridScraper {
   }
 
   /**
-   * Extrai detalhes do motorista da página atual
-   * TODO: Adaptar conforme estrutura real da página
+   * Extrai detalhes do motorista da página atual com validação robusta de carregamento
    */
   private async extractDriverDetails(): Promise<any> {
     if (!this.page) throw new Error('Página não disponível');
 
     try {
-      console.log('📊 Aguardando página de detalhes carregar...');
+      console.log('📊 === INICIANDO EXTRAÇÃO DE DETALHES ===');
       
-      // Aguardar mais tempo para a página carregar completamente
-      await this.page.waitForTimeout(5000);
-
-      // Verificar se elementos carregaram - sem timeout desnecessário
-      console.log('🔍 Elementos ainda carregando, iniciando extração...');
-
-      // Aguardar um pouco mais para garantir que o AngularJS carregou os dados
+      // ===== VALIDAÇÃO 1: VERIFICAR SE DADOS ESTÃO CARREGADOS =====
+      console.log('🔍 VALIDAÇÃO 1: Verificando se dados do motorista estão carregados...');
+      
+      const hasDataLoaded = await this.page.evaluate(() => {
+        // Contar elementos que indicam dados carregados
+        const bindingElements = document.querySelectorAll('.ng-binding');
+        const dataElements = document.querySelectorAll('.col-lg-5.ng-binding');
+        
+        console.log(`Elementos ng-binding encontrados: ${bindingElements.length}`);
+        console.log(`Elementos de dados encontrados: ${dataElements.length}`);
+        
+        return dataElements.length >= 3; // Pelo menos 3 campos de dados
+      });
+      
+      if (!hasDataLoaded) {
+        console.log('⚠️ Dados não parecem estar carregados, aguardando mais...');
+        
+        // Aguardar um pouco mais e tentar novamente
+        await this.page.waitForTimeout(5000);
+        
+        const hasDataLoadedRetry = await this.page.evaluate(() => {
+          return document.querySelectorAll('.col-lg-5.ng-binding').length >= 2;
+        });
+        
+        if (!hasDataLoadedRetry) {
+          console.log('❌ Dados do motorista não carregaram mesmo após aguardar');
+          throw new Error('Dados do motorista não carregaram na página');
+        }
+      }
+      
+      console.log('✅ Dados do motorista parecem estar carregados');
+      
+      // ===== VALIDAÇÃO 2: AGUARDAR ESTABILIZAÇÃO (DELAY HUMANO) =====
+      console.log('⏳ VALIDAÇÃO 2: Aguardando estabilização dos dados (delay humano de 3 segundos)...');
       await this.page.waitForTimeout(3000);
-
-      console.log('📋 Iniciando extração dos dados...');
+      
+      // ===== EXTRAÇÃO 3: EXTRAIR DADOS COM VALIDAÇÃO =====
+      console.log('📋 EXTRAÇÃO 3: Iniciando extração estruturada dos dados...');
 
       // Extrair dados pessoais e informações completas
       const driverData = await this.page.evaluate((currentCity) => {
@@ -764,12 +872,12 @@ export class RidesDashboardHybridScraper {
 
         console.log('� Executando extração no navegador...');
 
-        // ===== FUNÇÃO AUXILIAR BASEADA NA ESTRUTURA HTML REAL =====
+        // ===== FUNÇÃO AUXILIAR ROBUSTA PARA EXTRAÇÃO DE CAMPOS =====
         function extractFieldByLabel(labelText: string): string | null {
-          console.log(`🔍 Procurando campo: "${labelText}"`);
+          console.log(`🔍 PROCURANDO CAMPO: "${labelText}"`);
           
           try {
-            // === ESTRATÉGIA BASEADA NA ESTRUTURA REAL DO HTML ===
+            // === ESTRATÉGIA 1: ESTRUTURA HTML PADRÃO ===
             // Estrutura: <div class="col-lg-5"><label>Campo</label></div> + <div class="col-lg-1">:</div> + <div class="col-lg-5">VALOR</div>
             
             // 1. Encontrar o label específico
@@ -779,8 +887,9 @@ export class RidesDashboardHybridScraper {
             for (const label of labels) {
               const labelTextContent = label.textContent?.trim();
               
+              // Comparação exata do label
               if (labelTextContent === labelText) {
-                console.log(`✅ Label encontrada: "${labelTextContent}"`);
+                console.log(`✅ LABEL ENCONTRADA: "${labelTextContent}"`);
                 
                 // Encontrar o container col-lg-5 do label
                 const labelContainer = label.closest('.col-lg-5');
@@ -794,35 +903,84 @@ export class RidesDashboardHybridScraper {
                     if (columns.length >= 3) {
                       const valueContainer = columns[2]; // Terceira coluna
                       
-                      // Para o campo City, fazer uma busca mais específica
+                      // === VALIDAÇÃO ESPECÍFICA POR TIPO DE CAMPO ===
                       if (labelText === 'City') {
                         const cityText = valueContainer.textContent?.trim();
-                        // Verificar se é realmente uma cidade (Matupá, etc.)
+                        // Validar se é realmente uma cidade válida
                         if (cityText && 
-                            (cityText === 'Matupá' || cityText.match(/^[A-ZÁÊÇÕ][a-záêçõü]{2,25}$/)) &&
+                            cityText.length >= 3 &&
+                            cityText.length <= 50 &&
                             !cityText.includes('Date') && 
                             !cityText.includes('Register') &&
                             !cityText.includes('+') && 
-                            !cityText.match(/^\d/)) {
-                          console.log(`✅ City encontrada na estrutura correta: "${cityText}"`);
+                            !cityText.includes('@') &&
+                            !cityText.includes('http') &&
+                            !cityText.match(/^\d+$/) && // Não pode ser só números
+                            cityText !== ':') {
+                          console.log(`✅ CITY VALIDADA: "${cityText}"`);
                           return cityText;
                         }
-                      } else {
-                        // Para outros campos, usar a lógica normal
-                        // Primeiro tentar pegar link interno
+                      } 
+                      else if (labelText === 'Driver ID') {
+                        // Primeiro tentar pegar link interno (que normalmente tem o ID)
                         const link = valueContainer.querySelector('a.ng-binding');
                         if (link) {
                           const linkText = link.textContent?.trim();
-                          if (linkText && linkText.length > 0) {
-                            console.log(`✅ Valor encontrado em link: "${linkText}"`);
+                          if (linkText && /^\d{8}$/.test(linkText)) {
+                            console.log(`✅ DRIVER ID VALIDADO EM LINK: "${linkText}"`);
                             return linkText;
                           }
                         }
                         
-                        // Se não tem link, pegar o texto direto
+                        // Se não tem link, verificar o texto direto
+                        const idText = valueContainer.textContent?.trim();
+                        if (idText && /^\d{8}$/.test(idText)) {
+                          console.log(`✅ DRIVER ID VALIDADO EM TEXTO: "${idText}"`);
+                          return idText;
+                        }
+                      }
+                      else if (labelText === 'Driver Name') {
+                        // Para nome, pegar texto direto ou de link
+                        const link = valueContainer.querySelector('a.ng-binding');
+                        if (link) {
+                          const linkText = link.textContent?.trim();
+                          if (linkText && linkText.length >= 3 && linkText.length <= 100 &&
+                              !linkText.match(/^\d+$/) && linkText !== ':') {
+                            console.log(`✅ DRIVER NAME VALIDADO EM LINK: "${linkText}"`);
+                            return linkText;
+                          }
+                        }
+                        
+                        const nameText = valueContainer.textContent?.trim();
+                        if (nameText && nameText.length >= 3 && nameText.length <= 100 &&
+                            !nameText.match(/^\d+$/) && nameText !== ':' &&
+                            !nameText.includes('@') && !nameText.includes('+')) {
+                          console.log(`✅ DRIVER NAME VALIDADO EM TEXTO: "${nameText}"`);
+                          return nameText;
+                        }
+                      }
+                      else if (labelText === 'Phone No' || labelText === 'Phone Number') {
+                        const phoneText = valueContainer.textContent?.trim();
+                        // Validar formato de telefone brasileiro
+                        if (phoneText && (phoneText.match(/^\+\d{13}$/) || phoneText.match(/^\(\d{2}\)\s?\d{4,5}-?\d{4}$/))) {
+                          console.log(`✅ PHONE VALIDADO: "${phoneText}"`);
+                          return phoneText;
+                        }
+                      }
+                      else {
+                        // Para outros campos, usar lógica padrão
+                        const link = valueContainer.querySelector('a.ng-binding');
+                        if (link) {
+                          const linkText = link.textContent?.trim();
+                          if (linkText && linkText.length > 0 && linkText !== ':') {
+                            console.log(`✅ VALOR GENÉRICO EM LINK: "${linkText}"`);
+                            return linkText;
+                          }
+                        }
+                        
                         const valueText = valueContainer.textContent?.trim();
                         if (valueText && valueText.length > 0 && valueText !== ':') {
-                          console.log(`✅ Valor encontrado em div: "${valueText}"`);
+                          console.log(`✅ VALOR GENÉRICO EM TEXTO: "${valueText}"`);
                           return valueText;
                         }
                       }
@@ -830,11 +988,12 @@ export class RidesDashboardHybridScraper {
                   }
                 }
                 
-                // Estratégia alternativa: procurar próximo elemento com ng-binding
+                // === ESTRATÉGIA 2: BUSCA POR PROXIMIDADE ===
+                console.log(`⚠️ Tentando busca por proximidade para: ${labelText}`);
                 const allElements = Array.from(document.querySelectorAll('*'));
                 const labelIndex = allElements.indexOf(label);
                 
-                for (let i = labelIndex + 1; i < Math.min(labelIndex + 10, allElements.length); i++) {
+                for (let i = labelIndex + 1; i < Math.min(labelIndex + 15, allElements.length); i++) {
                   const elem = allElements[i];
                   const text = elem.textContent?.trim();
                   
@@ -842,10 +1001,11 @@ export class RidesDashboardHybridScraper {
                       text !== labelText && 
                       text !== ':' &&
                       text.length > 0 &&
+                      text.length < 200 &&
                       !text.includes(labelText) &&
                       elem.children.length === 0) { // Elemento folha
                     
-                    console.log(`✅ Valor encontrado por proximidade: "${text}"`);
+                    console.log(`✅ VALOR POR PROXIMIDADE: "${text}"`);
                     return text;
                   }
                 }
@@ -1405,6 +1565,125 @@ export class RidesDashboardHybridScraper {
       console.error(`❌ Erro ao processar recarga:`, error);
       return false;
     }
+  }
+
+  /**
+   * Aguarda e valida que os dados do motorista estão completamente carregados
+   */
+  private async waitForDriverDataLoaded(driverId: string, maxWaitTime: number = 30000): Promise<boolean> {
+    console.log(`⏳ === AGUARDANDO CARREGAMENTO COMPLETO DOS DADOS: ${driverId} ===`);
+    
+    const startTime = Date.now();
+    let attempts = 0;
+    const maxAttempts = Math.floor(maxWaitTime / 2000); // Verificar a cada 2 segundos
+    
+    while (attempts < maxAttempts) {
+      attempts++;
+      const elapsed = Date.now() - startTime;
+      
+      console.log(`🔍 Tentativa ${attempts}/${maxAttempts} - Verificando carregamento (${Math.round(elapsed/1000)}s)...`);
+      
+      try {
+        if (!this.page) {
+          throw new Error('Página não disponível');
+        }
+        
+        const dataStatus = await this.page.evaluate((expectedDriverId) => {
+          console.log(`🔍 Verificando dados para motorista: ${expectedDriverId}`);
+          
+          // 1. Contar elementos de dados carregados
+          const dataElements = document.querySelectorAll('.col-lg-5.ng-binding');
+          const bindingElements = document.querySelectorAll('.ng-binding');
+          
+          console.log(`📊 Elementos encontrados: ${dataElements.length} dados, ${bindingElements.length} bindings`);
+          
+          // 2. Procurar especificamente pelo ID do motorista esperado
+          let driverIdFound = false;
+          let driverIdInPage = null;
+          
+          // Buscar o ID em elementos específicos
+          const idElements = document.querySelectorAll('a[ng-click*="redirectToDriverProfile"], .ng-binding');
+          for (const elem of idElements) {
+            const text = elem.textContent?.trim();
+            if (text && /^\d{8}$/.test(text)) {
+              driverIdInPage = text;
+              if (text === expectedDriverId) {
+                driverIdFound = true;
+                console.log(`✅ ID correto encontrado: ${text}`);
+                break;
+              } else {
+                console.log(`⚠️ ID diferente encontrado: ${text} (esperado: ${expectedDriverId})`);
+              }
+            }
+          }
+          
+          // 3. Verificar se tem dados suficientes
+          const hasMinimumData = dataElements.length >= 3;
+          
+          // 4. Verificar se não há indicadores de carregamento ativo
+          const loadingElements = document.querySelectorAll('[ng-show*="loading"], .loading, .spinner, [class*="load"]');
+          const hasActiveLoading = Array.from(loadingElements).some(elem => {
+            const style = window.getComputedStyle(elem);
+            return style.display !== 'none' && style.visibility !== 'hidden';
+          });
+          
+          // 5. Verificar se há elementos vazios (indicando carregamento incompleto)
+          const emptyDataElements = Array.from(dataElements).filter(elem => {
+            const text = elem.textContent?.trim();
+            return !text || text === ':' || text === '';
+          });
+          
+          const status = {
+            dataElementsCount: dataElements.length,
+            bindingElementsCount: bindingElements.length,
+            hasMinimumData,
+            driverIdFound,
+            expectedDriverId,
+            driverIdInPage,
+            hasActiveLoading,
+            emptyDataCount: emptyDataElements.length,
+            isFullyLoaded: hasMinimumData && driverIdFound && !hasActiveLoading && emptyDataElements.length < 2
+          };
+          
+          console.log('📊 Status do carregamento:', status);
+          return status;
+        }, driverId);
+        
+        console.log(`📊 Status: dados=${dataStatus.dataElementsCount}, ID correto=${dataStatus.driverIdFound}, carregando=${dataStatus.hasActiveLoading}`);
+        
+        // Verificar se os dados estão completamente carregados
+        if (dataStatus.isFullyLoaded) {
+          console.log(`✅ DADOS COMPLETAMENTE CARREGADOS para ${driverId} em ${Math.round(elapsed/1000)}s`);
+          return true;
+        }
+        
+        // Verificar se o ID na página é diferente do esperado (dados errados carregados)
+        if (dataStatus.driverIdInPage && dataStatus.driverIdInPage !== driverId) {
+          console.log(`❌ DADOS INCORRETOS CARREGADOS! Esperado: ${driverId}, Encontrado: ${dataStatus.driverIdInPage}`);
+          throw new Error(`Dados do motorista ${dataStatus.driverIdInPage} carregados em vez de ${driverId}`);
+        }
+        
+        // Verificar timeout
+        if (elapsed > maxWaitTime) {
+          console.log(`⏰ TIMEOUT! Dados não carregaram completamente em ${maxWaitTime}ms`);
+          return false;
+        }
+        
+        // Aguardar antes da próxima verificação
+        console.log(`⏳ Aguardando 2 segundos antes da próxima verificação...`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+      } catch (error) {
+        console.error(`❌ Erro ao verificar carregamento na tentativa ${attempts}:`, error);
+        if (attempts >= maxAttempts) {
+          throw error;
+        }
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    }
+    
+    console.log(`❌ FALHA NO CARREGAMENTO: Dados não carregaram após ${attempts} tentativas`);
+    return false;
   }
 
   /**
