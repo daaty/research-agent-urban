@@ -170,7 +170,7 @@ export class EnvironmentDetector {
     const baseConfig = {
       headless: config.displayMode === 'headless',
       args: [
-        // ❌ REMOVIDO: --no-sandbox (causava warning)
+        '--no-sandbox', // ✅ RESTAURADO: Essencial para mouse funcionar em Docker/VNC
         '--disable-dev-shm-usage',
         '--disable-web-security',
         '--disable-background-timer-throttling',
@@ -197,7 +197,6 @@ export class EnvironmentDetector {
         '--disable-sync',
         '--no-default-browser-check',
         '--no-first-run',
-        '--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36', // 🖥️ FORÇAR DESKTOP
         '--window-size=800,1170' // 🖥️ TAMANHO DESKTOP EXPLÍCITO
       );
     }
