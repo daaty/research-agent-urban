@@ -351,7 +351,17 @@ export class BrowserSessionManager {
           'sec-ch-ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
           'sec-ch-ua-mobile': '?0',
           'sec-ch-ua-platform': '"Windows"'
-        }
+        },
+        // 🖱️ CONFIGURAÇÕES CRÍTICAS PARA MOUSE NO VNC
+        locale: 'pt-BR',
+        timezoneId: 'America/Sao_Paulo',
+        acceptDownloads: true,
+        bypassCSP: false,
+        javaScriptEnabled: true,
+        offline: false,
+        permissions: ['geolocation', 'notifications'],
+        // 🎯 Remover viewport fixo que pode interferir com interação do mouse
+        // viewport: null, // Deixar o browser gerenciar o viewport
       });
 
       // Obter referência do browser do context

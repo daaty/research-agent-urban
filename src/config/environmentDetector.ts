@@ -174,7 +174,14 @@ export class EnvironmentDetector {
         '--disable-web-security',
         '--disable-background-timer-throttling',
         '--disable-backgrounding-occluded-windows',
-        '--disable-renderer-backgrounding'
+        '--disable-renderer-backgrounding',
+        // 🖱️ FLAGS CRÍTICAS PARA MOUSE NO VNC
+        '--enable-usermedia-screen-capturing',
+        '--allow-http-screen-capture',
+        '--use-fake-ui-for-media-stream',
+        '--disable-features=VizDisplayCompositor',
+        '--enable-logging=stderr',
+        '--log-level=0'
         // ❌ REMOVIDO: --window-size e --window-position (conflitam com split-screen)
       ]
     };
@@ -184,19 +191,21 @@ export class EnvironmentDetector {
       // Configurações específicas para VNC com melhor interação
       baseConfig.args.push(
         '--force-device-scale-factor=1',
-        '--disable-features=VizDisplayCompositor',
         '--start-maximized',
         '--disable-infobars',
         '--disable-notifications',
         '--disable-popup-blocking',
-        '--enable-logging=stderr',
-        '--log-level=0',
         '--disable-extensions',
         '--disable-plugins',
         '--disable-sync',
         '--no-default-browser-check',
         '--no-first-run',
-        '--window-size=800,1170' // 🖥️ TAMANHO DESKTOP EXPLÍCITO
+        '--window-size=800,1170', // 🖥️ TAMANHO DESKTOP EXPLÍCITO
+        // 🖱️ FLAGS ADICIONAIS PARA GARANTIR INTERAÇÃO
+        '--enable-precise-memory-info',
+        '--enable-features=NetworkService',
+        '--force-fieldtrials=PasswordGeneration/Enabled/',
+        '--disable-ipc-flooding-protection'
       );
     }
 
