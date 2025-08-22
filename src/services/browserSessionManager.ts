@@ -3,8 +3,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { EnvironmentDetector } from '../config/environmentDetector';
 import { Logger } from '../utils/logger';
-import { WindowManager } from './windowManager';
-import WindowPositioner from '../utils/windowPositioner';
 
 export interface SessionData {
   isLoggedIn: boolean;
@@ -24,7 +22,6 @@ export class BrowserSessionManager {
   private isHeadless: boolean;
   private instanceName: string; // 🆕 Nome da instância
   private logger: Logger; // ⭐ SISTEMA DE LOGGING
-  private windowManager: WindowManager; // 🖥️ GERENCIADOR DE JANELAS
   
   // 🔄 Cache de status para evitar verificações excessivas
   private lastLoginCheck: number = 0;
@@ -36,32 +33,10 @@ export class BrowserSessionManager {
   private email: string = process.env.RIDES_USERNAME || '';
   private password: string = process.env.RIDES_PASSWORD || '';
   
-  /**
-   * 🖥️ Obter posição da janela baseada na instância para VNC split-screen
-   */
-  private getWindowPosition(instanceName: string): { x: number, y: number, width: number, height: number } {
-    // 🎯 LÓGICA CORRIGIDA: Posições distintas para cada instância
-    const positions: { [key: string]: { x: number, y: number, width: number, height: number } } = {
-      // LADO ESQUERDO (rides, monitoramento)
-      'default': { x: 0, y: 0, width: 800, height: 1170 },
-      'rides_scraper': { x: 0, y: 0, width: 800, height: 1170 },
-      'hybrid_operation': { x: 0, y: 0, width: 800, height: 1170 },
-      
-      // LADO DIREITO (drivers, híbrido)  
-      'drivers_scraper': { x: 800, y: 0, width: 800, height: 1170 },
-      'hybrid_scraper': { x: 800, y: 0, width: 800, height: 1170 }
-    };
-    
-    const position = positions[instanceName] || positions['default'];
-    console.log(`📍 [${instanceName}] → Posição: (${position.x}, ${position.y}) Tamanho: ${position.width}x${position.height}`);
-    return position;
-  }
-  
   private constructor(instanceName: string = 'default') {
     this.instanceName = instanceName;
     this.isHeadless = process.env.HEADLESS_MODE === 'true';
     this.logger = Logger.getInstance(); // ⭐ INICIALIZAR LOGGER
-    this.windowManager = WindowManager.getInstance(); // 🖥️ INICIALIZAR WINDOW MANAGER
     
     // 🆕 Diretórios específicos por instância
     this.userDataDir = path.join(process.cwd(), 'browser-data', instanceName);
@@ -94,30 +69,27 @@ export class BrowserSessionManager {
   }
 
   /**
-   * 🖥️ Arranjar todas as janelas automaticamente para split-screen
+   * 🖥️ Obter posição da janela para split-screen (SIMPLES)
    */
-  public static async arrangeAllWindowsForSplitScreen(): Promise<void> {
-    const windowManager = WindowManager.getInstance();
+  private getWindowPosition(instanceName: string): { x: number, y: number, width: number, height: number } {
+    const positions: { [key: string]: { x: number, y: number, width: number, height: number } } = {
+      // LADO ESQUERDO 
+      'default': { x: 0, y: 0, width: 800, height: 1170 },
+      'rides_scraper': { x: 0, y: 0, width: 800, height: 1170 },
+      'hybrid_operation': { x: 0, y: 0, width: 800, height: 1170 },
+      
+      // LADO DIREITO 
+      'drivers_scraper': { x: 800, y: 0, width: 800, height: 1170 },
+      'hybrid_scraper': { x: 800, y: 0, width: 800, height: 1170 }
+    };
     
-    console.log('🖥️ Arranjando janelas para split-screen...');
-    await windowManager.arrangeWindowsForSplitScreen();
+    const position = positions[instanceName] || positions['default'];
+    console.log(`📍 [${instanceName}] → Posição: (${position.x}, ${position.y}) Tamanho: ${position.width}x${position.height}`);
+    return position;
   }
 
   /**
-   * � Organiza todas as janelas em split-screen (função estática)
-   */
-  public static async arrangeAllWindows(): Promise<void> {
-    try {
-      console.log('🎯 [BROWSER] Organizando todas as janelas em split-screen...');
-      const positioner = WindowPositioner.getInstance();
-      await positioner.arrangeAllWindows();
-    } catch (error) {
-      console.error('❌ [BROWSER] Erro ao organizar janelas:', error);
-    }
-  }
-
-  /**
-   * �🆕 Obtém instância nomeada do BrowserSessionManager
+   * 🆕 Obtém instância nomeada do BrowserSessionManager
    */
   public static getInstance(instanceName: string = 'default'): BrowserSessionManager {
     if (!BrowserSessionManager.instances.has(instanceName)) {
@@ -324,44 +296,19 @@ export class BrowserSessionManager {
       
       console.log(`🖥️ Configuração Playwright: headless=${playwrightConfig.headless}`);
       
-      // 🖥️ Configurações específicas para VNC com split-screen
+      // 🖥️ ADICIONAR POSICIONAMENTO SPLIT-SCREEN SEM QUEBRAR CONFIGURAÇÃO ORIGINAL
       const windowPosition = this.getWindowPosition(this.instanceName);
-      const browserArgs = [
+      const splitScreenArgs = [
         ...playwrightConfig.args,
         `--window-position=${windowPosition.x},${windowPosition.y}`,
         `--window-size=${windowPosition.width},${windowPosition.height}`,
-        '--new-window',  // Força nova janela
-        '--no-first-run',
-        '--disable-default-apps'
+        '--new-window'
       ];
       
       this.context = await chromium.launchPersistentContext(this.userDataDir, {
         headless: playwrightConfig.headless,
-        args: browserArgs,
-        viewport: { width: windowPosition.width, height: windowPosition.height },
-        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36', // 🖥️ WINDOWS DESKTOP USER AGENT
-        deviceScaleFactor: 1, // 🖥️ ESCALA DESKTOP
-        isMobile: false, // 🖥️ FORÇAR DESKTOP
-        hasTouch: false, // 🖥️ SEM TOUCH
-        ignoreDefaultArgs: ['--enable-automation'], // Remove automação detectável
-        handleSIGINT: false,
-        handleSIGTERM: false,
-        handleSIGHUP: false,
-        extraHTTPHeaders: {
-          'sec-ch-ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
-          'sec-ch-ua-mobile': '?0',
-          'sec-ch-ua-platform': '"Windows"'
-        },
-        // 🖱️ CONFIGURAÇÕES CRÍTICAS PARA MOUSE NO VNC
-        locale: 'pt-BR',
-        timezoneId: 'America/Sao_Paulo',
-        acceptDownloads: true,
-        bypassCSP: false,
-        javaScriptEnabled: true,
-        offline: false,
-        permissions: ['geolocation', 'notifications'],
-        // 🎯 Remover viewport fixo que pode interferir com interação do mouse
-        // viewport: null, // Deixar o browser gerenciar o viewport
+        args: splitScreenArgs, // 🎯 ARGS COM POSICIONAMENTO SIMPLES
+        viewport: { width: 1600, height: 1200 } // ✅ MANTER VIEWPORT ORIGINAL
       });
 
       // Obter referência do browser do context
@@ -378,45 +325,7 @@ export class BrowserSessionManager {
       const pages = this.context.pages();
       this.page = pages.length > 0 ? pages[0] : await this.context.newPage();
       
-      // Configurar timeouts para evitar fechamento prematuro
-      this.page.setDefaultTimeout(60000);
-      this.page.setDefaultNavigationTimeout(60000);
-      
-      // 🖥️ POSICIONAMENTO AUTOMÁTICO DE JANELAS (apenas em ambiente VNC)
-      const envConfig2 = envDetector.getConfig();
-      
-      if (!this.isHeadless && (envConfig2.displayMode === 'vnc' || envConfig2.displayMode === 'xvfb')) {
-        this.logger.info('BROWSER', `🖥️ Iniciando posicionamento e foco automático para ${this.instanceName}...`);
-        
-        // Aguardar janela aparecer e tentar posicionar + focar
-        setTimeout(async () => {
-          try {
-            const positioner = WindowPositioner.getInstance();
-            
-            // 1. Posicionar janela
-            const success = await positioner.moveWindow(this.instanceName, windowPosition);
-            if (!success) {
-              this.logger.warn('BROWSER', `Falha no posicionamento de ${this.instanceName}`);
-            }
-            
-            // 2. Aguardar um pouco e focar na janela
-            setTimeout(async () => {
-              try {
-                await positioner.focusWindow(this.instanceName);
-                this.logger.info('BROWSER', `🎯 Foco aplicado para ${this.instanceName}`);
-              } catch (error) {
-                this.logger.warn('BROWSER', `Falha ao focar janela: ${error}`);
-              }
-            }, 2000);
-            
-          } catch (error) {
-            this.logger.warn('BROWSER', `Falha no posicionamento automático: ${error}`);
-          }
-        }, 3000); // Aguardar janela aparecer
-      }
-      
-      console.log(`🎯 [${this.instanceName}] Browser inicializado com posicionamento automático`);
-      this.logger.success('BROWSER', `Browser ${this.instanceName} inicializado com sucesso`);
+    this.logger.success('BROWSER', 'Browser inicializado com sucesso');
       
     } catch (error) {
       console.error('❌ Erro ao inicializar browser:', error);
