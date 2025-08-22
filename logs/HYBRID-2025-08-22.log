@@ -1934,3 +1934,72 @@
 [2025-08-22T01:54:53.351Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17089446
 [2025-08-22T01:54:54.756Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17109343
 [2025-08-22T01:54:54.756Z] [DEBUG] [HYBRID] Dados salvos para motorista 17109343
+[2025-08-22T01:54:57.162Z] [DEBUG] [HYBRID] Alimentação automática: buscando novos IDs...
+[2025-08-22T01:55:01.353Z] [INFO] [HYBRID] Extraindo dados do motorista: 17079326
+[2025-08-22T01:55:01.354Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17079326
+[2025-08-22T01:55:01.355Z] [DEBUG] [HYBRID] Dashboard já está logada, prosseguindo...
+[2025-08-22T01:55:01.355Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17079326
+[2025-08-22T01:55:02.606Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17101714
+[2025-08-22T01:55:02.606Z] [DEBUG] [HYBRID] Dados salvos para motorista 17101714
+[2025-08-22T01:55:09.362Z] [INFO] [HYBRID] Extraindo dados do motorista: 16629776
+[2025-08-22T01:55:09.364Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 16629776
+[2025-08-22T01:55:09.364Z] [DEBUG] [HYBRID] Dashboard já está logada, prosseguindo...
+[2025-08-22T01:55:09.364Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 16629776
+[2025-08-22T01:55:10.619Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17089446
+[2025-08-22T01:55:10.620Z] [DEBUG] [HYBRID] Dados salvos para motorista 17089446
+[2025-08-22T01:55:17.375Z] [INFO] [HYBRID] Extraindo dados do motorista: 16359250
+[2025-08-22T01:55:17.377Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 16359250
+[2025-08-22T01:55:17.377Z] [DEBUG] [HYBRID] Dashboard já está logada, prosseguindo...
+[2025-08-22T01:55:17.377Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 16359250
+[2025-08-22T01:55:18.620Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17079326
+[2025-08-22T01:55:18.621Z] [DEBUG] [HYBRID] Dados salvos para motorista 17079326
+[2025-08-22T01:55:25.381Z] [INFO] [HYBRID] Extraindo dados do motorista: 16263441
+[2025-08-22T01:55:25.383Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 16263441
+[2025-08-22T01:55:25.384Z] [DEBUG] [HYBRID] Dashboard já está logada, prosseguindo...
+[2025-08-22T01:55:25.384Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 16263441
+[2025-08-22T01:55:26.616Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 16629776
+[2025-08-22T01:55:26.617Z] [DEBUG] [HYBRID] Dados salvos para motorista 16629776
+[2025-08-22T01:55:33.386Z] [INFO] [HYBRID] Extraindo dados do motorista: 12146346
+[2025-08-22T01:55:33.387Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 12146346
+[2025-08-22T01:55:33.388Z] [DEBUG] [HYBRID] Dashboard já está logada, prosseguindo...
+[2025-08-22T01:55:33.388Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 12146346
+[2025-08-22T01:55:34.790Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 16359250
+[2025-08-22T01:55:34.790Z] [DEBUG] [HYBRID] Dados salvos para motorista 16359250
+[2025-08-22T01:55:41.389Z] [WARN] [HYBRID] Fila de extração vazia, tentando buscar novos IDs...
+[2025-08-22T01:55:41.389Z] [DEBUG] [HYBRID] Carregando IDs iniciais das dashboards...
+[2025-08-22T01:55:41.390Z] [DEBUG] [HYBRID] Tentando extrair IDs reais da página Active Drivers...
+[2025-08-22T01:55:41.390Z] [DEBUG] [HYBRID] Dashboard já está logada, prosseguindo...
+[2025-08-22T01:55:42.787Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 16263441
+[2025-08-22T01:55:42.787Z] [DEBUG] [HYBRID] Dados salvos para motorista 16263441
+[2025-08-22T01:55:44.630Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 12146346
+[2025-08-22T01:55:44.630Z] [DEBUG] [HYBRID] Dados salvos para motorista 12146346
+[2025-08-22T01:55:47.528Z] [SUCCESS] [HYBRID] 19 IDs reais extraídos da dashboard Active Drivers
+[2025-08-22T01:55:47.529Z] [INFO] [HYBRID] IDs da dashboard carregados: 19 IDs reais (alta prioridade)
+[2025-08-22T01:55:49.402Z] [INFO] [HYBRID] Mudando para modo EXTRAÇÃO
+[2025-08-22T01:55:49.403Z] [INFO] [HYBRID] Extraindo dados do motorista: 18181466
+[2025-08-22T01:55:49.411Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 18181466
+[2025-08-22T01:55:49.412Z] [DEBUG] [HYBRID] Dashboard já está logada, prosseguindo...
+[2025-08-22T01:55:49.412Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 18181466
+[2025-08-22T01:55:57.165Z] [DEBUG] [HYBRID] Alimentação automática: buscando novos IDs...
+[2025-08-22T01:55:57.402Z] [INFO] [HYBRID] Extraindo dados do motorista: 17650720
+[2025-08-22T01:55:57.405Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17650720
+[2025-08-22T01:55:57.407Z] [DEBUG] [HYBRID] Dashboard já está logada, prosseguindo...
+[2025-08-22T01:55:57.408Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17650720
+[2025-08-22T01:56:05.412Z] [INFO] [HYBRID] Extraindo dados do motorista: 17528787
+[2025-08-22T01:56:05.414Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17528787
+[2025-08-22T01:56:05.414Z] [DEBUG] [HYBRID] Dashboard já está logada, prosseguindo...
+[2025-08-22T01:56:05.414Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17528787
+[2025-08-22T01:56:07.331Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 18181466
+[2025-08-22T01:56:07.332Z] [DEBUG] [HYBRID] Dados salvos para motorista 18181466
+[2025-08-22T01:56:13.426Z] [INFO] [HYBRID] Extraindo dados do motorista: 17291892
+[2025-08-22T01:56:13.428Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17291892
+[2025-08-22T01:56:13.428Z] [DEBUG] [HYBRID] Dashboard já está logada, prosseguindo...
+[2025-08-22T01:56:13.429Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17291892
+[2025-08-22T01:56:14.714Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17650720
+[2025-08-22T01:56:14.715Z] [DEBUG] [HYBRID] Dados salvos para motorista 17650720
+[2025-08-22T01:56:21.431Z] [INFO] [HYBRID] Extraindo dados do motorista: 17207660
+[2025-08-22T01:56:21.432Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17207660
+[2025-08-22T01:56:21.432Z] [DEBUG] [HYBRID] Dashboard já está logada, prosseguindo...
+[2025-08-22T01:56:21.432Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17207660
+[2025-08-22T01:56:22.721Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17528787
+[2025-08-22T01:56:22.721Z] [DEBUG] [HYBRID] Dados salvos para motorista 17528787
