@@ -1,0 +1,12 @@
+[2025-08-23T04:17:56.487Z] [INFO] [BROWSER] Browser [default] configurado para modo: VNC
+[2025-08-23T04:17:56.488Z] [INFO] [BROWSER] Headless [default]: NÃO
+[2025-08-23T04:17:56.492Z] [INFO] [BROWSER] Browser [hybrid_scraper] configurado para modo: VNC
+[2025-08-23T04:17:56.493Z] [INFO] [BROWSER] Headless [hybrid_scraper]: NÃO
+[2025-08-23T04:18:07.162Z] [INFO] [BROWSER] Inicializando browser com persistência...
+[2025-08-23T04:18:07.560Z] [SUCCESS] [BROWSER] Browser inicializado com sucesso
+[2025-08-23T04:24:19.215Z] [INFO] [BROWSER] Browser [default] configurado para modo: VNC
+[2025-08-23T04:24:19.216Z] [INFO] [BROWSER] Headless [default]: NÃO
+[2025-08-23T04:24:19.219Z] [INFO] [BROWSER] Browser [hybrid_scraper] configurado para modo: VNC
+[2025-08-23T04:24:19.220Z] [INFO] [BROWSER] Headless [hybrid_scraper]: NÃO
+[2025-08-23T04:24:29.855Z] [INFO] [BROWSER] Inicializando browser com persistência...
+[2025-08-23T04:24:30.258Z] [SUCCESS] [BROWSER] Browser inicializado com sucesso

@@ -202,6 +202,8 @@ export class RidesDashboardHybridScraper {
       if (currentUrl.includes('/app/dashboard') || currentUrl.includes('#/app/')) {
         console.log('✅ Login manual detectado com sucesso!');
         this.isLoggedIn = true;
+        console.log('🔄 Aguardando um pouco para estabilizar a sessão...');
+        await this.smartWait('elementWait'); // Aguardar um pouco para estabilizar
         return;
       }
       
@@ -1343,8 +1345,8 @@ export class RidesDashboardHybridScraper {
       await this.page.click('button:has-text("Details Driver")');
       console.log('🔍 Botão "Details Driver" clicado');
 
-      // 4. Aguardar página de detalhes carregar
-      await this.page.waitForTimeout(5000);
+  // 4. Aguardar página de detalhes carregar
+  await this.page.waitForTimeout(10000);
 
       // 5. Clicar no botão "Credit/Debit"
       await this.page.waitForSelector('button[ng-click="openPopUp()"]', { timeout: 15000 });
@@ -1436,10 +1438,32 @@ export class RidesDashboardHybridScraper {
 
   /**
    * Obtém informações do estado atual
+   * CORRIGIDO: Verifica o status real de login baseado na URL atual
    */
   getStatus() {
+    // 🔧 CORREÇÃO: Verificar status real de login baseado na URL atual
+    let actualLoginStatus = this.isLoggedIn;
+    
+    if (this.page && !this.page.isClosed()) {
+      try {
+        const currentUrl = this.page.url();
+        // Se está numa página do app, está logado
+        if (currentUrl.includes('/app/dashboard') || 
+            currentUrl.includes('/app/active-drivers') ||
+            currentUrl.includes('#/app/')) {
+          actualLoginStatus = true;
+          this.isLoggedIn = true; // Atualizar estado interno
+        } else if (currentUrl.includes('/page/login') || currentUrl.includes('#/page/login')) {
+          actualLoginStatus = false;
+          this.isLoggedIn = false;
+        }
+      } catch (error) {
+        console.log('⚠️ Erro ao verificar URL atual no getStatus:', error);
+      }
+    }
+    
     return {
-      isLoggedIn: this.isLoggedIn,
+      isLoggedIn: actualLoginStatus,
       currentCity: this.currentCity,
       pageUrl: this.page?.url() || 'N/A',
       timestamp: new Date().toISOString()

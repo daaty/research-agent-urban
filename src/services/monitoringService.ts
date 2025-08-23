@@ -12,112 +12,14 @@ import { Logger } from '../utils/logger';
 
 interface RideData {
   id: string;
-  driver: string;
-  passenger: string;
-  status: string;
-  date: string;
-  time: string;
-  route: string;
-  price?: string;
-  [key: string]: any;
-}
-
-interface MonitoringResult {
-  timestamp: string;
-  totalRecords: number;
-  newRecords: RideData[];
-  updatedRecords: RideData[];
-  cancelledRecords: RideData[];
-  completedRecords: RideData[];
-  summary: {
-    newCount: number;
-    updatedCount: number;
-    cancelledCount: number;
-    completedCount: number;
-  };
-}
-
-class MonitoringService {
-  private previousData: RideData[] = [];
-  private dataFilePath: string;
-  private isRunning: boolean = false;
-  private cronTasks: any[] = [];
-  private cacheManager: DataCacheManager; // ⭐ USAR SISTEMA DE CACHE SOFISTICADO
-  private databaseManager: DatabaseManager; // ⭐ INTEGRAR SALVAMENTO NO BANCO
-  private lastRawData: any[] = []; // ⭐ ARMAZENAR ÚLTIMOS DADOS PARA WEBHOOK
-  private logger: Logger; // ⭐ SISTEMA DE LOGGING
-
-  constructor() {
-    this.dataFilePath = path.join(__dirname, '../../data/previous-rides-data.json');
-    this.cacheManager = DataCacheManager.getInstance(); // ⭐ INICIALIZAR CACHE MANAGER
-    this.logger = Logger.getInstance(); // ⭐ INICIALIZAR LOGGER
-    this.databaseManager = DatabaseManager.getInstance(); // ⭐ INICIALIZAR DATABASE MANAGER
-    this.loadPreviousData();
-    this.initializeDatabase(); // ⭐ INICIALIZAR CONEXÃO COM BANCO
-  }
-
-  private async initializeDatabase(): Promise<void> {
-    try {
-      await this.databaseManager.initialize();
-      console.log('✅ DatabaseManager inicializado no MonitoringService');
-    } catch (error) {
-      console.error('❌ Erro ao inicializar DatabaseManager no MonitoringService:', error);
-    }
-  }
-
-  private loadPreviousData(): void {
-    // ⭐ MÉTODO MANTIDO POR COMPATIBILIDADE - CACHE REAL É GERENCIADO PELO DataCacheManager
-    try {
-      if (fs.existsSync(this.dataFilePath)) {
-        const data = fs.readFileSync(this.dataFilePath, 'utf-8');
-        this.previousData = JSON.parse(data);
-        console.log(`✅ Dados anteriores carregados: ${this.previousData.length} registros (compatibilidade)`);
-      } else {
-        console.log('📁 Sistema de cache sofisticado ativo - DataCacheManager em uso');
-        // Criar diretório se não existir
-        const dir = path.dirname(this.dataFilePath);
-        if (!fs.existsSync(dir)) {
-          fs.mkdirSync(dir, { recursive: true });
-        }
-      }
-    } catch (error) {
-      console.error('❌ Erro ao carregar dados anteriores:', error);
-      this.previousData = [];
-    }
-  }
-
-  private savePreviousData(data: RideData[]): void {
-    // ⭐ MÉTODO MANTIDO POR COMPATIBILIDADE - CACHE REAL É GERENCIADO PELO DataCacheManager
-    try {
-      fs.writeFileSync(this.dataFilePath, JSON.stringify(data, null, 2));
-      console.log(`💾 Dados salvos: ${data.length} registros (compatibilidade)`);
-    } catch (error) {
-      console.error('❌ Erro ao salvar dados:', error);
-    }
-  }
-
-  private generateRideId(ride: any): string {
-    // Gera um ID único baseado nos dados da corrida
-    const key = `${ride.driver || ''}_${ride.passenger || ''}_${ride.date || ''}_${ride.time || ''}_${ride.route || ''}`;
-    return Buffer.from(key).toString('base64').substring(0, 16);
-  }
-
-  // ⭐ NOVO MÉTODO: Extrair ID único como o DataTransformer
-  private extractRideId(ride: any): string {
-    // Se o ride já tem um formato estruturado (com campos separados)
-    if (ride.driver || ride.passenger || ride.date) {
-      const idComponents: string[] = [];
-      
-      if (ride.driver) idComponents.push(`driver:${ride.driver}`);
-      if (ride.passenger) idComponents.push(`passenger:${ride.passenger}`);
-      if (ride.date) idComponents.push(`date:${ride.date}`);
-      if (ride.time) idComponents.push(`time:${ride.time}`);
-      if (ride.route) idComponents.push(`route:${ride.route}`);
-      
-      if (idComponents.length >= 2) {
-        const combinedKey = idComponents.join('|');
-        return createHash('md5').update(combinedKey).digest('hex').substring(0, 16);
-      }
+  // ================= MONITORING SERVICE DESATIVADO =================
+  // Toda a lógica do MonitoringService foi comentada para desativar o monitoramento automático e scraping sequencial de rides/drivers.
+  // Para reativar, descomente a classe abaixo.
+  //
+  // class MonitoringService {
+  //   ...
+  // }
+  // export { MonitoringService, RideData, MonitoringResult };
     }
     
     // Fallback: usar hash do objeto inteiro (excluindo timestamp)

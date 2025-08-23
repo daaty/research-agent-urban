@@ -1,0 +1,734 @@
+[
+  {
+    "text": "Get Started",
+    "icon": "fa fa-th",
+    "sref": "app.getStarted",
+    "translate": "GET_STARTED",
+    "id": 130
+  },
+  {  
+    "text": "Home",
+    "icon": "fa fa-home",
+    "sref": "app.home",
+    "translate": "HOME",
+    "id": 131
+  },
+  {
+    "text": "Dashboard",
+    "icon": "fa fa-th",
+    "sref": "app.dashboard",
+    "translate": "DASHBOARD",
+    "id": 57
+  },
+  {
+    "text": "Fixed Routes",
+    "icon": "fa fa-road",
+    "translate": "FIXED_ROUTES",
+    "submenu": [
+      {"text": "Stops", "sref":"app.manageStops", "id" : 74, "translate": "STOPS"},
+      {"text": "Routes", "sref":"app.manageRoutes", "id" : 75, "translate": "ROUTES"},
+      {"text": "Fares", "sref":"app.fixedRouteFares", "id" : 76, "translate": "FARE"},
+      {"text": "Journey", "sref":"app.manageJourneys", "id" : 77, "translate": "JOURNEY"},
+      {"text": "Shuttle Map View", "sref":"app.shuttleMapView", "id" : 158, "translate": "SHUTTLE_MAP_VIEW"},
+      {"text": "Completed Journey", "sref":"app.fixedRoutesBookings", "id" : 138, "translate": "COMPLETED_JOURNEY"},
+      {"text": "Subscriptions", "sref":"app.subscription", "id" : 110, "translate": "SUBSCRIPTIONS"},
+      {"text": "Cancellation Policy", "sref":"app.cancellationPolicy", "id" : 111, "translate": "CANCELLATION_POLICY"}
+    ]
+  },
+  {
+    "text": "",
+    "icon": "fa fa-bicycle",
+    "translate": "",
+    "forBike": true,
+    "submenu":[
+      {
+        "text": "Bike",
+        "sref": "app.bikeDetails",
+        "translate": "BIKE_DETAILS",
+        "forBike": true,
+        "id": 61
+      },
+      {
+        "text": "Deactivated",
+        "sref": "app.deactivatedDevices",
+        "translate": "DEACTIVATED_BIKES",
+        "forBike": true,
+        "bikeTextAfter":true,
+        "id": 71
+      },
+      {
+        "text": "Docking Stations",
+        "sref": "app.dockingLocations",
+        "translate": "DOCKING_STATIONS",
+        "id": 62
+      },
+      {
+        "text": "Damage Reported",
+        "sref": "app.damageReported",
+        "translate": "DAMAGE_REPORTED",
+        "id": 63
+      },
+      {
+        "text": "Lock Instruction",
+        "sref": "app.lockInstruction",
+        "translate": "LOCK_INSTRUCTION",
+        "id": 64
+      }
+    ]
+  },
+  {
+    "text": "Info Hub",
+    "icon": "fa fa-info-circle",
+    "sref": "app.infoHub",
+    "translate": "INFO_HUB",
+    "id": 26
+  },
+  {
+    "text": "Rides",
+    "icon": "fa fa-car",
+    "translate": "RIDES",
+    "submenu": [
+      {
+        "text": "Forecasting",
+        "sref": "app.forecastingRides",
+        "translate": "FORECASTING",
+        "id" : 159
+      },
+      {
+        "text": "Ongoing Rides",
+        "sref": "app.ongoingRides",
+        "translate": "ONGOING_RIDES",
+        "id" : 43
+      },
+      {
+        "text": "Scheduled Rides",
+        "sref": "app.scheduledRides",
+        "translate": "SCHEDULED_RIDES",
+        "id" : 55
+      },
+      {
+        "text": "Completed Rides",
+        "sref": "app.allRides",
+        "translate": "COMPLETED_RIDES",
+        "id" : 44
+      },
+      {
+        "text": "Cancelled Rides",
+        "sref": "app.cancelledRide",
+        "params": {"status": 4},
+        "translate": "CANCELLED_RIDES",
+        "id": 66
+      },
+      {
+        "text": "Missed Rides",
+        "sref": "app.missedRide",
+        "params": {"status": 3},
+        "translate": "MISSED_RIDES",
+        "id" : 65
+      }
+    ]
+  },
+  {
+    "text": "Car Pool Rides",
+    "icon": "fa fa-car",
+    "translate": "CAR_POOL_RIDES",
+    "submenu": [
+      {
+        "text": "Map View",
+        "sref": "app.poolRidesMapView",
+        "translate": "MAP_VIEW",
+        "id": 91
+      },
+      {
+        "text": "Ongoing Rides",
+        "sref": "app.ongoingPoolRides",
+        "translate": "ONGOING_RIDES",
+        "id" : 89
+      },
+      {
+        "text": "Scheduled Rides",
+        "sref": "app.scheduledPoolRides",
+        "translate": "SCHEDULED_RIDES",
+        "id" : 90
+      },
+      {
+        "text": "CarPool Promotions",
+        "sref": "app.carPoolPromotions",
+        "translate": "CARPOOL_PROMOTIONS",
+        "id" : 132
+      },
+      {
+        "text": "CarPool Preferences",
+        "sref": "app.carPoolPreferences",
+        "translate": "CARPOOL_PREFERENCES",
+        "id" : 133
+      },
+      {
+        "text": "CarPool Coupons",
+        "sref": "app.carpoolCouponsCtrl",
+        "translate": "CARPOOL_COUPONS",
+        "id" : 134
+      },
+      {
+        "text": "CarPool Documents Verify",
+        "sref": "app.carPoolDocumentsVerify",
+        "translate": "CARPOOL_DOCS_VERIFY",
+        "id" : 135
+      }
+    ]
+  },
+  {
+    "text": "Tasks",
+    "icon": "fa fa-tasks",
+    "translate": "TASKS",
+    "submenu": [
+      {"text": "Autos Tasks", "sref": "app.viewTasks", "id" : 67, "translate": "AUTOS_TASKS"},
+      {"text": "Tookan Tasks", "sref": "app.vehicleBranding", "id" : 102, "translate": "TOOKAN_TASKS"}
+    ]
+  },
+  {
+    "text": "PickUp And Delivery",
+    "icon": "fa fa-motorcycle",
+    "link": "fa fa-external-link",
+    "href": "http://edelivery.ec2dashboard.com/",
+    "translate": "PICKUP_AND_DELIVERY",
+    "id": 59
+  },
+  {
+    "text": "Map View",
+    "icon": "fa fa-globe",
+    "sref": "app.mapView",
+    "translate": "MAP_VIEW",
+    "id": 1
+  },
+  {
+    "text": "Manual Dispatch",
+    "icon": "fa fa-car",
+    "sref": "app.rideRequest",
+    "translate": "MANUAL_DISPATCH",
+    "id": 31
+  },
+  {
+    "text": "Contact Drivers",
+    "icon": "fa fa-envelope",
+    "sref": "app.contactDriver",
+    "translate": "CONTACT_DRIVERS",
+    "id": 19
+  },
+  {
+    "text": "Contact Customers",
+    "icon": "fa fa-envelope",
+    "sref": "app.contactCustomers",
+    "translate": "CONTACT_CUSTOMERS",
+    "id": 40
+  },
+  {
+    "text": "Dynamic Pricing",
+    "icon": "fa fa-bolt",
+    "sref": "app.dynamicPricingShow",
+    "translate": "DYNAMIC_PRICING",
+    "id" : 15
+  },
+  {
+    "text": "Customers",
+    "icon": "icon-user",
+    "translate": "CUSTOMERS",
+    "submenu": [
+      {
+        "text": "Active Customers",
+        "sref": "app.activeCustomers",
+        "translate": "ACTIVE_CUSTOMERS",
+        "id" : 56
+      },
+      {
+        "text": "Deactivated Customers",
+        "sref": "app.deactivatedCustomers",
+        "translate": "DEACTIVED_CUSTOMERS",
+        "id" : 106
+      },
+      {
+        "text": "Refunds",
+        "sref": "app.endRideRefunds",
+        "translate": "END_RIDE_REFUNDS",
+        "id" : 143
+      },
+      {
+        "text": "Documnets",
+        "sref": "app.documentsForCustomer",
+        "translate": "CUSTOMER_DOCUMENTS",
+        "id" : 127
+      },
+      {
+        "text": "Approve Credit",
+        "sref": "app.approveCredit",
+        "translate": "APPROVE_CREDIT"
+      },
+      {"text": "Promotions",
+        "sref": "app.promotions",
+        "translate": "PROMOTIONS"
+      },
+      {"text": "User Flags",
+        "sref": "app.userFlags",
+        "translate": "USER_FLAGS"
+      },
+      {"text": "Customer Correspondence",
+       "sref": "app.customerCorr",
+       "translate": "CUSTOMER_CORRESPONDENCE"
+      }
+    ]
+  },
+  {
+    "text": "Drivers",
+    "icon": "icon-user",
+    "translate": "DRIVERS",
+    "submenu": [
+          {
+            "text": "Active Drivers",
+            "sref": "app.activeDriver",
+            "translate": "ACTIVE_DRIVERS",
+            "id" :  2
+          },
+          {
+            "text": "Deactivated Drivers",
+            "sref": "app.deactivatedDriver",
+            "translate": "DEACTIVATED_DRIVERS",
+            "id" : 3
+          },
+          {
+            "text" : "Driver Enrollment",
+            "sref" : "app.selfEnrolled",
+            "translate": "DRIVER_ENROLLMENT",
+            "id"  : 3
+          },
+          {
+            "text": "Captive Drivers",
+            "translate": "CAPTIVE_DRIVERS",
+            "sref": "app.captiveDriver"
+
+          },
+          {
+            "text": "Fraudulent Drivers",
+            "translate": "FRAUDULENT_DRIVERS",
+            "sref": "app.faultyDrivers"
+
+          },
+          {
+            "text": "Payment Held Drivers",
+            "sref": "app.paymentHolded",
+            "translate": "PAYMENT_HELD_DRIVERS",
+            "id" : 5
+          },
+          {
+            "text": "Cheating Cases Flags",
+            "sref": "app.cheatingCasesFlag",
+            "translate": "CHEATING_CASES_FLAGS",
+            "id" : 6
+          },
+          {
+            "text": "NEFT Return Status",
+            "translate": "NEFT_RETURN_STATUS",
+            "sref": "app.neftDrivers",
+            "id" : 163
+          },
+          {
+            "text": "Driver Flags",
+            "translate": "DRIVER_FLAGS",
+            "sref": "app.driverFlags"
+          },
+          {
+            "text": "Leaderboard",
+            "translate": "LEADERBOARD",
+            "sref": "app.analytics",
+            "id" : 11
+          },
+          {
+            "text": "Driver Performance",
+            "translate": "DRIVER_PERFORMANCE",
+            "sref": "app.highCancellations",
+            "id" : 13
+          },
+          {
+            "text": "Ride Request Details",
+            "translate": "RIDE_REQUEST_DETAILS",
+            "sref":"app.driverRideReq",
+            "id" : 14
+          },
+          {
+            "text": "Driver Clustering",
+            "sref":"app.driverClusters",
+            "translate": "DRIVER_CLUSTERING"
+          },
+          {
+            "text": "Outreach Data",
+            "sref": "app.outreachData",
+            "translate": "OUTREACH_DATA"
+          },
+
+          {
+            "text": "Beta Program",
+            "sref": "app.betaProgram",
+            "translate": "BETA_PROGRAM"
+          },
+          {
+            "text": "Driver Properties",
+            "translate": "DRIVER_PROPERTIES",
+            "sref": "app.driverProperties",
+            "id": 92
+          },
+          {
+            "text": "Documents",
+            "translate": "DRIVER_DOCUMENTS",
+            "sref": "app.driverDocuments",
+            "id": 93
+          }
+    ]
+  },
+  {
+    "text": "Rewards",
+    "icon": "fa fa-money",
+    "translate": "REWARDS",
+    "submenu": [
+      {"text": "Rewards List", "sref": "app.rewards", "id" : 109, "translate": "REWARDS"},
+      {"text": "Redeemed Rewards", "sref":"app.redeemedRewards", "id" :109, "translate": "REDEEMED_REWARDS"}
+    ]
+  },
+  {
+    "text": "Fleets",
+    "icon": "fa fa-link",
+    "sref": "app.fleets",
+    "translate": "FLEETS",
+    "id": 79
+  },
+  {
+    "text" : "Stripe Connect",
+    "icon": "fa fa-link",
+    "sref": "app.stripeConnect",
+    "translate": "STRIPE_CONNECT",
+    "id": 140
+  },
+  {
+    "text" : "Stripe Login",
+    "icon": "fa fa-link",
+    "sref": "app.stripeLogin",
+    "translate": "STRIPE_LOGIN",
+    "id": 141
+  },
+
+  {
+    "text": "Tasks",
+    "icon": "fa fa-ticket",
+    "translate": "BIKE_TASKS",
+    "forBike": true,
+    "submenu": [
+      {"text": "Create Task", "sref": "app.createTask", "id" : 103, "translate": "CREATE_TASK"},
+      {"text": "Tasks", "sref":"app.orders", "id" :104, "translate": "FATAFAT_DELIVERY_LIST"}
+    ]
+  },
+
+  {
+    "text": "Subscriptions",
+    "icon": "fa fa-ticket",
+    "translate": "HITCH_DRIVER_SUBSCRIPTIONS",
+    "submenu": [
+      {"text": "Subscriptions List", "sref": "app.subscriptionPlans", "id" : 88, "translate": "SUBSCRIPTION_LIST"},
+      {"text": "Subscription Drivers", "sref":"app.subscriptionDrivers", "id" :88, "translate": "SUBSCRIPTION_DRIVERS"}
+    ]
+  },
+  {
+    "text": "Customer Subscriptions",
+    "icon": "fa fa-ticket",
+    "translate": "CUSTOMER_SUBSCRIPTIONS",
+    "submenu": [
+      {"text": "Subscriptions List", "sref": "app.customerSubscription", "id" : 156, "translate": "SUBSCRIPTION_LIST"},
+      {"text": "Customers List", "sref": "app.subscribedCustomerList", "id": 157, "translate": "CUSTOMERS_LIST"}
+    ]
+  },
+  {
+    "text": "Driver Subscriptions",
+    "icon": "fa fa-ticket",
+    "translate": "DRIVER_SUBSCRIPTIONS",
+    "submenu": [
+      {"text": "Subscriptions List", "sref": "app.driverSubscription", "id": 85, "translate": "SUBSCRIPTION_LIST"},
+      {"text": "Drivers List", "sref": "app.subscribeDriver", "id": 94, "translate": "DRIVERS_LIST"}
+    ]
+  },
+  {
+    "text": "Promotions",
+    "icon": "fa fa-money",
+    "translate": "PROMOTIONS",
+    "submenu": [
+      {
+        "text": "City Wide",
+        "translate": "CITY_WIDE",
+        "sref": "app.cityWidePromotions",
+        "id" : 41
+      },
+      {
+        "text": "Promo Codes",
+        "translate": "PROMO_CODES",
+        "sref": "app.promoCodes",
+        "id" : 54
+      },
+      {
+        "text": "Coupons",
+        "translate": "COUPONS",
+        "sref": "app.coupons",
+        "id" : 45
+      },
+      {
+        "text": "Driver Recharge Cards",
+        "translate": "DRIVER_RECHARGE_CARDS",
+        "sref": "app.driverRechargeCards",
+        "id" : 114
+      },
+      {
+        "text": "Referrals",
+        "translate": "REFERRALS",
+        "sref": "app.referrals",
+        "id" : 48
+      },
+      {
+        "text": "Driver Referrals",
+        "translate": "DRIVER_REFERRALS",
+        "sref": "app.driverRefferals",
+        "id" : 78
+      },
+      {
+        "text": "Subscriptions",
+        "translate": "SUBSCRIPTIONS",
+        "sref": "app.subcriptions",
+        "id" : 69
+      },
+      {
+        "text": "Scratch Cards",
+        "translate": "SCRATCH_CARDS",
+        "sref": "app.scratchCards",
+        "id" : 108
+      }
+    ]
+  },
+  {
+    "text": "Incentives",
+    "icon": "fa fa-money",
+    "translate": "PROGRAMMES",
+    "submenu": [
+      {"text": "Incentives", "sref":"app.incentive","id" : 49,"translate": "INCENTIVE_PROGRAMMES"},
+      {"text": "Manual Adjustment", "sref":"app.manualAdjustmentshow","id" : 86,"translate": "INCENTIVE_ADJUSTMENT"}
+    ]
+  },
+ 
+  {
+    "text": "Finance",
+    "icon": "fa fa-money",
+    "translate": "FINANCE",
+    "submenu": [
+      {
+        "text": "Manual Adjustments",
+        "sref": "app.manualadjustmentshow",
+        "translate": "MANUAL_ADJUSTMENTS",
+        "id": 20
+      },
+      {
+        "text": "Wallet Recharge",
+        "sref": "app.rechargeApproval",
+        "translate": "WALLET_RECHARGE"
+      },
+      {
+        "text": "Wallet Settlement",
+        "sref": "app.walletSettlement",
+        "translate": "WALLET_STATEMENT"
+      }
+    ]
+  },
+  {
+    "text": "Inventory",
+    "icon": "fa fa-list",
+    "translate": "INVENTORY",
+    "submenu": [
+      {"text": "Databse","sref": "app.inventorydatabase", "translate": "DATABASE" },
+      {"text": "Status Change","sref": "app.statusChangeApproval", "translate": "STATUS_CHANGE" }
+    ]
+
+  },
+  {
+    "text": "Chat Support",
+    "icon": "fa fa-question-circle",
+    "link": "fa fa-external-link",
+    "href": "https://hippochat.io/#/dashboard/all/chats/-1?access_token=",
+    "translate": "CHAT_SUPPORT",
+    "id": 38
+  },
+  {
+    "text": "Analytics",
+    "sref": "app.katoAnalytics",
+    "icon": "fa fa-bar-chart",
+    "translate": "ANALYTICS",
+    "id": 37
+
+  },
+  { "text": "Zone Map View",
+    "sref": "app.zones",
+    "icon": "fa fa-map-pin",
+    "translate": "ZONE_MAP_VIEW",
+    "id": 46
+  },
+  {
+    "text": "Automatic surge",
+    "icon": "icon-settings",
+    "translate": "AUTOMATIC_SURGE",
+    "submenu": [
+      {"text": "City Params", "sref": "app.surgeParams","id":51,"translate": "CITY_PARAMS"},
+      {"text": "Map View", "sref": "app.surgeMapView","id": 52,"translate": "MAP_VIEW"},
+      {"text": "History", "sref": "app.surgeHistory", "id" : 53,"translate": "HISTORY"}
+    ]
+  },
+  {
+    "text": "Driver Online Hours",
+    "sref": "app.driverOnlineHours",
+    "icon":"fa fa-clock-o",
+    "translate": "DRIVER_ONLINE_HOURS",
+    "id": 72
+  },
+  {
+    "text": "Pop Up",
+    "icon": "fa fa-external-link",
+    "translate": "POP_UP",
+    "submenu": [
+      {"text": "View Popup", "sref":"app.popup","id" : 81,"translate": "VIEW_POPUP"},
+      {"text": "Create Popup", "sref":"app.createPopup","id" : 82,"translate": "CREATE_POPUP"},
+      {"text": "Schedule Popup", "sref": "app.schedulePopup", "id" : 83,"translate": "SCHEDULE_POPUP"},
+      {"text": "Scheduled Popup", "sref": "app.scheduledPopups", "id" : 84,"translate": "SCHEDULED_POPUPS"}
+    ]
+  },
+  {
+    "text": "Banners",
+     "icon": "fa fa-image",
+     "translate": "BANNERS",
+     "sref": "app.banners",
+     "id": 105
+  },
+  {
+   "text": "Driver Feedback",
+    "icon": "fa fa-star-o",
+    "translate": "DRIVER_FEEDBACK",
+    "sref": "app.badges",
+    "id": 87
+  },
+  {
+    "text": "Vehicles",
+     "icon": "fa fa-star-o",
+     "translate": "VEHICLES",
+     "submenu": [
+      {"text": "Vehicle List", "sref":"app.vehicles","id" : 96,"translate": "VEHICLE_LIST"},
+      {"text": "Driver Vehicle Enrollment", "sref":"app.vehicleEnrollment","id" : 97,"translate": "DRIVER_VEHICLE_ENROLLMENT"}
+    ]
+  },
+  {
+    "text": "Reward Points",
+     "icon": "fa fa-star-o",
+     "translate": "CUSTOMER_REWARD_POINT",
+     "submenu": [
+      {"text": "Lifetime", "sref":"app.lifetime","id" : 107,"translate": "LIFETIME"},
+      {"text": "City Specific", "sref":"app.citySpecific","id" : 107,"translate": "CITY_SPECIFIC"}
+    ]
+  },
+  {
+    "text": "News Feed",
+     "icon": "fa fa-image",
+     "translate": "NEWS_FEED",
+     "sref": "app.newsFeed",
+     "id": 112
+  },
+  {
+    "text": "Airport Stations",
+     "icon": "fa fa-map-marker",
+     "translate": "AIRPORT_STATION",
+     "sref": "app.airportStation",
+     "id": 113
+  },
+  {
+    "text": "Kiosk",
+     "icon": "fa fa-desktop",
+     "translate": "KIOSK",
+     "submenu": [
+      {"text": "Configuration", "sref":"app.kiosk","id" : 153,"translate": "KIOSK_CONFIGURATION"}
+    ]
+  },
+  {
+    "text": "Vehicles Fleet",
+     "icon": "fa fa-star-o",
+     "translate": "VEHICLE_FLEETS",
+     "submenu": [
+      {"text": "Fleet List", "sref":"app.vehicleFleetList","id" : 99,"translate": "FLEET_LIST"},
+      {"text": "Vehicle Stat", "sref":"app.vehicleStat","id" : 101,"translate": "VEHICLE_STAT"},
+      {"text": "Fleet Enrollment", "sref":"app.vehicleFleetEnrollment","id" : 100,"translate": "FLEET_ENROLLMENT"}
+    ]
+  },
+  {
+    "text": "Rental",
+     "icon": "fa fa-car",
+     "translate": "CAR_RENTAL",
+     "submenu": [
+      {"text": "Active Vehicles", "sref":"app.rentalsVehicles","id" : 123,"translate": "RENTAL_LIST"},
+      {"text": "Enrollment", "sref":"app.rentalsEnrollment","id" : 124,"translate": "RENTAL_ENROLLMENT"},
+      {"text": "Booking", "sref":"app.rentalsRides","id" : 125,"translate": "RENTAL_RIDES"},
+      {"text": "Map View", "sref":"app.carRentalView","id" : 126,"translate": "CAR_RENTAL_VIEW"},
+      {"text": "Rental Requests", "sref":"app.rentalRequests","id" : 129,"translate": "CAR_RENTAL_REQUESTS"},
+      {"text": "Configuration", "sref":"app.config","id" : 149,"translate": "CAR_RENTAL_CONFIG"},
+      {"text" : "Dispute" , "sref" : "app.dispute", "id" : 150 ,"translate" : "CAR_RENTAL_DISPUTE" },
+      {"text" : "History" , "sref" : "app.carRentalHistory", "id" : 151 ,"translate" : "CAR_RENTAL_HISTORY" }
+    ]
+  },
+  {
+    "text": "Custom Geofencing",
+     "icon": "fa fa-star-o",
+     "translate": "CUSTOM_GEOFENCES",
+     "submenu": [
+      {"text": "Custom Geofencing", "sref":"app.customGeofences","id" : 115,"translate": "CUSTOM_GEOFENCES"},
+      {"text": "Smart PickUp", "sref":"app.smartPickup","id" : 160,"translate": "SMART_PICKUP"}
+    ]
+  },
+  {
+    "text": "Settings",
+    "icon": "icon-settings",
+    "translate": "SETTINGS",
+    "submenu": [
+      {"text": "General Settings", "sref":"app.generalSettings", "id": 80, "translate": "GENERAL_SETTINGS" },
+      {"text": "City Settings", "sref":"app.cityParamsSettings", "id": 80, "translate": "CITY_SETTINGS" },
+      {"text": "Dispatcher Settings","sref": "app.manualDispatcherSettingsController", "id": 137,"translate": "MANUAL_DISPATCHER_SETTINGS"},
+      {"text": "Vehicle Filters", "sref": "app.vehicleFilters", "id" : 98,"translate": "VEHICLE_FILTERS"},
+      {"text": "Vehicle Info", "sref":"app.vehicleInfo","id" : 68,"translate": "VEHICLE_INFO"},
+      {"text": "Company Information", "sref":"app.companyInformation", "id":"142", "translate":"COMPANY_INFORMATION"},
+      {"text": "Vehicle Fare Settings", "sref":"app.vehicleType","id" : 32,"translate": "VEHICLE_SETTINGS"},
+      {"text": "Geofencing", "sref": "app.geofencing", "id" : 21,"translate": "GEOFENCING"},
+      {"text": "Managers Settings", "sref": "app.managerView","id":50,"translate": "MANAGERS_SETTINGS"},
+      {"text": "Corporate", "sref":"app.addcorporate", "id" : 60,"translate": "CORPORATE"},
+      {"text": "Corporate Zones", "sref":"app.corporateZones", "id" : 128,"translate": "CORPORATE_ZONES"},
+      {"text": "Vehicle Model", "sref":"app.vehicleModel", "id" : 42,"translate": "VEHICLE_MODEL"},
+      {"text": "City Operational Hours", "sref": "app.citySettings", "id" : 47,"translate": "CITY_OPERATIONAL_HOURS"},
+      {"text": "Enable Delivery", "sref": "app.enableDelivery", "id" : 58,"translate": "ENABLE_DELIVERY"},
+      {"text": "Add card", "sref": "app.billing", "id" : 70,"translate": "ADD_CARD"},
+      {"text": "Toggle City", "sref": "app.toggleCity", "id" : 73,"translate": "TOGGLE_CITY"},
+      {"text": "Onboarding Experience", "sref": "app.tutorials", "id" : 95,"translate": "TUTORIALS"}
+    ]
+  },
+  {
+    "text": "Billing",
+    "icon": "icon-user",
+    "translate": "BILLINGS",
+    "submenu": [
+      {"text": "Billing Add Card", "sref": "app.billingAddCard", "id": 145, "translate": "ADD_CARD_BILLING"},
+      {"text": "Invoice List", "sref": "app.invoiceList", "id": 146, "translate": "INVOICE_LIST"},
+      {"text": "Active Plan", "sref": "app.activePlan", "id": 148, "translate": "ACTIVE_PLAN"}
+    ]
+  },
+  {
+    "text": "App Translate",
+    "icon": "fa fa-book",
+    "sref": "app.appTranslate", 
+    "id" : 152,
+    "translate": "APP_TRANSLATE"
+  }
+]
+
+

@@ -8,9 +8,9 @@ logger.setConsoleLevel(LogLevel.INFO); // Apenas INFO, WARN, ERROR no console
 logger.setFileLevel(LogLevel.DEBUG);   // Tudo nos arquivos
 logger.info('STARTUP', '🚀 Iniciando Research Agent Urban AI - Sistema Híbrido');
 
-import { getPersistentScraper, scrapeAllRidesDataPersistent } from './scraper/ridesPersistentScraper';
-import { scrapeAllDriversDataPersistent } from './scraper/driversPersistentScraper';
-import { MonitoringService } from './services/monitoringService';
+// import { getPersistentScraper, scrapeAllRidesDataPersistent } from './scraper/ridesPersistentScraper';
+// import { scrapeAllDriversDataPersistent } from './scraper/driversPersistentScraper';
+// import { MonitoringService } from './services/monitoringService';
 import { config } from './config';
 import axios from 'axios';
 import { DatabaseManager } from './services/databaseManager';
@@ -28,14 +28,14 @@ app.use(express.json());
 app.use('/api', apiRoutes);
 
 // Instância do scraper persistente
-const scraper = getPersistentScraper();
+// const scraper = getPersistentScraper();
 
 // 🗄️ Instâncias do banco de dados
 const databaseManager = DatabaseManager.getInstance();
 const dataTransformer = DataTransformer.getInstance();
 
 // 📊 Instância do MonitoringService (Rides + Drivers integrado)
-const monitoringService = new MonitoringService();
+// const monitoringService = new MonitoringService();
 
 // 🤖 Instância do AI Agent Controller
 const aiController = new AIAgentController();
@@ -148,57 +148,6 @@ app.get('/api/status', async (req: any, res: any) => {
       status: 'error',
       message: error.message,
       timestamp: new Date().toISOString()
-    });
-  }
-});
-
-// 🎯 ENDPOINT PRINCIPAL - Scraping com sessão persistente
-app.post('/api/rides/scrape', async (req: any, res: any) => {
-  try {
-    console.log('🚀 Iniciando scraping persistente...');
-    
-    const result = await scrapeAllRidesDataPersistent();
-    
-    // Processar resultado e enviar webhook se necessário
-    await processScrapingResult(result, 'api');
-    
-    if (result.success) {
-      res.json({
-        success: true,
-        message: result.message,
-        mode: 'persistent',
-        sessionInfo: result.sessionInfo,
-        hasChanges: result.hasChanges,
-        onlyNewData: result.onlyNewData,
-        differences: result.differences,
-        data: result.data, // Dados completos para referência
-        summary: {
-          totalTables: result.data.length,
-          tablesWithData: result.data.filter(table => !table.isEmpty).length,
-          tablesEmpty: result.data.filter(table => table.isEmpty).length,
-          totalRecords: result.data.reduce((sum, table) => sum + table.rows.length, 0),
-          newRecords: result.differences ? result.differences.reduce((sum: any, diff: any) => sum + diff.totalNewRecords, 0) : 0,
-          timestamp: new Date().toISOString()
-        }
-      });
-    } else {
-      console.error('❌ Erro no scraping persistente:', result.message);
-      res.status(500).json({
-        success: false,
-        message: result.message,
-        mode: 'persistent',
-        sessionInfo: result.sessionInfo,
-        data: []
-      });
-    }
-    
-  } catch (error: any) {
-    console.error('❌ Erro crítico no scraping persistente:', error);
-    res.status(500).json({
-      success: false,
-      message: `Erro crítico durante scraping persistente: ${error.message}`,
-      mode: 'persistent',
-      data: []
     });
   }
 });
@@ -1339,16 +1288,19 @@ app.get('/api/personal-data/stats', async (req, res) => {
   }
 });
 
-// Auto-inicialização (sem mudanças)
+// Auto-inicialização do Sistema Híbrido
 app.listen(PORT, async () => {
   console.log('🎉' + '='.repeat(70));
-  console.log(`🚀 SERVIDOR PERSISTENTE FUNCIONANDO NA PORTA ${PORT}`);
+  console.log(`🚀 SISTEMA HÍBRIDO FUNCIONANDO NA PORTA ${PORT}`);
   console.log('🎉' + '='.repeat(70));
   console.log(`📋 ENDPOINTS DISPONÍVEIS:`);
   console.log(`- GET  /                        (status geral)`);
   console.log(`- GET  /api/status              (status detalhado)`);
-  console.log(`- POST /api/rides/scrape        (🎯 SCRAPER PRINCIPAL)`);
-  console.log(`- POST /api/rides/scrape-page   (scraping página específica)`);
+  console.log(`- POST /api/hybrid/start        (🎯 SISTEMA HÍBRIDO)`);
+  console.log(`- POST /api/hybrid/stop         (parar híbrido)`);
+  console.log(`- GET  /api/hybrid/status       (status híbrido)`);
+  console.log(`- POST /api/ai-agent/query      (consultas AI)`);
+  console.log(`🎉 SISTEMA HÍBRIDO CONFIGURADO PARA INICIALIZAÇÃO AUTOMÁTICA`);
   console.log(`- POST /api/auth/force-login    (forçar novo login)`);
   console.log(`- POST /api/system/cleanup      (limpeza completa)`);
   console.log(`- GET  /api/rides/pages         (listar páginas)`);
@@ -1392,109 +1344,49 @@ app.listen(PORT, async () => {
     console.log('⚠️ Sistema continuará funcionando sem banco de dados');
   }
   
-  // 🚀 AUTO-INICIALIZAÇÃO (apenas se habilitada)
-  if (isAutoScrapingEnabled) {
-    const autoStartHybrid = process.env.AUTO_START_HYBRID === 'true';
-    
-    // Log detalhado para arquivo
-    logger.debug('AUTO', `Variáveis de ambiente: ENABLE_AUTO_SCRAPING=${process.env.ENABLE_AUTO_SCRAPING}, AUTO_START_HYBRID=${process.env.AUTO_START_HYBRID}`);
-    logger.debug('AUTO', `Flags calculadas: isAutoScrapingEnabled=${isAutoScrapingEnabled}, autoStartHybrid=${autoStartHybrid}`);
-    
-    // Log resumido para console
-    logger.info('AUTO', `Auto-start configurado - MonitoringService: SIM | HybridService: ${autoStartHybrid ? 'SIM' : 'NÃO'}`);
-    logger.info('AUTO', 'Aguardando 30 segundos para inicialização...');
-    
-    setTimeout(async () => {
-      try {
-        logger.info('AUTO', 'Iniciando scrapers automáticos...');
+  // 🚀 AUTO-INICIALIZAÇÃO DO SISTEMA HÍBRIDO (sempre ativo)
+  logger.info('AUTO', 'Auto-start configurado - HybridService: SIM (sempre ativo)');
+  logger.info('AUTO', 'Aguardando 10 segundos para inicialização...');
+  
+  setTimeout(async () => {
+    try {
+      logger.info('AUTO', 'Iniciando Sistema Híbrido...');
 
-        // Verificar se credenciais estão configuradas
-        if (!process.env.RIDES_USERNAME || process.env.RIDES_USERNAME.includes('seu_email') ||
-            !process.env.RIDES_PASSWORD || process.env.RIDES_PASSWORD.includes('sua_senha')) {
-          logger.warn('AUTO', 'Credenciais não configuradas - aguardando configuração manual');
-          return;
-        }
-
-        // ✅ MonitoringService e HybridOperationService em paralelo
-        logger.info('MONITORING', 'Iniciando MonitoringService...');
-        
-        // 🚀 Iniciar híbrido em paralelo (não aguardar MonitoringService)
-        if (autoStartHybrid) {
-          logger.info('HYBRID', 'Iniciando Sistema Híbrido...');
-          hybridService.start().then(() => {
-            logger.success('HYBRID', 'Sistema Híbrido iniciado com sucesso');
-          }).catch(err => {
-            logger.error('HYBRID', 'Erro ao iniciar Sistema Híbrido', err);
-          });
-        } else {
-          logger.info('HYBRID', 'Sistema Híbrido não será iniciado automaticamente (AUTO_START_HYBRID=false)');
-        }
-        
-        try {
-          // Executar uma vez imediatamente
-          await monitoringService.runOnce();
-          logger.success('MONITORING', 'Execução inicial de Rides + Drivers concluída');
-          
-          // 🪟 Organizar janelas automaticamente após abertura dos browsers
-          logger.info('WINDOWS', 'Organizando janelas dos browsers em split-screen...');
-          try {
-            // Aguardar 3 segundos para browsers terminarem inicialização
-            await new Promise(resolve => setTimeout(resolve, 3000));
-            
-            // Importar e usar WindowPositioner
-            const { WindowPositioner } = await import('./utils/windowPositioner');
-            const positioner = new WindowPositioner();
-            
-            await positioner.arrangeAllWindows();
-            logger.success('WINDOWS', 'Janelas organizadas em split-screen automaticamente');
-          } catch (windowError: any) {
-            logger.error('WINDOWS', 'Erro ao organizar janelas', windowError);
-          }
-
-          // 🔄 Iniciar monitoramento automático
-          monitoringService.startMonitoring();
-          logger.success('MONITORING', 'Monitoramento automático iniciado (frequência: 2,5 min)');
-
-        } catch (error) {
-          logger.error('MONITORING', 'Erro na execução inicial', error);
-          logger.info('MONITORING', 'Tentando fallback...');
-          try {
-            const result = await scrapeAllRidesDataPersistent();
-            if (result.success) {
-              logger.success('MONITORING', 'Fallback concluído com sucesso');
-              await processScrapingResult(result, 'initial-execution');
-            } else {
-              logger.error('MONITORING', `Falha no fallback: ${result.message}`);
-            }
-          } catch (fallbackError) {
-            logger.error('MONITORING', 'Erro no fallback', fallbackError);
-          }
-        }
-
-      } catch (error) {
-        logger.error('AUTO', 'Erro na auto-inicialização', error);
-        logger.info('AUTO', 'Use os endpoints /api/rides/scrape ou /api/hybrid/start para execução manual');
+      // Verificar se credenciais estão configuradas
+      if (!process.env.RIDES_USERNAME || process.env.RIDES_USERNAME.includes('seu_email') ||
+          !process.env.RIDES_PASSWORD || process.env.RIDES_PASSWORD.includes('sua_senha')) {
+        logger.warn('AUTO', 'Credenciais não configuradas - aguardando configuração manual');
+        return;
       }
-    }, 30000);
-  } else {
-    logger.info('AUTO', 'Auto-execução DESABILITADA (ENABLE_AUTO_SCRAPING=false)');
-    logger.info('AUTO', 'Use os endpoints para execução manual quando necessário');
-  }
-});
 
-// Limpeza na saída do processo
-process.on('SIGINT', async () => {
-  console.log('\n🔄 Recebido sinal de interrupção...');
-  
-  console.log('🧹 Executando limpeza final...');
-  try {
-    console.log('✅ Limpeza concluída');
-  } catch (error) {
-    console.error('❌ Erro na limpeza:', error);
-  }
-  
-  console.log('👋 Servidor encerrado');
-  process.exit(0);
+      // 🚀 Iniciar Sistema Híbrido automaticamente
+      logger.info('HYBRID', 'Iniciando Sistema Híbrido...');
+      hybridService.start().then(() => {
+        logger.success('HYBRID', 'Sistema Híbrido iniciado com sucesso');
+      }).catch(err => {
+        logger.error('HYBRID', 'Erro ao iniciar Sistema Híbrido', err);
+      });
+        
+    } catch (error) {
+      logger.error('AUTO', 'Erro na auto-inicialização', error);
+      logger.info('AUTO', 'Use os endpoints /api/hybrid/start para execução manual');
+    }
+  }, 10000);
+
+  // Limpeza na saída do processo
+  process.on('SIGINT', async () => {
+    console.log('\n🔄 Recebido sinal de interrupção...');
+    
+    console.log('🧹 Executando limpeza final...');
+    try {
+      console.log('✅ Limpeza concluída');
+    } catch (error) {
+      console.error('❌ Erro na limpeza:', error);
+    }
+    
+    console.log('👋 Servidor encerrado');
+    process.exit(0);
+  });
 });
 
 export default app;
