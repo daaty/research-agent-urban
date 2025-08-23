@@ -8,9 +8,7 @@ logger.setConsoleLevel(LogLevel.INFO); // Apenas INFO, WARN, ERROR no console
 logger.setFileLevel(LogLevel.DEBUG);   // Tudo nos arquivos
 logger.info('STARTUP', '🚀 Iniciando Research Agent Urban AI - Sistema Híbrido');
 
-// import { getPersistentScraper, scrapeAllRidesDataPersistent } from './scraper/ridesPersistentScraper';
-// import { scrapeAllDriversDataPersistent } from './scraper/driversPersistentScraper';
-// import { MonitoringService } from './services/monitoringService';
+// [REMOVIDO] Imports de scrapers persistentes e MonitoringService
 import { config } from './config';
 import axios from 'axios';
 import { DatabaseManager } from './services/databaseManager';
@@ -27,15 +25,13 @@ app.use(express.json());
 // 🔄 API Routes - Controle de Recargas e Sistema Híbrido
 app.use('/api', apiRoutes);
 
-// Instância do scraper persistente
-// const scraper = getPersistentScraper();
+// [REMOVIDO] Instância do scraper persistente
 
 // 🗄️ Instâncias do banco de dados
 const databaseManager = DatabaseManager.getInstance();
 const dataTransformer = DataTransformer.getInstance();
 
-// 📊 Instância do MonitoringService (Rides + Drivers integrado)
-// const monitoringService = new MonitoringService();
+// [REMOVIDO] MonitoringService
 
 // 🤖 Instância do AI Agent Controller
 const aiController = new AIAgentController();
@@ -112,610 +108,65 @@ async function processScrapingResult(result: any, source: string = 'manual') {
   return result;
 }
 
-// 🏥 Health check
+// 🏥 Health check (ajustado para híbrido)
 app.get('/', (req: any, res: any) => {
   res.json({ 
     status: 'online', 
-    message: '🚀 Scraper Persistente funcionando!',
-    mode: 'persistent-browser',
+    message: '🚀 Sistema Híbrido funcionando!',
+    mode: 'hybrid',
     headlessMode: config.headlessMode,
     timestamp: new Date().toISOString() 
   });
 });
 
-// 📊 Status detalhado do sistema
-app.get('/api/status', async (req: any, res: any) => {
-  try {
-    const sessionStatus = await scraper.getSessionStatus();
-    
-    res.json({
-      status: 'online',
-      mode: 'persistent',
-      browser: {
-        active: sessionStatus.browserActive,
-        sessionValid: sessionStatus.sessionValid,
-        message: sessionStatus.message
-      },
-      config: {
-        headlessMode: config.headlessMode,
-        n8nConfigured: config.n8nWebhookUrl && !config.n8nWebhookUrl.includes('seu-n8n.com')
-      },
-      availablePages: sessionStatus.availablePages,
-      timestamp: new Date().toISOString()
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      status: 'error',
-      message: error.message,
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-
-// 📄 Scraping de página específica
-app.post('/api/rides/scrape-page', async (req: any, res: any) => {
-  try {
-    const { pageName } = req.body;
-    
-    if (!pageName) {
-      return res.status(400).json({
-        success: false,
-        message: 'Nome da página é obrigatório',
-        availablePages: scraper.getAvailablePages()
-      });
-    }
-    
-    console.log(`🎯 Scraping da página: ${pageName}`);
-    const result = await scraper.scrapeSinglePage(pageName);
-    
-    res.json(result);
-    
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: `Erro ao processar página: ${error.message}`,
-      data: []
-    });
-  }
-});
-
-// 🔄 Forçar novo login
-app.post('/api/auth/force-login', async (req: any, res: any) => {
-  try {
-    console.log('🔄 Forçando novo login...');
-    const result = await scraper.forceNewLogin();
-    res.json(result);
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: `Erro ao forçar login: ${error.message}`
-    });
-  }
-});
-
-// 🧹 Limpeza completa
-app.post('/api/system/cleanup', async (req: any, res: any) => {
-  try {
-    console.log('🧹 Executando limpeza completa...');
-    const result = await scraper.cleanup();
-    res.json(result);
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: `Erro durante limpeza: ${error.message}`
-    });
-  }
-});
-
-// 📋 Listar páginas disponíveis
-app.get('/api/rides/pages', (req: any, res: any) => {
+// 📊 Status detalhado do sistema (ajustado para híbrido)
+app.get('/api/status', (req: any, res: any) => {
   res.json({
-    success: true,
-    pages: scraper.getAvailablePages(),
-    message: 'Lista de páginas disponíveis para scraping'
+    status: 'online',
+    mode: 'hybrid',
+    headlessMode: config.headlessMode,
+    n8nConfigured: config.n8nWebhookUrl && !config.n8nWebhookUrl.includes('seu-n8n.com'),
+    timestamp: new Date().toISOString()
   });
 });
 
-// 🔄 Endpoint de teste rápido
-app.get('/api/test', async (req: any, res: any) => {
-  try {
-    const status = await scraper.getSessionStatus();
-    res.json({
-      success: true,
-      message: 'Teste executado com sucesso',
-      browserStatus: status,
-      timestamp: new Date().toISOString()
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: `Erro no teste: ${error.message}`,
-      timestamp: new Date().toISOString()
-    });
-  }
-});
+// [REMOVIDO] Endpoint de scraping de página específica (persistente)
+
+// [REMOVIDO] Endpoint de forçar novo login (persistente)
+
+// [REMOVIDO] Endpoint de limpeza completa (persistente)
+
+// [REMOVIDO] Endpoint de listar páginas disponíveis (persistente)
+
+// [REMOVIDO] Endpoint de teste rápido (persistente)
 
 // � ================== ENDPOINTS DE DRIVERS ==================
 
-// 🚗 Endpoint para scraping de drivers
-app.get('/api/drivers/scrape', async (req: any, res: any) => {
-  try {
-    console.log('🎯 [API] Iniciando scraping de drivers...');
-    
-    const result = await scrapeAllDriversDataPersistent();
-    
-    if (result.success) {
-      // Transformar e salvar dados
-      const driversTransformer = DriversDataTransformer.getInstance();
-      const transformedData = await driversTransformer.transformAndSave(
-        result.data,
-        result.sessionInfo,
-        'api-request',
-        result.hasChanges || false
-      );
+// [REMOVIDO] Endpoint de scraping de drivers (persistente)
 
-      res.json({
-        success: true,
-        message: result.message,
-        data: {
-          totalTables: result.data.length,
-          totalRecords: transformedData.totalRecords,
-          newRecords: transformedData.newRecords,
-          hasChanges: result.hasChanges || false,
-          tables: result.data.map(table => ({
-            name: table.name,
-            recordCount: table.isEmpty ? 0 : table.rows.length,
-            isEmpty: table.isEmpty
-          }))
-        },
-        sessionInfo: result.sessionInfo,
-        timestamp: new Date().toISOString()
-      });
-    } else {
-      res.status(500).json({
-        success: false,
-        message: result.message,
-        sessionInfo: result.sessionInfo,
-        timestamp: new Date().toISOString()
-      });
-    }
-  } catch (error: any) {
-    console.error('❌ [API] Erro no scraping de drivers:', error.message);
-    res.status(500).json({
-      success: false,
-      message: `Erro no scraping de drivers: ${error.message}`,
-      timestamp: new Date().toISOString()
-    });
-  }
-});
+// [REMOVIDO] Endpoint de teste de Active Drivers (persistente)
 
-// 🎯 Endpoint para teste específico da página Active Drivers
-app.get('/api/drivers/active/test', async (req: any, res: any) => {
-  try {
-    console.log('🎯 [API] Testando scraping de Active Drivers...');
-    
-    // Importar classe diretamente para teste
-    const { DriversPersistentScraper } = await import('./scraper/driversPersistentScraper');
-    const driverscraper = new DriversPersistentScraper();
-    
-    // Testar apenas a primeira página (Active Drivers)
-    const result = await driverscraper.scrapeAllDriversData();
-    
-    if (result.success && result.data.length > 0) {
-      const activeDriversData = result.data.find(table => table.name === 'Active Drivers');
-      
-      res.json({
-        success: true,
-        message: 'Teste de Active Drivers concluído',
-        data: {
-          tableName: activeDriversData?.name || 'Active Drivers',
-          headers: activeDriversData?.headers || [],
-          totalRecords: activeDriversData?.rows.length || 0,
-          sampleRecords: activeDriversData?.rows.slice(0, 3) || [], // Primeiros 3 registros como exemplo
-          isEmpty: activeDriversData?.isEmpty || true
-        },
-        sessionInfo: result.sessionInfo,
-        timestamp: new Date().toISOString()
-      });
-    } else {
-      res.status(500).json({
-        success: false,
-        message: result.message,
-        sessionInfo: result.sessionInfo,
-        timestamp: new Date().toISOString()
-      });
-    }
-  } catch (error: any) {
-    console.error('❌ [API] Erro no teste de Active Drivers:', error.message);
-    res.status(500).json({
-      success: false,
-      message: `Erro no teste: ${error.message}`,
-      timestamp: new Date().toISOString()
-    });
-  }
-});
+// [REMOVIDO] Endpoint de teste de Deactive Drivers (persistente)
 
-// 🎯 Endpoint para teste específico da página Deactive Drivers
-app.get('/api/drivers/deactive/test', async (req: any, res: any) => {
-  try {
-    console.log('🎯 [API] Testando scraping de Deactive Drivers...');
-    
-    // Importar classe diretamente para teste
-    const { DriversPersistentScraper } = await import('./scraper/driversPersistentScraper');
-    const driverscraper = new DriversPersistentScraper();
-    
-    // Testar apenas a página Deactive Drivers
-    const result = await driverscraper.scrapeAllDriversData();
-    
-    if (result.success && result.data.length > 0) {
-      const deactiveDriversData = result.data.find(table => table.name === 'Deactive Drivers');
-      
-      res.json({
-        success: true,
-        message: 'Teste de Deactive Drivers concluído',
-        data: {
-          tableName: deactiveDriversData?.name || 'Deactive Drivers',
-          headers: deactiveDriversData?.headers || [],
-          totalRecords: deactiveDriversData?.rows.length || 0,
-          sampleRecords: deactiveDriversData?.rows.slice(0, 3) || [], // Primeiros 3 registros como exemplo
-          isEmpty: deactiveDriversData?.isEmpty || true
-        },
-        sessionInfo: result.sessionInfo,
-        timestamp: new Date().toISOString()
-      });
-    } else {
-      res.status(500).json({
-        success: false,
-        message: result.message,
-        sessionInfo: result.sessionInfo,
-        timestamp: new Date().toISOString()
-      });
-    }
-  } catch (error: any) {
-    console.error('❌ [API] Erro no teste de Deactive Drivers:', error.message);
-    res.status(500).json({
-      success: false,
-      message: `Erro no teste: ${error.message}`,
-      timestamp: new Date().toISOString()
-    });
-  }
-});
+// [REMOVIDO] Endpoint de teste de Drivers Enrollment (persistente)
 
-// 🎯 Endpoint para teste específico da página Enrollment Drivers
-app.get('/api/drivers/enrollment/test', async (req: any, res: any) => {
-  try {
-    console.log('🎯 [API] Testando scraping de Drivers Enrollment...');
-    
-    // Importar classe diretamente para teste
-    const { DriversPersistentScraper } = await import('./scraper/driversPersistentScraper');
-    const driverscraper = new DriversPersistentScraper();
-    
-    // Testar apenas a página Drivers Enrollment
-    const result = await driverscraper.scrapeAllDriversData();
-    
-    if (result.success && result.data.length > 0) {
-      const enrollmentData = result.data.find(table => table.name === 'Drivers Enrollment');
-      
-      res.json({
-        success: true,
-        message: 'Teste de Drivers Enrollment concluído',
-        data: {
-          tableName: enrollmentData?.name || 'Drivers Enrollment',
-          headers: enrollmentData?.headers || [],
-          totalRecords: enrollmentData?.rows.length || 0,
-          sampleRecords: enrollmentData?.rows.slice(0, 3) || [], // Primeiros 3 registros como exemplo
-          isEmpty: enrollmentData?.isEmpty || true
-        },
-        sessionInfo: result.sessionInfo,
-        timestamp: new Date().toISOString()
-      });
-    } else {
-      res.status(500).json({
-        success: false,
-        message: result.message,
-        sessionInfo: result.sessionInfo,
-        timestamp: new Date().toISOString()
-      });
-    }
-  } catch (error: any) {
-    console.error('❌ [API] Erro no teste de Drivers Enrollment:', error.message);
-    res.status(500).json({
-      success: false,
-      message: `Erro no teste: ${error.message}`,
-      timestamp: new Date().toISOString()
-    });
-  }
-});
+// [REMOVIDO] Endpoint de teste de Leaderboard (persistente)
 
-// 🎯 Endpoint para teste específico da página Leaderboard
-app.get('/api/drivers/leaderboard/test', async (req: any, res: any) => {
-  try {
-    console.log('🎯 [API] Testando scraping de Leaderboard...');
-    
-    // Importar classe diretamente para teste
-    const { DriversPersistentScraper } = await import('./scraper/driversPersistentScraper');
-    const driverscraper = new DriversPersistentScraper();
-    
-    // Testar apenas a página Leaderboard
-    const result = await driverscraper.scrapeAllDriversData();
-    
-    if (result.success && result.data.length > 0) {
-      const leaderboardData = result.data.find(table => table.name === 'Leaderboard');
-      
-      res.json({
-        success: true,
-        message: 'Teste de Leaderboard concluído',
-        data: {
-          tableName: leaderboardData?.name || 'Leaderboard',
-          headers: leaderboardData?.headers || [],
-          totalRecords: leaderboardData?.rows.length || 0,
-          sampleRecords: leaderboardData?.rows.slice(0, 3) || [], // Primeiros 3 registros como exemplo
-          isEmpty: leaderboardData?.isEmpty || true
-        },
-        sessionInfo: result.sessionInfo,
-        timestamp: new Date().toISOString()
-      });
-    } else {
-      res.status(500).json({
-        success: false,
-        message: result.message,
-        sessionInfo: result.sessionInfo,
-        timestamp: new Date().toISOString()
-      });
-    }
-  } catch (error: any) {
-    console.error('❌ [API] Erro no teste de Leaderboard:', error.message);
-    res.status(500).json({
-      success: false,
-      message: `Erro no teste: ${error.message}`,
-      timestamp: new Date().toISOString()
-    });
-  }
-});
+// [REMOVIDO] Endpoint de teste de Driver Performance (persistente)
 
-// 🎯 Endpoint para teste específico da página Driver Performance
-app.get('/api/drivers/performance/test', async (req: any, res: any) => {
-  try {
-    console.log('🎯 [API] Testando scraping de Driver Performance...');
-    
-    // Importar classe diretamente para teste
-    const { DriversPersistentScraper } = await import('./scraper/driversPersistentScraper');
-    const driverscraper = new DriversPersistentScraper();
-    
-    // Testar apenas a página Driver Performance
-    const result = await driverscraper.scrapeAllDriversData();
-    
-    if (result.success && result.data.length > 0) {
-      const performanceData = result.data.find(table => table.name === 'Driver Performance');
-      
-      res.json({
-        success: true,
-        message: 'Teste de Driver Performance concluído',
-        data: {
-          tableName: performanceData?.name || 'Driver Performance',
-          headers: performanceData?.headers || [],
-          totalRecords: performanceData?.rows.length || 0,
-          sampleRecords: performanceData?.rows.slice(0, 3) || [], // Primeiros 3 registros como exemplo
-          isEmpty: performanceData?.isEmpty || true
-        },
-        sessionInfo: result.sessionInfo,
-        timestamp: new Date().toISOString()
-      });
-    } else {
-      res.status(500).json({
-        success: false,
-        message: result.message,
-        sessionInfo: result.sessionInfo,
-        timestamp: new Date().toISOString()
-      });
-    }
-  } catch (error: any) {
-    console.error('❌ [API] Erro no teste de Driver Performance:', error.message);
-    res.status(500).json({
-      success: false,
-      message: `Erro no teste: ${error.message}`,
-      timestamp: new Date().toISOString()
-    });
-  }
-});
+// [REMOVIDO] Endpoint de listar páginas de drivers disponíveis (persistente)
 
-// 📋 Endpoint para listar páginas de drivers disponíveis
-app.get('/api/drivers/pages', (req: any, res: any) => {
-  const driversPages = [
-    { name: 'Active Drivers', url: '#/app/active-drivers/' },
-    { name: 'Deactive Drivers', url: '#/app/deactivated-drivers/' },
-    { name: 'Drivers Enrollment', url: '#/app/selfEnrolled-driver/' },
-    { name: 'Leaderboard', url: '#/app/driver-leaderboard/' },
-    { name: 'Driver Performance', url: '#/app/high-cancellations/' }
-  ];
-  
-  res.json({
-    success: true,
-    pages: driversPages,
-    message: 'Lista de páginas de drivers disponíveis para scraping'
-  });
-});
+// [REMOVIDO] Endpoint de stats do cache (persistente)
 
-// �🗂️ ENDPOINT - Gerenciar cache de dados
-app.get('/api/cache/stats', async (req: any, res: any) => {
-  try {
-    const stats = await scraper.getCacheStats();
-    
-    res.json({
-      success: true,
-      cache: stats,
-      timestamp: new Date().toISOString()
-    });
-  } catch (error: any) {
-    console.error('❌ Erro ao obter estatísticas do cache:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-      timestamp: new Date().toISOString()
-    });
-  }
-});
+// [REMOVIDO] Endpoint de limpar cache (persistente)
 
-// 🗂️ ENDPOINT - Limpar cache
-app.post('/api/cache/clear', async (req: any, res: any) => {
-  try {
-    scraper.clearCache();
-    
-    res.json({
-      success: true,
-      message: 'Cache limpo com sucesso',
-      timestamp: new Date().toISOString()
-    });
-  } catch (error: any) {
-    console.error('❌ Erro ao limpar cache:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-      timestamp: new Date().toISOString()
-    });
-  }
-});
+// [REMOVIDO] Endpoint de simulação de webhook (persistente)
 
-// 🧪 ENDPOINT - Simular webhook (somente dados novos)
-app.post('/api/rides/simulate-webhook', async (req: any, res: any) => {
-  try {
-    console.log('🧪 Simulando webhook com dados novos...');
-    
-    const result = await scrapeAllRidesDataPersistent();
-    
-    if (result.success && result.hasChanges && result.differences) {
-      const webhookPayload = {
-        timestamp: new Date().toISOString(),
-        source: 'rides-dashboard-persistent',
-        mode: 'persistent-browser',
-        sessionInfo: result.sessionInfo,
-        onlyNewData: true,
-        differences: result.differences,
-        summary: {
-          totalNewRecords: result.differences.reduce((sum, diff) => sum + diff.totalNewRecords, 0),
-          totalUpdatedRecords: result.differences.reduce((sum, diff) => sum + diff.updatedRecords.length, 0),
-          totalRemovedRecords: result.differences.reduce((sum, diff) => sum + diff.removedRecords.length, 0),
-          tablesWithChanges: result.differences.length
-        }
-      };
-      
-      res.json({
-        success: true,
-        message: 'Webhook simulado com dados novos',
-        payload: webhookPayload,
-        timestamp: new Date().toISOString()
-      });
-    } else {
-      res.json({
-        success: true,
-        message: 'Nenhuma mudança detectada - webhook não seria enviado',
-        hasChanges: result.hasChanges,
-        timestamp: new Date().toISOString()
-      });
-    }
-  } catch (error: any) {
-    console.error('❌ Erro ao simular webhook:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-      timestamp: new Date().toISOString()
-    });
-  }
-});
+// [REMOVIDO] Endpoint de status de login (persistente)
 
-// 🔐 ENDPOINT - Verificar status de login com captcha
-app.get('/api/rides/login-status', async (req: any, res: any) => {
-  try {
-    const sessionStatus = await scraper.getSessionStatus();
-    
-    res.json({
-      success: true,
-      status: sessionStatus,
-      timestamp: new Date().toISOString()
-    });
-  } catch (error: any) {
-    console.error('❌ Erro ao verificar status de login:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-      timestamp: new Date().toISOString()
-    });
-  }
-});
+// [REMOVIDO] Endpoint de aguardar login manual (persistente)
 
-// 🔐 ENDPOINT - Aguardar login manual (para captcha)
-app.post('/api/rides/wait-manual-login', async (req: any, res: any) => {
-  try {
-    const { timeout = 300000 } = req.body; // 5 minutos por padrão
-    
-    console.log('⏳ Aguardando login manual...');
-    
-    const result = await scraper.waitForManualLogin(timeout);
-    
-    if (result) {
-      res.json({
-        success: true,
-        message: 'Login manual detectado com sucesso!',
-        timestamp: new Date().toISOString()
-      });
-    } else {
-      res.status(408).json({
-        success: false,
-        message: 'Timeout aguardando login manual',
-        timestamp: new Date().toISOString()
-      });
-    }
-  } catch (error: any) {
-    console.error('❌ Erro ao aguardar login manual:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-      timestamp: new Date().toISOString()
-    });
-  }
-});
-
-// 🔐 ENDPOINT - Abrir navegador para login manual
-app.post('/api/rides/open-browser-login', async (req: any, res: any) => {
-  try {
-    console.log('🌐 Abrindo navegador para login manual...');
-    
-    // Garantir que o browser está inicializado
-    await scraper.initializeBrowser();
-    
-    // Navegar para página de login
-    const page = scraper.getPage();
-    if (page) {
-      const loginUrl = process.env.RIDES_LOGIN_URL || 'https://rides.ec2dashboard.com/#/page/login';
-      await page.goto(loginUrl, {
-        waitUntil: 'domcontentloaded'
-      });
-    }
-    
-    const sessionStatus = await scraper.getSessionStatus();
-    
-    res.json({
-      success: true,
-      message: 'Navegador aberto na página de login',
-      status: sessionStatus,
-      instructions: [
-        '1. Faça login manualmente no navegador que foi aberto',
-        '2. Resolva o captcha se necessário',
-        '3. Aguarde até estar logado no dashboard',
-        '4. Use o endpoint /api/rides/wait-manual-login para aguardar confirmação',
-        '5. Ou use /api/rides/login-status para verificar o status'
-      ],
-      timestamp: new Date().toISOString()
-    });
-  } catch (error: any) {
-    console.error('❌ Erro ao abrir navegador:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-      timestamp: new Date().toISOString()
-    });
-  }
-});
+// [REMOVIDO] Endpoint de abrir navegador para login manual (persistente)
 
 // 🗄️ ENDPOINTS DO BANCO DE DADOS
 

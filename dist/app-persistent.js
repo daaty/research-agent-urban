@@ -53,14 +53,11 @@ const logger_1 = require("./utils/logger");
 logger_1.logger.setConsoleLevel(logger_1.LogLevel.INFO); // Apenas INFO, WARN, ERROR no console
 logger_1.logger.setFileLevel(logger_1.LogLevel.DEBUG); // Tudo nos arquivos
 logger_1.logger.info('STARTUP', '🚀 Iniciando Research Agent Urban AI - Sistema Híbrido');
-const ridesPersistentScraper_1 = require("./scraper/ridesPersistentScraper");
-const driversPersistentScraper_1 = require("./scraper/driversPersistentScraper");
-const monitoringService_1 = require("./services/monitoringService");
+// [REMOVIDO] Imports de scrapers persistentes e MonitoringService
 const config_1 = require("./config");
 const axios_1 = __importDefault(require("axios"));
 const databaseManager_1 = require("./services/databaseManager");
 const dataTransformer_1 = require("./services/dataTransformer");
-const driversDataTransformer_1 = require("./services/driversDataTransformer");
 const aiAgentController_1 = require("./api/aiAgentController");
 const api_1 = __importDefault(require("./api"));
 const app = (0, express_1.default)();
@@ -68,13 +65,11 @@ const PORT = process.env.PORT || 3000;
 app.use(express_1.default.json());
 // 🔄 API Routes - Controle de Recargas e Sistema Híbrido
 app.use('/api', api_1.default);
-// Instância do scraper persistente
-const scraper = (0, ridesPersistentScraper_1.getPersistentScraper)();
+// [REMOVIDO] Instância do scraper persistente
 // 🗄️ Instâncias do banco de dados
 const databaseManager = databaseManager_1.DatabaseManager.getInstance();
 const dataTransformer = dataTransformer_1.DataTransformer.getInstance();
-// 📊 Instância do MonitoringService (Rides + Drivers integrado)
-const monitoringService = new monitoringService_1.MonitoringService();
+// [REMOVIDO] MonitoringService
 // 🤖 Instância do AI Agent Controller
 const aiController = new aiAgentController_1.AIAgentController();
 // 🔄 Função para processar resultado e enviar webhook
@@ -149,616 +144,45 @@ function processScrapingResult(result_1) {
         return result;
     });
 }
-// 🏥 Health check
+// 🏥 Health check (ajustado para híbrido)
 app.get('/', (req, res) => {
     res.json({
         status: 'online',
-        message: '🚀 Scraper Persistente funcionando!',
-        mode: 'persistent-browser',
+        message: '🚀 Sistema Híbrido funcionando!',
+        mode: 'hybrid',
         headlessMode: config_1.config.headlessMode,
         timestamp: new Date().toISOString()
     });
 });
-// 📊 Status detalhado do sistema
-app.get('/api/status', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        const sessionStatus = yield scraper.getSessionStatus();
-        res.json({
-            status: 'online',
-            mode: 'persistent',
-            browser: {
-                active: sessionStatus.browserActive,
-                sessionValid: sessionStatus.sessionValid,
-                message: sessionStatus.message
-            },
-            config: {
-                headlessMode: config_1.config.headlessMode,
-                n8nConfigured: config_1.config.n8nWebhookUrl && !config_1.config.n8nWebhookUrl.includes('seu-n8n.com')
-            },
-            availablePages: sessionStatus.availablePages,
-            timestamp: new Date().toISOString()
-        });
-    }
-    catch (error) {
-        res.status(500).json({
-            status: 'error',
-            message: error.message,
-            timestamp: new Date().toISOString()
-        });
-    }
-}));
-// 🎯 ENDPOINT PRINCIPAL - Scraping com sessão persistente
-app.post('/api/rides/scrape', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        console.log('🚀 Iniciando scraping persistente...');
-        const result = yield (0, ridesPersistentScraper_1.scrapeAllRidesDataPersistent)();
-        // Processar resultado e enviar webhook se necessário
-        yield processScrapingResult(result, 'api');
-        if (result.success) {
-            res.json({
-                success: true,
-                message: result.message,
-                mode: 'persistent',
-                sessionInfo: result.sessionInfo,
-                hasChanges: result.hasChanges,
-                onlyNewData: result.onlyNewData,
-                differences: result.differences,
-                data: result.data, // Dados completos para referência
-                summary: {
-                    totalTables: result.data.length,
-                    tablesWithData: result.data.filter(table => !table.isEmpty).length,
-                    tablesEmpty: result.data.filter(table => table.isEmpty).length,
-                    totalRecords: result.data.reduce((sum, table) => sum + table.rows.length, 0),
-                    newRecords: result.differences ? result.differences.reduce((sum, diff) => sum + diff.totalNewRecords, 0) : 0,
-                    timestamp: new Date().toISOString()
-                }
-            });
-        }
-        else {
-            console.error('❌ Erro no scraping persistente:', result.message);
-            res.status(500).json({
-                success: false,
-                message: result.message,
-                mode: 'persistent',
-                sessionInfo: result.sessionInfo,
-                data: []
-            });
-        }
-    }
-    catch (error) {
-        console.error('❌ Erro crítico no scraping persistente:', error);
-        res.status(500).json({
-            success: false,
-            message: `Erro crítico durante scraping persistente: ${error.message}`,
-            mode: 'persistent',
-            data: []
-        });
-    }
-}));
-// 📄 Scraping de página específica
-app.post('/api/rides/scrape-page', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        const { pageName } = req.body;
-        if (!pageName) {
-            return res.status(400).json({
-                success: false,
-                message: 'Nome da página é obrigatório',
-                availablePages: scraper.getAvailablePages()
-            });
-        }
-        console.log(`🎯 Scraping da página: ${pageName}`);
-        const result = yield scraper.scrapeSinglePage(pageName);
-        res.json(result);
-    }
-    catch (error) {
-        res.status(500).json({
-            success: false,
-            message: `Erro ao processar página: ${error.message}`,
-            data: []
-        });
-    }
-}));
-// 🔄 Forçar novo login
-app.post('/api/auth/force-login', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        console.log('🔄 Forçando novo login...');
-        const result = yield scraper.forceNewLogin();
-        res.json(result);
-    }
-    catch (error) {
-        res.status(500).json({
-            success: false,
-            message: `Erro ao forçar login: ${error.message}`
-        });
-    }
-}));
-// 🧹 Limpeza completa
-app.post('/api/system/cleanup', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        console.log('🧹 Executando limpeza completa...');
-        const result = yield scraper.cleanup();
-        res.json(result);
-    }
-    catch (error) {
-        res.status(500).json({
-            success: false,
-            message: `Erro durante limpeza: ${error.message}`
-        });
-    }
-}));
-// 📋 Listar páginas disponíveis
-app.get('/api/rides/pages', (req, res) => {
+// 📊 Status detalhado do sistema (ajustado para híbrido)
+app.get('/api/status', (req, res) => {
     res.json({
-        success: true,
-        pages: scraper.getAvailablePages(),
-        message: 'Lista de páginas disponíveis para scraping'
+        status: 'online',
+        mode: 'hybrid',
+        headlessMode: config_1.config.headlessMode,
+        n8nConfigured: config_1.config.n8nWebhookUrl && !config_1.config.n8nWebhookUrl.includes('seu-n8n.com'),
+        timestamp: new Date().toISOString()
     });
 });
-// 🔄 Endpoint de teste rápido
-app.get('/api/test', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        const status = yield scraper.getSessionStatus();
-        res.json({
-            success: true,
-            message: 'Teste executado com sucesso',
-            browserStatus: status,
-            timestamp: new Date().toISOString()
-        });
-    }
-    catch (error) {
-        res.status(500).json({
-            success: false,
-            message: `Erro no teste: ${error.message}`,
-            timestamp: new Date().toISOString()
-        });
-    }
-}));
+// [REMOVIDO] Endpoint de scraping de página específica (persistente)
+// [REMOVIDO] Endpoint de forçar novo login (persistente)
+// [REMOVIDO] Endpoint de limpeza completa (persistente)
+// [REMOVIDO] Endpoint de listar páginas disponíveis (persistente)
+// [REMOVIDO] Endpoint de teste rápido (persistente)
 // � ================== ENDPOINTS DE DRIVERS ==================
-// 🚗 Endpoint para scraping de drivers
-app.get('/api/drivers/scrape', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        console.log('🎯 [API] Iniciando scraping de drivers...');
-        const result = yield (0, driversPersistentScraper_1.scrapeAllDriversDataPersistent)();
-        if (result.success) {
-            // Transformar e salvar dados
-            const driversTransformer = driversDataTransformer_1.DriversDataTransformer.getInstance();
-            const transformedData = yield driversTransformer.transformAndSave(result.data, result.sessionInfo, 'api-request', result.hasChanges || false);
-            res.json({
-                success: true,
-                message: result.message,
-                data: {
-                    totalTables: result.data.length,
-                    totalRecords: transformedData.totalRecords,
-                    newRecords: transformedData.newRecords,
-                    hasChanges: result.hasChanges || false,
-                    tables: result.data.map(table => ({
-                        name: table.name,
-                        recordCount: table.isEmpty ? 0 : table.rows.length,
-                        isEmpty: table.isEmpty
-                    }))
-                },
-                sessionInfo: result.sessionInfo,
-                timestamp: new Date().toISOString()
-            });
-        }
-        else {
-            res.status(500).json({
-                success: false,
-                message: result.message,
-                sessionInfo: result.sessionInfo,
-                timestamp: new Date().toISOString()
-            });
-        }
-    }
-    catch (error) {
-        console.error('❌ [API] Erro no scraping de drivers:', error.message);
-        res.status(500).json({
-            success: false,
-            message: `Erro no scraping de drivers: ${error.message}`,
-            timestamp: new Date().toISOString()
-        });
-    }
-}));
-// 🎯 Endpoint para teste específico da página Active Drivers
-app.get('/api/drivers/active/test', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        console.log('🎯 [API] Testando scraping de Active Drivers...');
-        // Importar classe diretamente para teste
-        const { DriversPersistentScraper } = yield Promise.resolve().then(() => __importStar(require('./scraper/driversPersistentScraper')));
-        const driverscraper = new DriversPersistentScraper();
-        // Testar apenas a primeira página (Active Drivers)
-        const result = yield driverscraper.scrapeAllDriversData();
-        if (result.success && result.data.length > 0) {
-            const activeDriversData = result.data.find(table => table.name === 'Active Drivers');
-            res.json({
-                success: true,
-                message: 'Teste de Active Drivers concluído',
-                data: {
-                    tableName: (activeDriversData === null || activeDriversData === void 0 ? void 0 : activeDriversData.name) || 'Active Drivers',
-                    headers: (activeDriversData === null || activeDriversData === void 0 ? void 0 : activeDriversData.headers) || [],
-                    totalRecords: (activeDriversData === null || activeDriversData === void 0 ? void 0 : activeDriversData.rows.length) || 0,
-                    sampleRecords: (activeDriversData === null || activeDriversData === void 0 ? void 0 : activeDriversData.rows.slice(0, 3)) || [], // Primeiros 3 registros como exemplo
-                    isEmpty: (activeDriversData === null || activeDriversData === void 0 ? void 0 : activeDriversData.isEmpty) || true
-                },
-                sessionInfo: result.sessionInfo,
-                timestamp: new Date().toISOString()
-            });
-        }
-        else {
-            res.status(500).json({
-                success: false,
-                message: result.message,
-                sessionInfo: result.sessionInfo,
-                timestamp: new Date().toISOString()
-            });
-        }
-    }
-    catch (error) {
-        console.error('❌ [API] Erro no teste de Active Drivers:', error.message);
-        res.status(500).json({
-            success: false,
-            message: `Erro no teste: ${error.message}`,
-            timestamp: new Date().toISOString()
-        });
-    }
-}));
-// 🎯 Endpoint para teste específico da página Deactive Drivers
-app.get('/api/drivers/deactive/test', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        console.log('🎯 [API] Testando scraping de Deactive Drivers...');
-        // Importar classe diretamente para teste
-        const { DriversPersistentScraper } = yield Promise.resolve().then(() => __importStar(require('./scraper/driversPersistentScraper')));
-        const driverscraper = new DriversPersistentScraper();
-        // Testar apenas a página Deactive Drivers
-        const result = yield driverscraper.scrapeAllDriversData();
-        if (result.success && result.data.length > 0) {
-            const deactiveDriversData = result.data.find(table => table.name === 'Deactive Drivers');
-            res.json({
-                success: true,
-                message: 'Teste de Deactive Drivers concluído',
-                data: {
-                    tableName: (deactiveDriversData === null || deactiveDriversData === void 0 ? void 0 : deactiveDriversData.name) || 'Deactive Drivers',
-                    headers: (deactiveDriversData === null || deactiveDriversData === void 0 ? void 0 : deactiveDriversData.headers) || [],
-                    totalRecords: (deactiveDriversData === null || deactiveDriversData === void 0 ? void 0 : deactiveDriversData.rows.length) || 0,
-                    sampleRecords: (deactiveDriversData === null || deactiveDriversData === void 0 ? void 0 : deactiveDriversData.rows.slice(0, 3)) || [], // Primeiros 3 registros como exemplo
-                    isEmpty: (deactiveDriversData === null || deactiveDriversData === void 0 ? void 0 : deactiveDriversData.isEmpty) || true
-                },
-                sessionInfo: result.sessionInfo,
-                timestamp: new Date().toISOString()
-            });
-        }
-        else {
-            res.status(500).json({
-                success: false,
-                message: result.message,
-                sessionInfo: result.sessionInfo,
-                timestamp: new Date().toISOString()
-            });
-        }
-    }
-    catch (error) {
-        console.error('❌ [API] Erro no teste de Deactive Drivers:', error.message);
-        res.status(500).json({
-            success: false,
-            message: `Erro no teste: ${error.message}`,
-            timestamp: new Date().toISOString()
-        });
-    }
-}));
-// 🎯 Endpoint para teste específico da página Enrollment Drivers
-app.get('/api/drivers/enrollment/test', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        console.log('🎯 [API] Testando scraping de Drivers Enrollment...');
-        // Importar classe diretamente para teste
-        const { DriversPersistentScraper } = yield Promise.resolve().then(() => __importStar(require('./scraper/driversPersistentScraper')));
-        const driverscraper = new DriversPersistentScraper();
-        // Testar apenas a página Drivers Enrollment
-        const result = yield driverscraper.scrapeAllDriversData();
-        if (result.success && result.data.length > 0) {
-            const enrollmentData = result.data.find(table => table.name === 'Drivers Enrollment');
-            res.json({
-                success: true,
-                message: 'Teste de Drivers Enrollment concluído',
-                data: {
-                    tableName: (enrollmentData === null || enrollmentData === void 0 ? void 0 : enrollmentData.name) || 'Drivers Enrollment',
-                    headers: (enrollmentData === null || enrollmentData === void 0 ? void 0 : enrollmentData.headers) || [],
-                    totalRecords: (enrollmentData === null || enrollmentData === void 0 ? void 0 : enrollmentData.rows.length) || 0,
-                    sampleRecords: (enrollmentData === null || enrollmentData === void 0 ? void 0 : enrollmentData.rows.slice(0, 3)) || [], // Primeiros 3 registros como exemplo
-                    isEmpty: (enrollmentData === null || enrollmentData === void 0 ? void 0 : enrollmentData.isEmpty) || true
-                },
-                sessionInfo: result.sessionInfo,
-                timestamp: new Date().toISOString()
-            });
-        }
-        else {
-            res.status(500).json({
-                success: false,
-                message: result.message,
-                sessionInfo: result.sessionInfo,
-                timestamp: new Date().toISOString()
-            });
-        }
-    }
-    catch (error) {
-        console.error('❌ [API] Erro no teste de Drivers Enrollment:', error.message);
-        res.status(500).json({
-            success: false,
-            message: `Erro no teste: ${error.message}`,
-            timestamp: new Date().toISOString()
-        });
-    }
-}));
-// 🎯 Endpoint para teste específico da página Leaderboard
-app.get('/api/drivers/leaderboard/test', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        console.log('🎯 [API] Testando scraping de Leaderboard...');
-        // Importar classe diretamente para teste
-        const { DriversPersistentScraper } = yield Promise.resolve().then(() => __importStar(require('./scraper/driversPersistentScraper')));
-        const driverscraper = new DriversPersistentScraper();
-        // Testar apenas a página Leaderboard
-        const result = yield driverscraper.scrapeAllDriversData();
-        if (result.success && result.data.length > 0) {
-            const leaderboardData = result.data.find(table => table.name === 'Leaderboard');
-            res.json({
-                success: true,
-                message: 'Teste de Leaderboard concluído',
-                data: {
-                    tableName: (leaderboardData === null || leaderboardData === void 0 ? void 0 : leaderboardData.name) || 'Leaderboard',
-                    headers: (leaderboardData === null || leaderboardData === void 0 ? void 0 : leaderboardData.headers) || [],
-                    totalRecords: (leaderboardData === null || leaderboardData === void 0 ? void 0 : leaderboardData.rows.length) || 0,
-                    sampleRecords: (leaderboardData === null || leaderboardData === void 0 ? void 0 : leaderboardData.rows.slice(0, 3)) || [], // Primeiros 3 registros como exemplo
-                    isEmpty: (leaderboardData === null || leaderboardData === void 0 ? void 0 : leaderboardData.isEmpty) || true
-                },
-                sessionInfo: result.sessionInfo,
-                timestamp: new Date().toISOString()
-            });
-        }
-        else {
-            res.status(500).json({
-                success: false,
-                message: result.message,
-                sessionInfo: result.sessionInfo,
-                timestamp: new Date().toISOString()
-            });
-        }
-    }
-    catch (error) {
-        console.error('❌ [API] Erro no teste de Leaderboard:', error.message);
-        res.status(500).json({
-            success: false,
-            message: `Erro no teste: ${error.message}`,
-            timestamp: new Date().toISOString()
-        });
-    }
-}));
-// 🎯 Endpoint para teste específico da página Driver Performance
-app.get('/api/drivers/performance/test', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        console.log('🎯 [API] Testando scraping de Driver Performance...');
-        // Importar classe diretamente para teste
-        const { DriversPersistentScraper } = yield Promise.resolve().then(() => __importStar(require('./scraper/driversPersistentScraper')));
-        const driverscraper = new DriversPersistentScraper();
-        // Testar apenas a página Driver Performance
-        const result = yield driverscraper.scrapeAllDriversData();
-        if (result.success && result.data.length > 0) {
-            const performanceData = result.data.find(table => table.name === 'Driver Performance');
-            res.json({
-                success: true,
-                message: 'Teste de Driver Performance concluído',
-                data: {
-                    tableName: (performanceData === null || performanceData === void 0 ? void 0 : performanceData.name) || 'Driver Performance',
-                    headers: (performanceData === null || performanceData === void 0 ? void 0 : performanceData.headers) || [],
-                    totalRecords: (performanceData === null || performanceData === void 0 ? void 0 : performanceData.rows.length) || 0,
-                    sampleRecords: (performanceData === null || performanceData === void 0 ? void 0 : performanceData.rows.slice(0, 3)) || [], // Primeiros 3 registros como exemplo
-                    isEmpty: (performanceData === null || performanceData === void 0 ? void 0 : performanceData.isEmpty) || true
-                },
-                sessionInfo: result.sessionInfo,
-                timestamp: new Date().toISOString()
-            });
-        }
-        else {
-            res.status(500).json({
-                success: false,
-                message: result.message,
-                sessionInfo: result.sessionInfo,
-                timestamp: new Date().toISOString()
-            });
-        }
-    }
-    catch (error) {
-        console.error('❌ [API] Erro no teste de Driver Performance:', error.message);
-        res.status(500).json({
-            success: false,
-            message: `Erro no teste: ${error.message}`,
-            timestamp: new Date().toISOString()
-        });
-    }
-}));
-// 📋 Endpoint para listar páginas de drivers disponíveis
-app.get('/api/drivers/pages', (req, res) => {
-    const driversPages = [
-        { name: 'Active Drivers', url: '#/app/active-drivers/' },
-        { name: 'Deactive Drivers', url: '#/app/deactivated-drivers/' },
-        { name: 'Drivers Enrollment', url: '#/app/selfEnrolled-driver/' },
-        { name: 'Leaderboard', url: '#/app/driver-leaderboard/' },
-        { name: 'Driver Performance', url: '#/app/high-cancellations/' }
-    ];
-    res.json({
-        success: true,
-        pages: driversPages,
-        message: 'Lista de páginas de drivers disponíveis para scraping'
-    });
-});
-// �🗂️ ENDPOINT - Gerenciar cache de dados
-app.get('/api/cache/stats', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        const stats = yield scraper.getCacheStats();
-        res.json({
-            success: true,
-            cache: stats,
-            timestamp: new Date().toISOString()
-        });
-    }
-    catch (error) {
-        console.error('❌ Erro ao obter estatísticas do cache:', error);
-        res.status(500).json({
-            success: false,
-            message: error.message,
-            timestamp: new Date().toISOString()
-        });
-    }
-}));
-// 🗂️ ENDPOINT - Limpar cache
-app.post('/api/cache/clear', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        scraper.clearCache();
-        res.json({
-            success: true,
-            message: 'Cache limpo com sucesso',
-            timestamp: new Date().toISOString()
-        });
-    }
-    catch (error) {
-        console.error('❌ Erro ao limpar cache:', error);
-        res.status(500).json({
-            success: false,
-            message: error.message,
-            timestamp: new Date().toISOString()
-        });
-    }
-}));
-// 🧪 ENDPOINT - Simular webhook (somente dados novos)
-app.post('/api/rides/simulate-webhook', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        console.log('🧪 Simulando webhook com dados novos...');
-        const result = yield (0, ridesPersistentScraper_1.scrapeAllRidesDataPersistent)();
-        if (result.success && result.hasChanges && result.differences) {
-            const webhookPayload = {
-                timestamp: new Date().toISOString(),
-                source: 'rides-dashboard-persistent',
-                mode: 'persistent-browser',
-                sessionInfo: result.sessionInfo,
-                onlyNewData: true,
-                differences: result.differences,
-                summary: {
-                    totalNewRecords: result.differences.reduce((sum, diff) => sum + diff.totalNewRecords, 0),
-                    totalUpdatedRecords: result.differences.reduce((sum, diff) => sum + diff.updatedRecords.length, 0),
-                    totalRemovedRecords: result.differences.reduce((sum, diff) => sum + diff.removedRecords.length, 0),
-                    tablesWithChanges: result.differences.length
-                }
-            };
-            res.json({
-                success: true,
-                message: 'Webhook simulado com dados novos',
-                payload: webhookPayload,
-                timestamp: new Date().toISOString()
-            });
-        }
-        else {
-            res.json({
-                success: true,
-                message: 'Nenhuma mudança detectada - webhook não seria enviado',
-                hasChanges: result.hasChanges,
-                timestamp: new Date().toISOString()
-            });
-        }
-    }
-    catch (error) {
-        console.error('❌ Erro ao simular webhook:', error);
-        res.status(500).json({
-            success: false,
-            message: error.message,
-            timestamp: new Date().toISOString()
-        });
-    }
-}));
-// 🔐 ENDPOINT - Verificar status de login com captcha
-app.get('/api/rides/login-status', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        const sessionStatus = yield scraper.getSessionStatus();
-        res.json({
-            success: true,
-            status: sessionStatus,
-            timestamp: new Date().toISOString()
-        });
-    }
-    catch (error) {
-        console.error('❌ Erro ao verificar status de login:', error);
-        res.status(500).json({
-            success: false,
-            message: error.message,
-            timestamp: new Date().toISOString()
-        });
-    }
-}));
-// 🔐 ENDPOINT - Aguardar login manual (para captcha)
-app.post('/api/rides/wait-manual-login', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        const { timeout = 300000 } = req.body; // 5 minutos por padrão
-        console.log('⏳ Aguardando login manual...');
-        const result = yield scraper.waitForManualLogin(timeout);
-        if (result) {
-            res.json({
-                success: true,
-                message: 'Login manual detectado com sucesso!',
-                timestamp: new Date().toISOString()
-            });
-        }
-        else {
-            res.status(408).json({
-                success: false,
-                message: 'Timeout aguardando login manual',
-                timestamp: new Date().toISOString()
-            });
-        }
-    }
-    catch (error) {
-        console.error('❌ Erro ao aguardar login manual:', error);
-        res.status(500).json({
-            success: false,
-            message: error.message,
-            timestamp: new Date().toISOString()
-        });
-    }
-}));
-// 🔐 ENDPOINT - Abrir navegador para login manual
-app.post('/api/rides/open-browser-login', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        console.log('🌐 Abrindo navegador para login manual...');
-        // Garantir que o browser está inicializado
-        yield scraper.initializeBrowser();
-        // Navegar para página de login
-        const page = scraper.getPage();
-        if (page) {
-            const loginUrl = process.env.RIDES_LOGIN_URL || 'https://rides.ec2dashboard.com/#/page/login';
-            yield page.goto(loginUrl, {
-                waitUntil: 'domcontentloaded'
-            });
-        }
-        const sessionStatus = yield scraper.getSessionStatus();
-        res.json({
-            success: true,
-            message: 'Navegador aberto na página de login',
-            status: sessionStatus,
-            instructions: [
-                '1. Faça login manualmente no navegador que foi aberto',
-                '2. Resolva o captcha se necessário',
-                '3. Aguarde até estar logado no dashboard',
-                '4. Use o endpoint /api/rides/wait-manual-login para aguardar confirmação',
-                '5. Ou use /api/rides/login-status para verificar o status'
-            ],
-            timestamp: new Date().toISOString()
-        });
-    }
-    catch (error) {
-        console.error('❌ Erro ao abrir navegador:', error);
-        res.status(500).json({
-            success: false,
-            message: error.message,
-            timestamp: new Date().toISOString()
-        });
-    }
-}));
+// [REMOVIDO] Endpoint de scraping de drivers (persistente)
+// [REMOVIDO] Endpoint de teste de Active Drivers (persistente)
+// [REMOVIDO] Endpoint de teste de Deactive Drivers (persistente)
+// [REMOVIDO] Endpoint de teste de Drivers Enrollment (persistente)
+// [REMOVIDO] Endpoint de teste de Leaderboard (persistente)
+// [REMOVIDO] Endpoint de teste de Driver Performance (persistente)
+// [REMOVIDO] Endpoint de listar páginas de drivers disponíveis (persistente)
+// [REMOVIDO] Endpoint de stats do cache (persistente)
+// [REMOVIDO] Endpoint de limpar cache (persistente)
+// [REMOVIDO] Endpoint de simulação de webhook (persistente)
+// [REMOVIDO] Endpoint de status de login (persistente)
+// [REMOVIDO] Endpoint de aguardar login manual (persistente)
+// [REMOVIDO] Endpoint de abrir navegador para login manual (persistente)
 // 🗄️ ENDPOINTS DO BANCO DE DADOS
 // Estatísticas do PostgreSQL
 app.get('/api/database/stats', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -1270,16 +694,19 @@ app.get('/api/personal-data/stats', (req, res) => __awaiter(void 0, void 0, void
         });
     }
 }));
-// Auto-inicialização (sem mudanças)
+// Auto-inicialização do Sistema Híbrido
 app.listen(PORT, () => __awaiter(void 0, void 0, void 0, function* () {
     console.log('🎉' + '='.repeat(70));
-    console.log(`🚀 SERVIDOR PERSISTENTE FUNCIONANDO NA PORTA ${PORT}`);
+    console.log(`🚀 SISTEMA HÍBRIDO FUNCIONANDO NA PORTA ${PORT}`);
     console.log('🎉' + '='.repeat(70));
     console.log(`📋 ENDPOINTS DISPONÍVEIS:`);
     console.log(`- GET  /                        (status geral)`);
     console.log(`- GET  /api/status              (status detalhado)`);
-    console.log(`- POST /api/rides/scrape        (🎯 SCRAPER PRINCIPAL)`);
-    console.log(`- POST /api/rides/scrape-page   (scraping página específica)`);
+    console.log(`- POST /api/hybrid/start        (🎯 SISTEMA HÍBRIDO)`);
+    console.log(`- POST /api/hybrid/stop         (parar híbrido)`);
+    console.log(`- GET  /api/hybrid/status       (status híbrido)`);
+    console.log(`- POST /api/ai-agent/query      (consultas AI)`);
+    console.log(`🎉 SISTEMA HÍBRIDO CONFIGURADO PARA INICIALIZAÇÃO AUTOMÁTICA`);
     console.log(`- POST /api/auth/force-login    (forçar novo login)`);
     console.log(`- POST /api/system/cleanup      (limpeza completa)`);
     console.log(`- GET  /api/rides/pages         (listar páginas)`);
@@ -1320,100 +747,43 @@ app.listen(PORT, () => __awaiter(void 0, void 0, void 0, function* () {
         console.error('❌ Erro ao conectar PostgreSQL:', error);
         console.log('⚠️ Sistema continuará funcionando sem banco de dados');
     }
-    // 🚀 AUTO-INICIALIZAÇÃO (apenas se habilitada)
-    if (isAutoScrapingEnabled) {
-        const autoStartHybrid = process.env.AUTO_START_HYBRID === 'true';
-        // Log detalhado para arquivo
-        logger_1.logger.debug('AUTO', `Variáveis de ambiente: ENABLE_AUTO_SCRAPING=${process.env.ENABLE_AUTO_SCRAPING}, AUTO_START_HYBRID=${process.env.AUTO_START_HYBRID}`);
-        logger_1.logger.debug('AUTO', `Flags calculadas: isAutoScrapingEnabled=${isAutoScrapingEnabled}, autoStartHybrid=${autoStartHybrid}`);
-        // Log resumido para console
-        logger_1.logger.info('AUTO', `Auto-start configurado - MonitoringService: SIM | HybridService: ${autoStartHybrid ? 'SIM' : 'NÃO'}`);
-        logger_1.logger.info('AUTO', 'Aguardando 30 segundos para inicialização...');
-        setTimeout(() => __awaiter(void 0, void 0, void 0, function* () {
-            try {
-                logger_1.logger.info('AUTO', 'Iniciando scrapers automáticos...');
-                // Verificar se credenciais estão configuradas
-                if (!process.env.RIDES_USERNAME || process.env.RIDES_USERNAME.includes('seu_email') ||
-                    !process.env.RIDES_PASSWORD || process.env.RIDES_PASSWORD.includes('sua_senha')) {
-                    logger_1.logger.warn('AUTO', 'Credenciais não configuradas - aguardando configuração manual');
-                    return;
-                }
-                // ✅ MonitoringService e HybridOperationService em paralelo
-                logger_1.logger.info('MONITORING', 'Iniciando MonitoringService...');
-                // 🚀 Iniciar híbrido em paralelo (não aguardar MonitoringService)
-                if (autoStartHybrid) {
-                    logger_1.logger.info('HYBRID', 'Iniciando Sistema Híbrido...');
-                    hybridService.start().then(() => {
-                        logger_1.logger.success('HYBRID', 'Sistema Híbrido iniciado com sucesso');
-                    }).catch(err => {
-                        logger_1.logger.error('HYBRID', 'Erro ao iniciar Sistema Híbrido', err);
-                    });
-                }
-                else {
-                    logger_1.logger.info('HYBRID', 'Sistema Híbrido não será iniciado automaticamente (AUTO_START_HYBRID=false)');
-                }
-                try {
-                    // Executar uma vez imediatamente
-                    yield monitoringService.runOnce();
-                    logger_1.logger.success('MONITORING', 'Execução inicial de Rides + Drivers concluída');
-                    // 🪟 Organizar janelas automaticamente após abertura dos browsers
-                    logger_1.logger.info('WINDOWS', 'Organizando janelas dos browsers em split-screen...');
-                    try {
-                        // Aguardar 3 segundos para browsers terminarem inicialização
-                        yield new Promise(resolve => setTimeout(resolve, 3000));
-                        // Importar e usar WindowPositioner
-                        const { WindowPositioner } = yield Promise.resolve().then(() => __importStar(require('./utils/windowPositioner')));
-                        const positioner = new WindowPositioner();
-                        yield positioner.arrangeAllWindows();
-                        logger_1.logger.success('WINDOWS', 'Janelas organizadas em split-screen automaticamente');
-                    }
-                    catch (windowError) {
-                        logger_1.logger.error('WINDOWS', 'Erro ao organizar janelas', windowError);
-                    }
-                    // 🔄 Iniciar monitoramento automático
-                    monitoringService.startMonitoring();
-                    logger_1.logger.success('MONITORING', 'Monitoramento automático iniciado (frequência: 2,5 min)');
-                }
-                catch (error) {
-                    logger_1.logger.error('MONITORING', 'Erro na execução inicial', error);
-                    logger_1.logger.info('MONITORING', 'Tentando fallback...');
-                    try {
-                        const result = yield (0, ridesPersistentScraper_1.scrapeAllRidesDataPersistent)();
-                        if (result.success) {
-                            logger_1.logger.success('MONITORING', 'Fallback concluído com sucesso');
-                            yield processScrapingResult(result, 'initial-execution');
-                        }
-                        else {
-                            logger_1.logger.error('MONITORING', `Falha no fallback: ${result.message}`);
-                        }
-                    }
-                    catch (fallbackError) {
-                        logger_1.logger.error('MONITORING', 'Erro no fallback', fallbackError);
-                    }
-                }
+    // 🚀 AUTO-INICIALIZAÇÃO DO SISTEMA HÍBRIDO (sempre ativo)
+    logger_1.logger.info('AUTO', 'Auto-start configurado - HybridService: SIM (sempre ativo)');
+    logger_1.logger.info('AUTO', 'Aguardando 10 segundos para inicialização...');
+    setTimeout(() => __awaiter(void 0, void 0, void 0, function* () {
+        try {
+            logger_1.logger.info('AUTO', 'Iniciando Sistema Híbrido...');
+            // Verificar se credenciais estão configuradas
+            if (!process.env.RIDES_USERNAME || process.env.RIDES_USERNAME.includes('seu_email') ||
+                !process.env.RIDES_PASSWORD || process.env.RIDES_PASSWORD.includes('sua_senha')) {
+                logger_1.logger.warn('AUTO', 'Credenciais não configuradas - aguardando configuração manual');
+                return;
             }
-            catch (error) {
-                logger_1.logger.error('AUTO', 'Erro na auto-inicialização', error);
-                logger_1.logger.info('AUTO', 'Use os endpoints /api/rides/scrape ou /api/hybrid/start para execução manual');
-            }
-        }), 30000);
-    }
-    else {
-        logger_1.logger.info('AUTO', 'Auto-execução DESABILITADA (ENABLE_AUTO_SCRAPING=false)');
-        logger_1.logger.info('AUTO', 'Use os endpoints para execução manual quando necessário');
-    }
-}));
-// Limpeza na saída do processo
-process.on('SIGINT', () => __awaiter(void 0, void 0, void 0, function* () {
-    console.log('\n🔄 Recebido sinal de interrupção...');
-    console.log('🧹 Executando limpeza final...');
-    try {
-        console.log('✅ Limpeza concluída');
-    }
-    catch (error) {
-        console.error('❌ Erro na limpeza:', error);
-    }
-    console.log('👋 Servidor encerrado');
-    process.exit(0);
+            // 🚀 Iniciar Sistema Híbrido automaticamente
+            logger_1.logger.info('HYBRID', 'Iniciando Sistema Híbrido...');
+            hybridService.start().then(() => {
+                logger_1.logger.success('HYBRID', 'Sistema Híbrido iniciado com sucesso');
+            }).catch(err => {
+                logger_1.logger.error('HYBRID', 'Erro ao iniciar Sistema Híbrido', err);
+            });
+        }
+        catch (error) {
+            logger_1.logger.error('AUTO', 'Erro na auto-inicialização', error);
+            logger_1.logger.info('AUTO', 'Use os endpoints /api/hybrid/start para execução manual');
+        }
+    }), 10000);
+    // Limpeza na saída do processo
+    process.on('SIGINT', () => __awaiter(void 0, void 0, void 0, function* () {
+        console.log('\n🔄 Recebido sinal de interrupção...');
+        console.log('🧹 Executando limpeza final...');
+        try {
+            console.log('✅ Limpeza concluída');
+        }
+        catch (error) {
+            console.error('❌ Erro na limpeza:', error);
+        }
+        console.log('👋 Servidor encerrado');
+        process.exit(0);
+    }));
 }));
 exports.default = app;

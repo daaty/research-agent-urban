@@ -1,11 +1,11 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { createHash } from 'crypto';
-import { RideTableData } from '../scraper/ridesPersistentScraper';
+// [REMOVIDO] import { RideTableData } from '../scraper/ridesPersistentScraper';
 
 export interface CachedData {
   timestamp: number;
-  data: RideTableData[];
+  data: any[];
   dataHash: string;
 }
 
@@ -73,7 +73,7 @@ export class DataCacheManager {
   /**
    * Salva dados atuais no cache
    */
-  private savePreviousData(data: RideTableData[]): void {
+  private savePreviousData(data: any[]): void {
     try {
       const cachedData: CachedData = {
         timestamp: Date.now(),
@@ -91,7 +91,7 @@ export class DataCacheManager {
   /**
    * Gera hash único dos dados para comparação rápida (SEM timestamp)
    */
-  private generateDataHash(data: RideTableData[]): string {
+  private generateDataHash(data: any[]): string {
     const dataString = JSON.stringify(data.map(table => ({
       name: table.name,
       rowCount: table.rows.length,
@@ -111,7 +111,7 @@ export class DataCacheManager {
   /**
    * Compara dados atuais com dados anteriores e retorna apenas as diferenças
    */
-  public compareAndGetDifferences(currentData: RideTableData[]): {
+  public compareAndGetDifferences(currentData: any[]): {
     hasChanges: boolean;
     differences: DataDifference[];
     webhookPayload: WebhookPayload;
@@ -205,7 +205,7 @@ export class DataCacheManager {
   /**
    * Compara linhas de uma tabela específica
    */
-  private compareTableRows(previousTable: RideTableData, currentTable: RideTableData): DataDifference {
+  private compareTableRows(previousTable: any, currentTable: any): DataDifference {
     const newRecords: string[][] = [];
     const updatedRecords: string[][] = [];
     const removedRecords: string[][] = [];

@@ -504,12 +504,14 @@ class HybridOperationService {
     }
     /**
      * Garante que o dashboard scraper está pronto e logado
+     * CORRIGIDO: Evita reinicializar se já estiver logado
      */
     ensureDashboardReady() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 // Verificar se scraper está logado
                 const status = this.dashboardScraper.getStatus();
+                logger_1.logger.debug('HYBRID', `Status atual: logado=${status.isLoggedIn}, URL=${status.pageUrl}`);
                 if (!status.isLoggedIn) {
                     logger_1.logger.debug('HYBRID', 'Dashboard não está logada, iniciando processo de login...');
                     logger_1.logger.debug('HYBRID', 'Abrindo dashboard...');
@@ -519,7 +521,7 @@ class HybridOperationService {
                     logger_1.logger.success('HYBRID', 'Login concluído com sucesso! Prosseguindo com a extração...');
                 }
                 else {
-                    logger_1.logger.debug('HYBRID', 'Dashboard já está logada, prosseguindo...');
+                    logger_1.logger.debug('HYBRID', 'Dashboard já está logada, prosseguindo com extração...');
                 }
             }
             catch (error) {

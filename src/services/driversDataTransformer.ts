@@ -1,6 +1,6 @@
 import { createHash } from 'crypto';
 import { DatabaseManager, DriverRecord, ScrapingSession } from './databaseManager';
-import { DriverTableData } from '../scraper/driversPersistentScraper';
+// [REMOVIDO] import { DriverTableData } from '../scraper/driversPersistentScraper';
 
 export interface TransformedDriverData {
   records: DriverRecord[];
@@ -28,7 +28,7 @@ export class DriversDataTransformer {
    * Transforma dados do scraping de drivers para formato do banco com IDs únicos
    */
   public transformScrapingData(
-    scrapingData: DriverTableData[],
+    scrapingData: any[],
     sessionInfo: any,
     executionSource: string = 'drivers-persistent-scraper',
     hasChanges: boolean = true
@@ -345,7 +345,7 @@ export class DriversDataTransformer {
    * Transforma e salva dados de scraping de drivers
    */
   public async transformAndSave(
-    scrapingData: DriverTableData[],
+  scrapingData: any[],
     sessionInfo: any,
     executionSource: string = 'drivers-persistent-scraper',
     hasChanges: boolean = true

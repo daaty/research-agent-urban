@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 dotenv.config();
-import { scrapeAllRidesDataPersistent } from './scraper/ridesPersistentScraper';
+// ...removido scraping persistente...
 import { config } from './config';
 import axios from 'axios';
 import * as fs from 'fs';
@@ -120,42 +120,9 @@ class AutoScraper {
     console.log(`\n🔄 [${now}] Iniciando scraping... (Execução #${this.executionCount})`);
     
     try {
-      const result = await scrapeAllRidesDataPersistent();
+  // ...removido scraping persistente...
       
-      if (result.success) {
-        const totalRecords = result.data.reduce((sum, table) => sum + table.rows.length, 0);
-        
-        console.log(`✅ [${now}] Sucesso: ${totalRecords} registros encontrados`);
-        
-        // Mostrar resumo
-        result.data.forEach(table => {
-          const status = table.isEmpty ? 'Vazio' : `${table.rows.length} registros`;
-          console.log(`   📄 ${table.name}: ${status}`);
-        });
-        
-        // Verificar se houve mudanças
-        const hasChanges = await this.checkForChanges(result.data, now);
-        
-        if (hasChanges) {
-          console.log(`🆕 [${now}] MUDANÇAS DETECTADAS! Enviando para webhook...`);
-          
-          // Enviar para webhook se houver dados e webhook configurado
-          if (totalRecords > 0 && this.hasWebhook()) {
-            await this.sendWebhook(result.data, now);
-          } else if (totalRecords === 0) {
-            console.log(`📊 [${now}] Nenhum dado - webhook não enviado`);
-          }
-          
-          // Salvar dados atuais como cache
-          await this.saveCache(result.data, now);
-          
-        } else {
-          console.log(`🔄 [${now}] NENHUMA MUDANÇA detectada - webhook não enviado`);
-        }
-        
-      } else {
-        console.error(`❌ [${now}] Erro: ${result.message}`);
-      }
+  // [REMOVIDO] Bloco órfão de result (persistente)
       
     } catch (error: any) {
       console.error(`💥 [${now}] Erro crítico:`, error.message);

@@ -47,7 +47,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
-const ridesPersistentScraper_1 = require("./scraper/ridesPersistentScraper");
+// ...removido scraping persistente...
 const config_1 = require("./config");
 const axios_1 = __importDefault(require("axios"));
 const fs = __importStar(require("fs"));
@@ -147,36 +147,8 @@ class AutoScraper {
             this.executionCount++;
             console.log(`\n🔄 [${now}] Iniciando scraping... (Execução #${this.executionCount})`);
             try {
-                const result = yield (0, ridesPersistentScraper_1.scrapeAllRidesDataPersistent)();
-                if (result.success) {
-                    const totalRecords = result.data.reduce((sum, table) => sum + table.rows.length, 0);
-                    console.log(`✅ [${now}] Sucesso: ${totalRecords} registros encontrados`);
-                    // Mostrar resumo
-                    result.data.forEach(table => {
-                        const status = table.isEmpty ? 'Vazio' : `${table.rows.length} registros`;
-                        console.log(`   📄 ${table.name}: ${status}`);
-                    });
-                    // Verificar se houve mudanças
-                    const hasChanges = yield this.checkForChanges(result.data, now);
-                    if (hasChanges) {
-                        console.log(`🆕 [${now}] MUDANÇAS DETECTADAS! Enviando para webhook...`);
-                        // Enviar para webhook se houver dados e webhook configurado
-                        if (totalRecords > 0 && this.hasWebhook()) {
-                            yield this.sendWebhook(result.data, now);
-                        }
-                        else if (totalRecords === 0) {
-                            console.log(`📊 [${now}] Nenhum dado - webhook não enviado`);
-                        }
-                        // Salvar dados atuais como cache
-                        yield this.saveCache(result.data, now);
-                    }
-                    else {
-                        console.log(`🔄 [${now}] NENHUMA MUDANÇA detectada - webhook não enviado`);
-                    }
-                }
-                else {
-                    console.error(`❌ [${now}] Erro: ${result.message}`);
-                }
+                // ...removido scraping persistente...
+                // [REMOVIDO] Bloco órfão de result (persistente)
             }
             catch (error) {
                 console.error(`💥 [${now}] Erro crítico:`, error.message);

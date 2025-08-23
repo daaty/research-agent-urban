@@ -1,11 +1,11 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { createHash } from 'crypto';
-import { DriverTableData } from '../scraper/driversPersistentScraper';
+// [REMOVIDO] import { DriverTableData } from '../scraper/driversPersistentScraper';
 
 export interface DriverCachedData {
   timestamp: number;
-  data: DriverTableData[];
+  data: any[];
   dataHash: string;
 }
 
@@ -72,7 +72,7 @@ export class DriverCacheManager {
   /**
    * Salva dados atuais no cache
    */
-  private savePreviousData(data: DriverTableData[]): void {
+  private savePreviousData(data: any[]): void {
     try {
       const cachedData: DriverCachedData = {
         timestamp: Date.now(),
@@ -90,7 +90,7 @@ export class DriverCacheManager {
   /**
    * Gera hash único dos dados para comparação rápida (SEM timestamp)
    */
-  private generateDataHash(data: DriverTableData[]): string {
+  private generateDataHash(data: any[]): string {
     const dataString = JSON.stringify(data.map(table => ({
       name: table.name,
       rowCount: table.rows.length,
@@ -104,7 +104,7 @@ export class DriverCacheManager {
   /**
    * Compara dados atuais com dados anteriores e retorna apenas as diferenças
    */
-  public compareAndGetDifferences(currentData: DriverTableData[]): {
+  public compareAndGetDifferences(currentData: any[]): {
     hasChanges: boolean;
     differences: DriverDataDifference[];
     webhookPayload: DriverWebhookPayload;
@@ -195,7 +195,7 @@ export class DriverCacheManager {
   /**
    * Compara registros entre duas tabelas
    */
-  private compareTableRecords(previousTable: DriverTableData, currentTable: DriverTableData): DriverDataDifference {
+  private compareTableRecords(previousTable: any, currentTable: any): DriverDataDifference {
     const previousRowsSet = new Set(previousTable.rows.map(row => JSON.stringify(row.sort())));
     const currentRowsSet = new Set(currentTable.rows.map(row => JSON.stringify(row.sort())));
     
