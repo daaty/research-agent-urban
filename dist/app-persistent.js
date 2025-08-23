@@ -1,37 +1,4 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -456,22 +423,9 @@ app.post('/api/hybrid/start', (req, res) => __awaiter(void 0, void 0, void 0, fu
     try {
         console.log('🚀 Iniciando Sistema Híbrido via API...');
         yield hybridService.start();
-        // 🪟 Organizar janelas automaticamente após inicialização
-        console.log('🪟 Organizando janelas dos browsers...');
-        try {
-            // Aguardar browsers abrirem
-            yield new Promise(resolve => setTimeout(resolve, 5000));
-            const { WindowPositioner } = yield Promise.resolve().then(() => __importStar(require('./utils/windowPositioner')));
-            const positioner = new WindowPositioner();
-            yield positioner.arrangeAllWindows();
-            console.log('✅ Janelas organizadas em split-screen');
-        }
-        catch (windowError) {
-            console.error('❌ Erro ao organizar janelas:', windowError);
-        }
         res.json({
             success: true,
-            message: 'Sistema híbrido iniciado com sucesso (janelas organizadas automaticamente)',
+            message: 'Sistema híbrido iniciado com sucesso',
             status: hybridService.getStats(),
             timestamp: new Date().toISOString()
         });
@@ -486,27 +440,6 @@ app.post('/api/hybrid/start', (req, res) => __awaiter(void 0, void 0, void 0, fu
     }
 }));
 // 🪟 Organizar Janelas em Split-Screen (Endpoint Manual)
-app.post('/api/windows/arrange', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        console.log('🪟 Organizando janelas em split-screen via API...');
-        const { WindowPositioner } = yield Promise.resolve().then(() => __importStar(require('./utils/windowPositioner')));
-        const positioner = new WindowPositioner();
-        yield positioner.arrangeAllWindows();
-        res.json({
-            success: true,
-            message: 'Janelas organizadas em split-screen com sucesso',
-            timestamp: new Date().toISOString()
-        });
-    }
-    catch (error) {
-        console.error('❌ Erro ao organizar janelas:', error);
-        res.status(500).json({
-            success: false,
-            error: error.message,
-            timestamp: new Date().toISOString()
-        });
-    }
-}));
 // ⏹️ Parar Sistema Híbrido
 app.post('/api/hybrid/stop', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -567,6 +500,7 @@ app.post('/api/hybrid/recharge', (req, res) => {
         });
     }
     catch (error) {
+        console.error('❌ Erro ao adicionar recarga:', error);
         res.status(500).json({
             success: false,
             error: error.message,

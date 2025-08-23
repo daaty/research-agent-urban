@@ -478,29 +478,14 @@ const hybridService = HybridOperationService.getInstance({
 });
 
 // 🚀 Iniciar Sistema Híbrido
-app.post('/api/hybrid/start', async (req, res) => {
+
+app.post('/api/hybrid/start', async (req: Request, res: Response) => {
   try {
     console.log('🚀 Iniciando Sistema Híbrido via API...');
     await hybridService.start();
-    
-    // 🪟 Organizar janelas automaticamente após inicialização
-    console.log('🪟 Organizando janelas dos browsers...');
-    try {
-      // Aguardar browsers abrirem
-      await new Promise(resolve => setTimeout(resolve, 5000));
-      
-      const { WindowPositioner } = await import('./utils/windowPositioner');
-      const positioner = new WindowPositioner();
-      
-      await positioner.arrangeAllWindows();
-      console.log('✅ Janelas organizadas em split-screen');
-    } catch (windowError) {
-      console.error('❌ Erro ao organizar janelas:', windowError);
-    }
-    
     res.json({
       success: true,
-      message: 'Sistema híbrido iniciado com sucesso (janelas organizadas automaticamente)',
+      message: 'Sistema híbrido iniciado com sucesso',
       status: hybridService.getStats(),
       timestamp: new Date().toISOString()
     });
@@ -514,37 +499,15 @@ app.post('/api/hybrid/start', async (req, res) => {
   }
 });
 
+
 // 🪟 Organizar Janelas em Split-Screen (Endpoint Manual)
-app.post('/api/windows/arrange', async (req, res) => {
-  try {
-    console.log('🪟 Organizando janelas em split-screen via API...');
-    
-    const { WindowPositioner } = await import('./utils/windowPositioner');
-    const positioner = new WindowPositioner();
-    
-    await positioner.arrangeAllWindows();
-    
-    res.json({
-      success: true,
-      message: 'Janelas organizadas em split-screen com sucesso',
-      timestamp: new Date().toISOString()
-    });
-  } catch (error: any) {
-    console.error('❌ Erro ao organizar janelas:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
-      timestamp: new Date().toISOString()
-    });
-  }
-});
+
 
 // ⏹️ Parar Sistema Híbrido
-app.post('/api/hybrid/stop', async (req, res) => {
+app.post('/api/hybrid/stop', async (req: Request, res: Response) => {
   try {
     console.log('⏹️ Parando Sistema Híbrido via API...');
     await hybridService.stop();
-    
     res.json({
       success: true,
       message: 'Sistema híbrido parado com sucesso',
@@ -561,7 +524,7 @@ app.post('/api/hybrid/stop', async (req, res) => {
 });
 
 // 📊 Status do Sistema Híbrido
-app.get('/api/hybrid/status', (req, res) => {
+app.get('/api/hybrid/status', (req: Request, res: Response) => {
   try {
     const status = hybridService.getStats();
     
@@ -580,10 +543,9 @@ app.get('/api/hybrid/status', (req, res) => {
 });
 
 // 🔋 Adicionar Solicitação de Recarga
-app.post('/api/hybrid/recharge', (req, res) => {
+app.post('/api/hybrid/recharge', (req: Request, res: Response) => {
   try {
     const { driverId, amount, priority = 'normal' } = req.body;
-    
     if (!driverId || !amount) {
       return res.status(400).json({
         success: false,
@@ -591,9 +553,7 @@ app.post('/api/hybrid/recharge', (req, res) => {
         timestamp: new Date().toISOString()
       });
     }
-
     hybridService.addRechargeToQueue(driverId, amount, priority === 'urgent');
-    
     res.json({
       success: true,
       message: `Recarga adicionada à fila: ${driverId} -> R$ ${amount}`,
@@ -603,6 +563,7 @@ app.post('/api/hybrid/recharge', (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error: any) {
+    console.error('❌ Erro ao adicionar recarga:', error);
     res.status(500).json({
       success: false,
       error: error.message,
@@ -612,7 +573,7 @@ app.post('/api/hybrid/recharge', (req, res) => {
 });
 
 // 📋 Adicionar IDs para Extração
-app.post('/api/hybrid/add-drivers', (req, res) => {
+app.post('/api/hybrid/add-drivers', (req: Request, res: Response) => {
   try {
     const { driverIds, priority = 'normal' } = req.body;
     
@@ -646,7 +607,7 @@ app.post('/api/hybrid/add-drivers', (req, res) => {
 });
 
 // ⏸️ Pausar Sistema Híbrido (Nota: Funcionalidade controlada automaticamente)
-app.post('/api/hybrid/pause', (req, res) => {
+app.post('/api/hybrid/pause', (req: Request, res: Response) => {
   res.json({
     success: true,
     message: 'Sistema híbrido controla pausas automaticamente durante recargas',
@@ -656,7 +617,7 @@ app.post('/api/hybrid/pause', (req, res) => {
 });
 
 // ▶️ Resumir Sistema Híbrido (Nota: Funcionalidade controlada automaticamente)
-app.post('/api/hybrid/resume', (req, res) => {
+app.post('/api/hybrid/resume', (req: Request, res: Response) => {
   res.json({
     success: true,
     message: 'Sistema híbrido resume automaticamente após recargas',
@@ -666,7 +627,7 @@ app.post('/api/hybrid/resume', (req, res) => {
 });
 
 // 🚨 Parada de Emergência (Use o método stop padrão)
-app.post('/api/hybrid/emergency-stop', async (req, res) => {
+app.post('/api/hybrid/emergency-stop', async (req: Request, res: Response) => {
   try {
     console.log('🚨 PARADA DE EMERGÊNCIA ATIVADA VIA API - Usando stop()');
     await hybridService.stop();
@@ -686,7 +647,7 @@ app.post('/api/hybrid/emergency-stop', async (req, res) => {
 });
 
 // 📊 Consultar Dados Pessoais Salvos
-app.get('/api/personal-data/drivers', async (req, res) => {
+app.get('/api/personal-data/drivers', async (req: Request, res: Response) => {
   try {
     const drivers = await databaseManager.getAllDriversPersonalDetails();
     
@@ -706,7 +667,7 @@ app.get('/api/personal-data/drivers', async (req, res) => {
 });
 
 // 📈 Estatísticas dos Dados Pessoais
-app.get('/api/personal-data/stats', async (req, res) => {
+app.get('/api/personal-data/stats', async (req: Request, res: Response) => {
   try {
     // Usar o método existente
     const allDrivers = await databaseManager.getAllDriversPersonalDetails();

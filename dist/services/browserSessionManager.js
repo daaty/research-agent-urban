@@ -93,23 +93,6 @@ class BrowserSessionManager {
         }
     }
     /**
-     * 🖥️ Obter posição da janela para split-screen (SIMPLES)
-     */
-    getWindowPosition(instanceName) {
-        const positions = {
-            // LADO ESQUERDO 
-            'default': { x: 0, y: 0, width: 800, height: 1170 },
-            'rides_scraper': { x: 0, y: 0, width: 800, height: 1170 },
-            'hybrid_operation': { x: 0, y: 0, width: 800, height: 1170 },
-            // LADO DIREITO 
-            'drivers_scraper': { x: 800, y: 0, width: 800, height: 1170 },
-            'hybrid_scraper': { x: 800, y: 0, width: 800, height: 1170 }
-        };
-        const position = positions[instanceName] || positions['default'];
-        console.log(`📍 [${instanceName}] → Posição: (${position.x}, ${position.y}) Tamanho: ${position.width}x${position.height}`);
-        return position;
-    }
-    /**
      * 🆕 Obtém instância nomeada do BrowserSessionManager
      */
     static getInstance(instanceName = 'default') {
@@ -484,18 +467,11 @@ class BrowserSessionManager {
                 const envDetector = environmentDetector_1.EnvironmentDetector.getInstance();
                 const playwrightConfig = envDetector.getPlaywrightConfig();
                 console.log(`🖥️ Configuração Playwright: headless=${playwrightConfig.headless}`);
-                // 🖥️ ADICIONAR POSICIONAMENTO SPLIT-SCREEN SEM QUEBRAR CONFIGURAÇÃO ORIGINAL
-                const windowPosition = this.getWindowPosition(this.instanceName);
-                const splitScreenArgs = [
-                    ...playwrightConfig.args,
-                    `--window-position=${windowPosition.x},${windowPosition.y}`,
-                    `--window-size=${windowPosition.width},${windowPosition.height}`,
-                    '--new-window'
-                ];
+                // Usar apenas os argumentos padrão do Playwright
                 this.context = yield playwright_1.chromium.launchPersistentContext(this.userDataDir, {
                     headless: playwrightConfig.headless,
-                    args: splitScreenArgs, // 🎯 ARGS COM POSICIONAMENTO SIMPLES
-                    viewport: { width: windowPosition.width, height: windowPosition.height } // 🔧 VIEWPORT AJUSTADO PARA SPLIT-SCREEN
+                    args: playwrightConfig.args,
+                    viewport: playwrightConfig.viewport
                 });
                 // Obter referência do browser do context
                 this.browser = this.context.browser();
