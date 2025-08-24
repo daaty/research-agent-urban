@@ -373,14 +373,18 @@ export class BrowserSessionManager {
 
       await this.page!.waitForTimeout(3000);
 
+      // Sempre preencher credenciais imediatamente após carregar a página de login
+      console.log('📝 [DEBUG] Preenchendo credenciais imediatamente após carregar página de login...');
+      try {
+        await this.page!.fill('#exampleInputEmail1', this.email);
+        await this.page!.fill('#exampleInputPassword1', this.password);
+        console.log('✅ [DEBUG] Campos de login preenchidos automaticamente.');
+      } catch (err) {
+        console.log('❌ [DEBUG] Falha ao preencher campos de login:', err);
+      }
 
-      // Verificar se há captcha na página
+      // Agora verificar se há captcha
       const hasCaptcha = await this.checkForCaptcha();
-
-      // Sempre preencher credenciais antes de qualquer ação manual
-      console.log('📝 Preenchendo credenciais...');
-      await this.page!.fill('#exampleInputEmail1', this.email);
-      await this.page!.fill('#exampleInputPassword1', this.password);
 
       if (hasCaptcha) {
         console.log('🤖 CAPTCHA detectado na página!');
