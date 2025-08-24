@@ -1,5 +1,5 @@
 {
-  "timestamp": 1755744287824,
+  "timestamp": 1755933976142,
   "data": [
     {
       "name": "Ongoing Rides",
@@ -108,45 +108,8 @@
         "Vehicle Type",
         "Vehicle Type"
       ],
-      "rows": [
-        [
-          "603978208",
-          "--",
-          "Bruno  Silva",
-          "Yasmin Campos",
-          "+5566999231889",
-          "1511, Rua Dezessete, União, Matupá, Brasil, Casa cinza, com placa de manicure na grade",
-          "Eletromóveis Martinello - Avenida Vítor F Donine - União, Matupá - State of Mato Grosso, Brazil",
-          "202508202025-08-20 16:59:50",
-          "202508202025-08-20 17:01:50",
-          "POPULAR",
-          "Completed",
-          "--",
-          "--",
-          "5",
-          "-",
-          "-"
-        ],
-        [
-          "603983157",
-          "--",
-          "Elindo Juliao Severino",
-          "Yasmin Campos",
-          "+5566999231889",
-          "pedalando gostoso - matupá mt - rua 23, Matupá - State of Mato Grosso, Brazil",
-          "1511, Rua Dezessete, União, Matupá, Brasil, Casa cinza, com placa de manicure na grade",
-          "202508202025-08-20 18:05:59",
-          "202508202025-08-20 18:12:59",
-          "POPULAR",
-          "Completed",
-          "--",
-          "--",
-          "-",
-          "-",
-          "-"
-        ]
-      ],
-      "isEmpty": false
+      "rows": [],
+      "isEmpty": true
     },
     {
       "name": "Cancelled Rides",
@@ -229,5 +192,5 @@
       "isEmpty": true
     }
   ],
-  "dataHash": "39b7818bf953028e96babecc8c34ca32"
+  "dataHash": "9be7503c54c2e20df4e1d27429b35d94"
 }

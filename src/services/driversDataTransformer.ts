@@ -48,20 +48,23 @@ export class DriversDataTransformer {
         // Processar cada linha da tabela como um registro individual
         table.rows.forEach(row => {
           // Extrair informações básicas do driver
-          const driverInfo = this.extractDriverInfo(row, table.headers);
+          const driverInfo = this.extractDriverInfo(row, table.headers, table.name);
+          if (!driverInfo) {
+            // Logar erro de mapeamento e pular registro
+            console.warn(`[DRIVER SCRAPER] Registro ignorado por mapeamento inválido. Aba: ${table.name}, Row: ${JSON.stringify(row)}`);
+            return;
+          }
+          // Validação extra: driver_id não pode ser telefone
+          if (driverInfo.driver_id && /^\d{8,}$/.test(driverInfo.driver_id) && driverInfo.driver_id === driverInfo.mobile) {
+            console.warn(`[DRIVER SCRAPER] Registro ignorado: driver_id parece telefone. Aba: ${table.name}, Row: ${JSON.stringify(row)}`);
+            return;
+          }
           const uniqueId = this.generateDriverUniqueId(driverInfo, table.name);
-          
-          // Gerar hash para detecção de duplicatas
           const dataHash = this.generateDataHash(uniqueId, row, table.name);
-          
-          // Determinar tipo de dados baseado no nome da tabela
           const dataType = this.mapTableNameToDataType(table.name);
-          
-          // Preparar dados adicionais específicos da página
           const additionalData = this.extractAdditionalData(row, table.headers, table.name);
-          
           const record: DriverRecord = {
-            driver_id: driverInfo.driver_id || uniqueId,
+            driver_id: driverInfo.driver_id,
             name: driverInfo.name || '',
             email: driverInfo.email || null,
             mobile: driverInfo.mobile || null,
@@ -73,10 +76,8 @@ export class DriversDataTransformer {
             source: executionSource,
             unique_id: uniqueId
           };
-
           records.push(record);
           totalRecords++;
-          
           if (hasChanges) {
             newRecords++;
           }
@@ -104,52 +105,136 @@ export class DriversDataTransformer {
   }
 
   /**
-   * Extrai informações estruturadas do driver de uma linha de dados
+   * Extrai informações do driver de uma linha usando DETECÇÃO INTELIGENTE por padrão
+   * NOVA ABORDAGEM: detecta dados por padrão, não por posição - SIMPLES E ROBUSTA
    */
-  private extractDriverInfo(row: string[], headers: string[]): any {
+  private extractDriverInfo(row: string[], headers: string[], tableName: string = ""): any {
+    if (!row || row.length === 0) return null;
+
+    console.log(`[DEBUG] Row completa (${tableName}):`, row);
+
+    // ESTRATÉGIA SIMPLES: Detectar dados por PADRÃO, não por posição
     const driverInfo: any = {};
-    
-    headers.forEach((header, index) => {
-      const value = row[index] || '';
-      const headerLower = header.toLowerCase();
-      
-      // Mapear campos específicos da tabela Active Drivers
-      if (headerLower.includes('driver id')) {
-        driverInfo.driver_id = value;
-      } else if (headerLower.includes('driver name')) {
-        driverInfo.name = value;
-      } else if (headerLower.includes('city')) {
-        driverInfo.city = value;
-      } else if (headerLower.includes('mobile')) {
-        driverInfo.mobile = value;
-      } else if (headerLower.includes('email')) {
-        driverInfo.email = value;
-      } else if (headerLower.includes('status')) {
-        driverInfo.status = value;
-      } else if (headerLower.includes('registered on')) {
-        driverInfo.registered_on = value;
-      } else if (headerLower.includes('vehicle number')) {
-        driverInfo.vehicle_number = value;
-      } else if (headerLower.includes('rides in last 7 days')) {
-        driverInfo.rides_7_days = value;
-      } else if (headerLower.includes('rides in last 30 days')) {
-        driverInfo.rides_30_days = value;
-      } else if (headerLower.includes('last login')) {
-        driverInfo.last_login = value;
-      } else if (headerLower.includes('last ride')) {
-        driverInfo.last_ride = value;
-      } else if (headerLower.includes('driver ratings')) {
-        driverInfo.rating = value;
-      } else if (headerLower.includes('franchise')) {
-        driverInfo.franchise = value;
-      }
-      
-      // Adicionar campo genérico também
-      const fieldKey = header.toLowerCase().replace(/\s+/g, '_').replace(/[^\w]/g, '');
-      driverInfo[fieldKey] = value;
+
+    // 1. DETECTAR DRIVER ID: Número de 7-8 dígitos
+    driverInfo.driver_id = this.findDriverId(row);
+
+    // 2. DETECTAR NOME: Texto com letras que não seja cidade/veículo
+    driverInfo.name = this.findDriverName(row);
+
+    // 3. DETECTAR TELEFONE: Formato +55...
+    driverInfo.mobile = this.findMobile(row);
+
+    // 4. DETECTAR EMAIL: Contém @
+    driverInfo.email = this.findEmail(row);
+
+    // 5. DETECTAR CIDADE: Palavra conhecida como "Matupá"
+    driverInfo.city = this.findCity(row);
+
+    console.log(`[DEBUG] Dados extraídos (${tableName}):`, {
+      driver_id: driverInfo.driver_id,
+      name: driverInfo.name,
+      mobile: driverInfo.mobile,
+      email: driverInfo.email
     });
 
+    // VALIDAÇÃO CRÍTICA: Se não tem driver_id válido, rejeitar completamente
+    if (!driverInfo.driver_id) {
+      console.log(`[DEBUG] Registro rejeitado por falta de driver_id válido (${tableName})`);
+      return null;
+    }
+
     return driverInfo;
+  }
+
+  /**
+   * Detecta Driver ID: número de 7-8 dígitos
+   */
+  private findDriverId(row: string[]): string | null {
+    for (const cell of row) {
+      if (cell && /^\d{7,8}$/.test(cell.trim())) {
+        return cell.trim();
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Detecta nome do driver: texto com letras que não seja cidade/veículo/status
+   */
+  private findDriverName(row: string[]): string | null {
+    const excludePatterns = [
+      /^\+55/, // telefone
+      /^\d+$/, // só números
+      /@/, // email
+      /^(Matupá|Online|Offline|Remove|Driver|View OTP|None)$/i, // palavras específicas
+      /PLACA|CARRO|GOL|ONIX|CORSA|HB20|SIENA|FIESTA|KWID|COROLLA|HYUNDAI|NISSAN/i, // veículos
+      /^\d{1,2}\/\d{1,2}\/\d{4}/, // datas formato dd/mm/yyyy
+      /\d{4}\d{2}\d{2}\d{4}-\d{2}-\d{4}/, // datas formato estranho do sistema
+      /^\d{8}\d{4}-\d{2}-\d{2}/, // timestamp malformado
+      /out of/i, // "1 out of 5"
+      /^[\d\s\-\.]+$/, // só números, espaços e pontuação
+      /^.{0,2}$/, // muito curto (0-2 caracteres)
+      /No data available/i // mensagem padrão da tabela
+    ];
+
+    for (const cell of row) {
+      if (!cell || cell.trim() === '') continue;
+      
+      const cleanCell = cell.trim();
+      
+      // Verificar se contém letras
+      if (!/[a-zA-ZÀ-ÿ]/.test(cleanCell)) continue;
+      
+      // Verificar se NÃO bate com padrões excluídos
+      const isExcluded = excludePatterns.some(pattern => pattern.test(cleanCell));
+      if (isExcluded) continue;
+      
+      // Se passou em todas as verificações, é provavelmente um nome
+      if (cleanCell.length >= 3) {
+        return cleanCell;
+      }
+    }
+    
+    return null;
+  }
+
+  /**
+   * Detecta telefone: formato +55...
+   */
+  private findMobile(row: string[]): string | null {
+    for (const cell of row) {
+      if (cell && /^\+55\d{11,13}$/.test(cell.trim())) {
+        return cell.trim();
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Detecta email: contém @ e formato válido
+   */
+  private findEmail(row: string[]): string | null {
+    for (const cell of row) {
+      if (cell && /@/.test(cell) && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cell.trim())) {
+        return cell.trim();
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Detecta cidade: palavras conhecidas
+   */
+  private findCity(row: string[]): string | null {
+    const knownCities = ['Matupá', 'São Paulo', 'Rio de Janeiro'];
+    
+    for (const cell of row) {
+      if (cell && knownCities.includes(cell.trim())) {
+        return cell.trim();
+      }
+    }
+    return null;
   }
 
   /**
@@ -202,7 +287,8 @@ export class DriversDataTransformer {
     }
     
     additionalData.raw_row = row;
-    additionalData.headers = headers;
+  // Padronizar headers: lowercase, sem espaços extras, com underscores
+  additionalData.headers = headers.map(h => h.trim().toLowerCase().replace(/\s+/g, '_'));
     additionalData.scraped_timestamp = new Date().toISOString();
     
     return additionalData;
