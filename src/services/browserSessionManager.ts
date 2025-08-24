@@ -373,23 +373,23 @@ export class BrowserSessionManager {
 
       await this.page!.waitForTimeout(3000);
 
+
       // Verificar se há captcha na página
       const hasCaptcha = await this.checkForCaptcha();
-      
-      if (hasCaptcha) {
-        console.log('🤖 CAPTCHA detectado na página!');
-        console.log('⚠️ Login automático não é possível com captcha');
-        console.log('📝 Por favor, faça login manualmente no navegador VNC');
-        console.log('� O sistema irá detectar automaticamente quando você completar o login...');
-        
-        // 🔄 Iniciar polling para detectar login manual
-        return await this.waitForManualLogin();
-      }
 
-      // Preencher credenciais apenas se não há captcha
+      // Sempre preencher credenciais antes de qualquer ação manual
       console.log('📝 Preenchendo credenciais...');
       await this.page!.fill('#exampleInputEmail1', this.email);
       await this.page!.fill('#exampleInputPassword1', this.password);
+
+      if (hasCaptcha) {
+        console.log('🤖 CAPTCHA detectado na página!');
+        console.log('⚠️ Login automático não é possível com captcha');
+        console.log('📝 Por favor, apenas resolva o captcha manualmente no navegador VNC. As credenciais já foram preenchidas automaticamente.');
+        console.log('� O sistema irá detectar automaticamente quando você completar o login...');
+        // 🔄 Iniciar polling para detectar login manual
+        return await this.waitForManualLogin();
+      }
 
       // Fazer login
       console.log('🚪 Fazendo login...');
