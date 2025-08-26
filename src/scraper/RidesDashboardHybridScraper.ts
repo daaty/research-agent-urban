@@ -136,7 +136,14 @@ export class RidesDashboardHybridScraper {
     
     if (captchaVisible) {
       console.log('📋 Captcha detectado na página');
-      console.log('❌ Login automático não possível com captcha presente');
+      console.log('⚠️ Captcha presente, mas preenchendo campos de login e senha automaticamente antes do login manual');
+      try {
+        await this.page.fill('#exampleInputEmail1', username);
+        await this.page.fill('#exampleInputPassword1', password);
+        console.log('📝 Campos de login e senha preenchidos automaticamente mesmo com captcha visível.');
+      } catch (e) {
+        console.log('❌ Erro ao preencher campos de login e senha com captcha visível:', e);
+      }
       await this.waitForManualLogin();
       return;
     }
