@@ -47,6 +47,7 @@ export interface DriverScrapeResult {
   success: boolean;
   data: DriverTableData[];
   message: string;
+  hasChanges?: boolean;
   sessionInfo?: {
     isNewLogin: boolean;
     browserStatus: string;
