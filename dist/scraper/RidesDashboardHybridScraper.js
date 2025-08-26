@@ -638,7 +638,22 @@ class RidesDashboardHybridScraper {
                 console.log('🔍 Procurando campo #driverId...');
                 // Aguardar página carregar completamente
                 yield this.page.waitForLoadState('domcontentloaded');
-                yield this.page.waitForTimeout(2000);
+                yield this.page.waitForTimeout(8000); // AUMENTADO PARA DOCKER/LINUX - Mais tempo para Angular carregar
+                // 🐛 DEBUG: Imprimir HTML para ver o que tem na página
+                try {
+                    const bodyHTML = yield this.page.locator('body').innerHTML();
+                    console.log('🔍 [DEBUG] HTML da página dashboard (primeiros 1000 chars):');
+                    console.log(bodyHTML.substring(0, 1000));
+                    // Verificar se tem campos de input
+                    const inputCount = yield this.page.locator('input').count();
+                    console.log(`🔍 [DEBUG] Total de inputs encontrados: ${inputCount}`);
+                    // Procurar especificamente por driverId
+                    const hasDriverId = yield this.page.locator('#driverId').count();
+                    console.log(`🔍 [DEBUG] Campo #driverId encontrado: ${hasDriverId > 0 ? 'SIM' : 'NÃO'}`);
+                }
+                catch (debugError) {
+                    console.log('⚠️ [DEBUG] Erro ao imprimir HTML:', debugError);
+                }
                 // Tentar múltiplos seletores para o campo driverId
                 const possibleSelectors = [
                     '#driverId',
@@ -652,18 +667,27 @@ class RidesDashboardHybridScraper {
                 let usedSelector = '';
                 for (const selector of possibleSelectors) {
                     try {
-                        yield this.page.waitForSelector(selector, { timeout: 3000 });
+                        yield this.page.waitForSelector(selector, { timeout: 10000 }); // AUMENTADO DE 3s PARA 10s
                         driverIdField = selector;
                         usedSelector = selector;
                         console.log(`✅ Campo encontrado com seletor: ${selector}`);
                         break;
                     }
                     catch (_b) {
-                        console.log(`⚠️ Seletor ${selector} não encontrado, tentando próximo...`);
+                        // Log simplificado - só se não encontrar nenhum
                     }
                 }
                 if (!driverIdField) {
                     console.log('❌ Nenhum campo de driverId encontrado!');
+                    // 🔍 DEBUG: Imprimir HTML da página para debug
+                    try {
+                        const bodyHTML = yield this.page.locator('body').innerHTML();
+                        console.log('🔍 HTML da página (primeiros 1000 chars):');
+                        console.log(bodyHTML.substring(0, 1000));
+                    }
+                    catch (debugError) {
+                        console.log('❌ Erro ao obter HTML para debug:', debugError);
+                    }
                     console.log('🔍 Verificando se ainda está logado...');
                     // Verificar se perdeu o login
                     const currentUrl = this.page.url();

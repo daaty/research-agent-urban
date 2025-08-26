@@ -100,8 +100,10 @@ RUN npm run build
 # Instalar navegadores do Playwright com TODAS as dependências
 RUN npx playwright install chromium --with-deps
 
-# Limpar devDependencies após build para otimizar imagem
-RUN npm prune --production
+# REMOVER dist para forçar uso do TypeScript via ts-node-dev
+RUN rm -rf dist
+
+# MANTER devDependencies para ts-node-dev (necessário para npm run dev)
 
 # Criar diretórios necessários para AI Agent
 RUN mkdir -p \
