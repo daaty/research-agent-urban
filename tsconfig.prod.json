@@ -12,6 +12,7 @@
     "skipLibCheck": true
   },
   "include": [
+    "src/start-monitoring.ts",
     "src/auto-scraper.ts",
     "src/app-persistent.ts",
     "src/app-monitoring.ts",

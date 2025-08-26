@@ -80,7 +80,7 @@ async function startLocalDevelopment() {
     
     const startTime = Date.now();
     try {
-      await monitoring.runOnce();
+      await monitoring.runOnce(false); // Primeira execução com login
       const duration = ((Date.now() - startTime) / 1000).toFixed(1);
       
       console.log(`✅ Teste inicial concluído em ${duration}s`);

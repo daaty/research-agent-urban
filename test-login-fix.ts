@@ -18,7 +18,7 @@ async function testLoginFix() {
     
     // 2. Testar o método corrigido
     console.log('2️⃣ Testando ensureLoginWithCaptchaHandling (método corrigido)...');
-    const loginResult = await sessionManager.ensureLoginWithCaptchaHandling();
+    const loginResult = await sessionManager.ensureLoginWithCaptchaHandling(false);
     
     if (loginResult) {
       console.log('✅ Login realizado com sucesso!');

@@ -61,6 +61,9 @@ export class DriversPersistentScraper {
   private cacheManager: DriverCacheManager;
   private baseUrl: string;
   private driversPages: Array<{name: string, url: string}>;
+  
+  // 🔥 DRIVERS SEMPRE DEVEM PULAR LOGIN (runs após rides)
+  private static readonly ALWAYS_SKIP_LOGIN = true;
 
   constructor() {
     this.sessionManager = BrowserSessionManager.getInstance();
@@ -83,22 +86,33 @@ export class DriversPersistentScraper {
   /**
    * Executa scraping de drivers usando sessão persistente (reutiliza sessão das rides)
    */
-  public async scrapeAllDriversData(): Promise<DriverScrapeResult> {
+  public async scrapeAllDriversData(skipLoginVerification: boolean = false): Promise<DriverScrapeResult> {
     try {
+      // Usar constante interna para sempre pular login nos drivers
+      const shouldSkipLogin = DriversPersistentScraper.ALWAYS_SKIP_LOGIN || skipLoginVerification;
+      
       console.log('🚗 Iniciando scraping de drivers com sessão persistente...');
+      console.log(`🔧 Skip Login Original: ${skipLoginVerification}`);
+      console.log(`🔧 Skip Login Final (DRIVERS): ${shouldSkipLogin}`);
       
       // Verificar se a sessão está ativa (deve estar devido ao scraping de rides)
       if (!this.sessionManager.isActive()) {
-        return {
-          success: false,
-          data: [],
-          message: 'Sessão do browser não está ativa. Execute primeiro o scraping de rides.',
-          sessionInfo: {
-            isNewLogin: false,
-            browserStatus: 'inactive',
-            sessionValid: false
-          }
-        };
+        // Se shouldSkipLogin for true, tentar inicializar mas não fazer login
+        if (shouldSkipLogin) {
+          console.log('⚡ Inicializando browser sem verificação de login...');
+          await this.sessionManager.initializeBrowser();
+        } else {
+          return {
+            success: false,
+            data: [],
+            message: 'Sessão do browser não está ativa. Execute primeiro o scraping de rides.',
+            sessionInfo: {
+              isNewLogin: false,
+              browserStatus: 'inactive',
+              sessionValid: false
+            }
+          };
+        }
       }
 
       console.log('✅ Usando sessão existente do browser para drivers');
@@ -754,7 +768,9 @@ export class DriversPersistentScraper {
 /**
  * Função principal para scraping de drivers (interface compatível com rides)
  */
-export async function scrapeAllDriversDataPersistent(): Promise<DriverScrapeResult> {
+export async function scrapeAllDriversDataPersistent(skipLoginVerification: boolean = false): Promise<DriverScrapeResult> {
+  console.log('🚗🔧 DRIVERS SEMPRE SKIPA LOGIN - Executando função wrapper...');
   const scraper = new DriversPersistentScraper();
-  return await scraper.scrapeAllDriversData();
+  // Sempre true para drivers já que eles executam DEPOIS das rides
+  return await scraper.scrapeAllDriversData(true);
 }

@@ -1,0 +1,57 @@
+[0826/030654.937:INFO:CONSOLE:1] "
+It looks like you're using the development build of the Firebase JS SDK.
+When deploying Firebase apps to production, it is advisable to only import
+the individual SDK components you intend to use.
+
+For the CDN builds, these are available in the following manner
+(replace <PACKAGE> with the name of a component - i.e. auth, database, etc):
+
+https://www.gstatic.com/firebasejs/5.0.0/firebase-<PACKAGE>.js
+", source: https://www.gstatic.com/firebasejs/5.5.8/firebase.js (1)
+[0826/030707.846:INFO:CONSOLE:1420] "Google Maps JavaScript API has been loaded directly without loading=async. This can result in suboptimal performance. For best-practice loading patterns please see https://goo.gle/js-api-loading", source: https://maps.googleapis.com/maps/api/js?key=AIzaSyBaXqwW8w8e8jpGF75pw6U8IjNqFq4bTQk&v=weekly&libraries=places,drawing,routes,geometry&sensor=false (1420)
+[0826/030711.242:INFO:CONSOLE:97] "As of March 1st, 2025, google.maps.places.AutocompleteService is not available to new customers. Please use google.maps.places.AutocompleteSuggestion instead. At this time, google.maps.places.AutocompleteService is not scheduled to be discontinued, but google.maps.places.AutocompleteSuggestion is recommended over google.maps.places.AutocompleteService. While google.maps.places.AutocompleteService will continue to receive bug fixes for any major regressions, existing bugs in google.maps.places.AutocompleteService will not be addressed. At least 12 months notice will be given before support is discontinued. Please see https://developers.google.com/maps/legacy for additional details and https://developers.google.com/maps/documentation/javascript/places-migration-overview for the migration guide.", source: https://maps.googleapis.com/maps/api/js?key=AIzaSyBaXqwW8w8e8jpGF75pw6U8IjNqFq4bTQk&v=weekly&libraries=places,drawing,routes,geometry&sensor=false (97)
+[0826/030712.101:INFO:CONSOLE:0] "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing.", source: https://www.google.com/recaptcha/api2/anchor?ar=1&k=6LdYiVorAAAAAMR6Njel7BITlW20GLd1SPmfdx0T&co=aHR0cHM6Ly9yaWRlcy5lYzJkYXNoYm9hcmQuY29tOjQ0Mw..&hl=en&v=_mscDd1KHr60EWWbt2I_ULP0&size=normal&anchor-ms=20000&execute-ms=15000&cb=gu9bzy3o0v5w (0)
+[0826/030712.746:INFO:CONSOLE:0] "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing.", source: https://www.google.com/recaptcha/api2/bframe?hl=en&v=_mscDd1KHr60EWWbt2I_ULP0&k=6LdYiVorAAAAAMR6Njel7BITlW20GLd1SPmfdx0T&bft=0dAFcWeA5TUdYBK7AnaQHDRrf9CXCXACWguR7VvO6iDHpinlCOAQMl5fsWbtE6q4R2DVv0kWzdq_DLtAVDxZrMNA49lfMbqoVzoQ (0)
+[0826/030712.860:INFO:CONSOLE:36] "Google Maps JavaScript API warning: SensorNotRequired https://developers.google.com/maps/documentation/javascript/error-messages#sensor-not-required", source: https://maps.googleapis.com/maps-api-v3/api/js/62/1/util.js (36)
+[0826/030717.638:WARNING:content\browser\btm\btm_database.cc:129] Failed to initialize the DIPS SQLite database.
+[0826/030717.643:ERROR:net\disk_cache\cache_util_win.cc:25] Unable to move the cache: Acesso negado. (0x5)
+[0826/030717.643:ERROR:net\disk_cache\cache_util_win.cc:25] Unable to move the cache: Acesso negado. (0x5)
+[0826/030717.644:ERROR:net\disk_cache\disk_cache.cc:236] Unable to create cache
+[0826/030717.644:ERROR:gpu\ipc\host\gpu_disk_cache.cc:724] Gpu Cache Creation failed: -2
+[0826/030717.643:ERROR:net\disk_cache\cache_util_win.cc:25] Unable to move the cache: Acesso negado. (0x5)
+[0826/030717.644:ERROR:net\disk_cache\disk_cache.cc:236] Unable to create cache
+[0826/030717.644:ERROR:gpu\ipc\host\gpu_disk_cache.cc:724] Gpu Cache Creation failed: -2
+[0826/030717.644:ERROR:net\disk_cache\disk_cache.cc:236] Unable to create cache
+[0826/030717.644:ERROR:gpu\ipc\host\gpu_disk_cache.cc:724] Gpu Cache Creation failed: -2
+[0826/030719.660:WARNING:components\leveldb_proto\internal\leveldb_database.cc:125] Unable to open E:\SCRAPER1\research-agent-urban\browser-data\Default\shared_proto_db\metadata: IO error: E:\SCRAPER1\research-agent-urban\browser-data\Default\shared_proto_db\metadata/LOCK: Access denied. (ChromeMethodBFE: 15::LockFile::5)
+[0826/030720.671:ERROR:components\services\storage\service_worker\service_worker_storage.cc:1809] Failed to delete the database: Database IO error
+[0826/030721.684:WARNING:components\leveldb_proto\internal\leveldb_database.cc:125] Unable to open E:\SCRAPER1\research-agent-urban\browser-data\Default\shared_proto_db\metadata: IO error: E:\SCRAPER1\research-agent-urban\browser-data\Default\shared_proto_db\metadata/LOCK: Access denied. (ChromeMethodBFE: 15::LockFile::5)
+[0826/030723.690:WARNING:components\leveldb_proto\internal\leveldb_database.cc:125] Unable to open E:\SCRAPER1\research-agent-urban\browser-data\Default\shared_proto_db\metadata: IO error: E:\SCRAPER1\research-agent-urban\browser-data\Default\shared_proto_db\metadata/LOCK: Access denied. (ChromeMethodBFE: 15::LockFile::5)
+[0826/030725.713:WARNING:components\leveldb_proto\internal\leveldb_database.cc:125] Unable to open E:\SCRAPER1\research-agent-urban\browser-data\Default\shared_proto_db\metadata: IO error: E:\SCRAPER1\research-agent-urban\browser-data\Default\shared_proto_db\metadata/LOCK: Access denied. (ChromeMethodBFE: 15::LockFile::5)
+[0826/030728.611:INFO:CONSOLE:1] "
+It looks like you're using the development build of the Firebase JS SDK.
+When deploying Firebase apps to production, it is advisable to only import
+the individual SDK components you intend to use.
+
+For the CDN builds, these are available in the following manner
+(replace <PACKAGE> with the name of a component - i.e. auth, database, etc):
+
+https://www.gstatic.com/firebasejs/5.0.0/firebase-<PACKAGE>.js
+", source: https://www.gstatic.com/firebasejs/5.5.8/firebase.js (1)
+[0826/030737.851:ERROR:net\disk_cache\cache_util_win.cc:25] Unable to move the cache: Acesso negado. (0x5)
+[0826/030737.851:ERROR:net\disk_cache\cache_util_win.cc:25] Unable to move the cache: Acesso negado. (0x5)
+[0826/030737.851:ERROR:net\disk_cache\cache_util_win.cc:25] Unable to move the cache: Acesso negado. (0x5)
+[0826/030737.851:ERROR:net\disk_cache\disk_cache.cc:236] Unable to create cache
+[0826/030737.851:ERROR:gpu\ipc\host\gpu_disk_cache.cc:724] Gpu Cache Creation failed: -2
+[0826/030737.851:ERROR:net\disk_cache\disk_cache.cc:236] Unable to create cache
+[0826/030737.851:ERROR:gpu\ipc\host\gpu_disk_cache.cc:724] Gpu Cache Creation failed: -2
+[0826/030737.851:ERROR:net\disk_cache\disk_cache.cc:236] Unable to create cache
+[0826/030737.851:ERROR:gpu\ipc\host\gpu_disk_cache.cc:724] Gpu Cache Creation failed: -2
+[0826/030740.742:INFO:CONSOLE:1420] "Google Maps JavaScript API has been loaded directly without loading=async. This can result in suboptimal performance. For best-practice loading patterns please see https://goo.gle/js-api-loading", source: https://maps.googleapis.com/maps/api/js?key=AIzaSyBnMLf5xsakWDKVHGEvOC-1O0OIMrqGUkQ&v=weekly&libraries=places,drawing,routes,geometry&sensor=false (1420)
+[0826/030744.124:INFO:CONSOLE:97] "As of March 1st, 2025, google.maps.places.AutocompleteService is not available to new customers. Please use google.maps.places.AutocompleteSuggestion instead. At this time, google.maps.places.AutocompleteService is not scheduled to be discontinued, but google.maps.places.AutocompleteSuggestion is recommended over google.maps.places.AutocompleteService. While google.maps.places.AutocompleteService will continue to receive bug fixes for any major regressions, existing bugs in google.maps.places.AutocompleteService will not be addressed. At least 12 months notice will be given before support is discontinued. Please see https://developers.google.com/maps/legacy for additional details and https://developers.google.com/maps/documentation/javascript/places-migration-overview for the migration guide.", source: https://maps.googleapis.com/maps/api/js?key=AIzaSyBnMLf5xsakWDKVHGEvOC-1O0OIMrqGUkQ&v=weekly&libraries=places,drawing,routes,geometry&sensor=false (97)
+[0826/030744.909:INFO:CONSOLE:0] "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing.", source: https://www.google.com/recaptcha/api2/anchor?ar=1&k=6LdYiVorAAAAAMR6Njel7BITlW20GLd1SPmfdx0T&co=aHR0cHM6Ly9yaWRlcy5lYzJkYXNoYm9hcmQuY29tOjQ0Mw..&hl=en&v=_mscDd1KHr60EWWbt2I_ULP0&size=normal&anchor-ms=20000&execute-ms=15000&cb=eqfyj888u4oi (0)
+[0826/030745.729:INFO:CONSOLE:0] "An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing.", source: https://www.google.com/recaptcha/api2/bframe?hl=en&v=_mscDd1KHr60EWWbt2I_ULP0&k=6LdYiVorAAAAAMR6Njel7BITlW20GLd1SPmfdx0T&bft=0dAFcWeA624Mb4ETJvnadLFjQrPjSgcrYIxiTgs5H7W6k7ofMuVsqq9bnfEqT8aexG3qmZpZz5WbYzn-D-kAVyv-NIh0oJDmpWUg (0)
+[0826/030745.834:INFO:CONSOLE:36] "Google Maps JavaScript API warning: SensorNotRequired https://developers.google.com/maps/documentation/javascript/error-messages#sensor-not-required", source: https://maps.googleapis.com/maps-api-v3/api/js/62/1/util.js (36)
+[0826/030907.901:ERROR:content\browser\network_service_instance_impl.cc:595] Network service crashed, restarting service.
+[0826/030912.920:ERROR:content\browser\gpu\gpu_process_host.cc:964] GPU process exited unexpectedly: exit_code=-1073741510
+[0826/030912.920:WARNING:content\browser\gpu\gpu_process_host.cc:1405] The GPU process has crashed 1 time(s)

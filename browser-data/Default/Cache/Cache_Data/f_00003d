@@ -1,392 +1,734 @@
-<div ng-show="finalpermission.viewDeactiveDrivers">
+[
+  {
+    "text": "Get Started",
+    "icon": "fa fa-th",
+    "sref": "app.getStarted",
+    "translate": "GET_STARTED",
+    "id": 130
+  },
+  {  
+    "text": "Home",
+    "icon": "fa fa-home",
+    "sref": "app.home",
+    "translate": "HOME",
+    "id": 131
+  },
+  {
+    "text": "Dashboard",
+    "icon": "fa fa-th",
+    "sref": "app.dashboard",
+    "translate": "DASHBOARD",
+    "id": 57
+  },
+  {
+    "text": "Fixed Routes",
+    "icon": "fa fa-road",
+    "translate": "FIXED_ROUTES",
+    "submenu": [
+      {"text": "Stops", "sref":"app.manageStops", "id" : 74, "translate": "STOPS"},
+      {"text": "Routes", "sref":"app.manageRoutes", "id" : 75, "translate": "ROUTES"},
+      {"text": "Fares", "sref":"app.fixedRouteFares", "id" : 76, "translate": "FARE"},
+      {"text": "Journey", "sref":"app.manageJourneys", "id" : 77, "translate": "JOURNEY"},
+      {"text": "Shuttle Map View", "sref":"app.shuttleMapView", "id" : 158, "translate": "SHUTTLE_MAP_VIEW"},
+      {"text": "Completed Journey", "sref":"app.fixedRoutesBookings", "id" : 138, "translate": "COMPLETED_JOURNEY"},
+      {"text": "Subscriptions", "sref":"app.subscription", "id" : 110, "translate": "SUBSCRIPTIONS"},
+      {"text": "Cancellation Policy", "sref":"app.cancellationPolicy", "id" : 111, "translate": "CANCELLATION_POLICY"}
+    ]
+  },
+  {
+    "text": "",
+    "icon": "fa fa-bicycle",
+    "translate": "",
+    "forBike": true,
+    "submenu":[
+      {
+        "text": "Bike",
+        "sref": "app.bikeDetails",
+        "translate": "BIKE_DETAILS",
+        "forBike": true,
+        "id": 61
+      },
+      {
+        "text": "Deactivated",
+        "sref": "app.deactivatedDevices",
+        "translate": "DEACTIVATED_BIKES",
+        "forBike": true,
+        "bikeTextAfter":true,
+        "id": 71
+      },
+      {
+        "text": "Docking Stations",
+        "sref": "app.dockingLocations",
+        "translate": "DOCKING_STATIONS",
+        "id": 62
+      },
+      {
+        "text": "Damage Reported",
+        "sref": "app.damageReported",
+        "translate": "DAMAGE_REPORTED",
+        "id": 63
+      },
+      {
+        "text": "Lock Instruction",
+        "sref": "app.lockInstruction",
+        "translate": "LOCK_INSTRUCTION",
+        "id": 64
+      }
+    ]
+  },
+  {
+    "text": "Info Hub",
+    "icon": "fa fa-info-circle",
+    "sref": "app.infoHub",
+    "translate": "INFO_HUB",
+    "id": 26
+  },
+  {
+    "text": "Rides",
+    "icon": "fa fa-car",
+    "translate": "RIDES",
+    "submenu": [
+      {
+        "text": "Forecasting",
+        "sref": "app.forecastingRides",
+        "translate": "FORECASTING",
+        "id" : 159
+      },
+      {
+        "text": "Ongoing Rides",
+        "sref": "app.ongoingRides",
+        "translate": "ONGOING_RIDES",
+        "id" : 43
+      },
+      {
+        "text": "Scheduled Rides",
+        "sref": "app.scheduledRides",
+        "translate": "SCHEDULED_RIDES",
+        "id" : 55
+      },
+      {
+        "text": "Completed Rides",
+        "sref": "app.allRides",
+        "translate": "COMPLETED_RIDES",
+        "id" : 44
+      },
+      {
+        "text": "Cancelled Rides",
+        "sref": "app.cancelledRide",
+        "params": {"status": 4},
+        "translate": "CANCELLED_RIDES",
+        "id": 66
+      },
+      {
+        "text": "Missed Rides",
+        "sref": "app.missedRide",
+        "params": {"status": 3},
+        "translate": "MISSED_RIDES",
+        "id" : 65
+      }
+    ]
+  },
+  {
+    "text": "Car Pool Rides",
+    "icon": "fa fa-car",
+    "translate": "CAR_POOL_RIDES",
+    "submenu": [
+      {
+        "text": "Map View",
+        "sref": "app.poolRidesMapView",
+        "translate": "MAP_VIEW",
+        "id": 91
+      },
+      {
+        "text": "Ongoing Rides",
+        "sref": "app.ongoingPoolRides",
+        "translate": "ONGOING_RIDES",
+        "id" : 89
+      },
+      {
+        "text": "Scheduled Rides",
+        "sref": "app.scheduledPoolRides",
+        "translate": "SCHEDULED_RIDES",
+        "id" : 90
+      },
+      {
+        "text": "CarPool Promotions",
+        "sref": "app.carPoolPromotions",
+        "translate": "CARPOOL_PROMOTIONS",
+        "id" : 132
+      },
+      {
+        "text": "CarPool Preferences",
+        "sref": "app.carPoolPreferences",
+        "translate": "CARPOOL_PREFERENCES",
+        "id" : 133
+      },
+      {
+        "text": "CarPool Coupons",
+        "sref": "app.carpoolCouponsCtrl",
+        "translate": "CARPOOL_COUPONS",
+        "id" : 134
+      },
+      {
+        "text": "CarPool Documents Verify",
+        "sref": "app.carPoolDocumentsVerify",
+        "translate": "CARPOOL_DOCS_VERIFY",
+        "id" : 135
+      }
+    ]
+  },
+  {
+    "text": "Tasks",
+    "icon": "fa fa-tasks",
+    "translate": "TASKS",
+    "submenu": [
+      {"text": "Autos Tasks", "sref": "app.viewTasks", "id" : 67, "translate": "AUTOS_TASKS"},
+      {"text": "Tookan Tasks", "sref": "app.vehicleBranding", "id" : 102, "translate": "TOOKAN_TASKS"}
+    ]
+  },
+  {
+    "text": "PickUp And Delivery",
+    "icon": "fa fa-motorcycle",
+    "link": "fa fa-external-link",
+    "href": "http://edelivery.ec2dashboard.com/",
+    "translate": "PICKUP_AND_DELIVERY",
+    "id": 59
+  },
+  {
+    "text": "Map View",
+    "icon": "fa fa-globe",
+    "sref": "app.mapView",
+    "translate": "MAP_VIEW",
+    "id": 1
+  },
+  {
+    "text": "Manual Dispatch",
+    "icon": "fa fa-car",
+    "sref": "app.rideRequest",
+    "translate": "MANUAL_DISPATCH",
+    "id": 31
+  },
+  {
+    "text": "Contact Drivers",
+    "icon": "fa fa-envelope",
+    "sref": "app.contactDriver",
+    "translate": "CONTACT_DRIVERS",
+    "id": 19
+  },
+  {
+    "text": "Contact Customers",
+    "icon": "fa fa-envelope",
+    "sref": "app.contactCustomers",
+    "translate": "CONTACT_CUSTOMERS",
+    "id": 40
+  },
+  {
+    "text": "Dynamic Pricing",
+    "icon": "fa fa-bolt",
+    "sref": "app.dynamicPricingShow",
+    "translate": "DYNAMIC_PRICING",
+    "id" : 15
+  },
+  {
+    "text": "Customers",
+    "icon": "icon-user",
+    "translate": "CUSTOMERS",
+    "submenu": [
+      {
+        "text": "Active Customers",
+        "sref": "app.activeCustomers",
+        "translate": "ACTIVE_CUSTOMERS",
+        "id" : 56
+      },
+      {
+        "text": "Deactivated Customers",
+        "sref": "app.deactivatedCustomers",
+        "translate": "DEACTIVED_CUSTOMERS",
+        "id" : 106
+      },
+      {
+        "text": "Refunds",
+        "sref": "app.endRideRefunds",
+        "translate": "END_RIDE_REFUNDS",
+        "id" : 143
+      },
+      {
+        "text": "Documnets",
+        "sref": "app.documentsForCustomer",
+        "translate": "CUSTOMER_DOCUMENTS",
+        "id" : 127
+      },
+      {
+        "text": "Approve Credit",
+        "sref": "app.approveCredit",
+        "translate": "APPROVE_CREDIT"
+      },
+      {"text": "Promotions",
+        "sref": "app.promotions",
+        "translate": "PROMOTIONS"
+      },
+      {"text": "User Flags",
+        "sref": "app.userFlags",
+        "translate": "USER_FLAGS"
+      },
+      {"text": "Customer Correspondence",
+       "sref": "app.customerCorr",
+       "translate": "CUSTOMER_CORRESPONDENCE"
+      }
+    ]
+  },
+  {
+    "text": "Drivers",
+    "icon": "icon-user",
+    "translate": "DRIVERS",
+    "submenu": [
+          {
+            "text": "Active Drivers",
+            "sref": "app.activeDriver",
+            "translate": "ACTIVE_DRIVERS",
+            "id" :  2
+          },
+          {
+            "text": "Deactivated Drivers",
+            "sref": "app.deactivatedDriver",
+            "translate": "DEACTIVATED_DRIVERS",
+            "id" : 3
+          },
+          {
+            "text" : "Driver Enrollment",
+            "sref" : "app.selfEnrolled",
+            "translate": "DRIVER_ENROLLMENT",
+            "id"  : 3
+          },
+          {
+            "text": "Captive Drivers",
+            "translate": "CAPTIVE_DRIVERS",
+            "sref": "app.captiveDriver"
 
-    <header class="header-styles">
-        <h2 class="page-title heading">{{showDeviceText ? "DEACTIVATED_DRIVERS.DEACTIVATED_AGENTS" : "DEACTIVATED_DRIVERS.HEADING_VIEW" | translate}}</h2>
-    </header>
-    <div class="row panel-box-custom text-center margin-top-30" ng-if="table" ng-show="!checkbox.bothDriver&&!checkbox.jugnooDriver">
-        <div class="col-lg-12" ng-hide="aclcontroll">
-            <!--table_options_container-->
-            <!--table_options_buttons-->
-            <div class="col-md-offset-1 col-md-8 text-center">
+          },
+          {
+            "text": "Fraudulent Drivers",
+            "translate": "FRAUDULENT_DRIVERS",
+            "sref": "app.faultyDrivers"
+
+          },
+          {
+            "text": "Payment Held Drivers",
+            "sref": "app.paymentHolded",
+            "translate": "PAYMENT_HELD_DRIVERS",
+            "id" : 5
+          },
+          {
+            "text": "Cheating Cases Flags",
+            "sref": "app.cheatingCasesFlag",
+            "translate": "CHEATING_CASES_FLAGS",
+            "id" : 6
+          },
+          {
+            "text": "NEFT Return Status",
+            "translate": "NEFT_RETURN_STATUS",
+            "sref": "app.neftDrivers",
+            "id" : 163
+          },
+          {
+            "text": "Driver Flags",
+            "translate": "DRIVER_FLAGS",
+            "sref": "app.driverFlags"
+          },
+          {
+            "text": "Leaderboard",
+            "translate": "LEADERBOARD",
+            "sref": "app.analytics",
+            "id" : 11
+          },
+          {
+            "text": "Driver Performance",
+            "translate": "DRIVER_PERFORMANCE",
+            "sref": "app.highCancellations",
+            "id" : 13
+          },
+          {
+            "text": "Ride Request Details",
+            "translate": "RIDE_REQUEST_DETAILS",
+            "sref":"app.driverRideReq",
+            "id" : 14
+          },
+          {
+            "text": "Driver Clustering",
+            "sref":"app.driverClusters",
+            "translate": "DRIVER_CLUSTERING"
+          },
+          {
+            "text": "Outreach Data",
+            "sref": "app.outreachData",
+            "translate": "OUTREACH_DATA"
+          },
+
+          {
+            "text": "Beta Program",
+            "sref": "app.betaProgram",
+            "translate": "BETA_PROGRAM"
+          },
+          {
+            "text": "Driver Properties",
+            "translate": "DRIVER_PROPERTIES",
+            "sref": "app.driverProperties",
+            "id": 92
+          },
+          {
+            "text": "Documents",
+            "translate": "DRIVER_DOCUMENTS",
+            "sref": "app.driverDocuments",
+            "id": 93
+          }
+    ]
+  },
+  {
+    "text": "Rewards",
+    "icon": "fa fa-money",
+    "translate": "REWARDS",
+    "submenu": [
+      {"text": "Rewards List", "sref": "app.rewards", "id" : 109, "translate": "REWARDS"},
+      {"text": "Redeemed Rewards", "sref":"app.redeemedRewards", "id" :109, "translate": "REDEEMED_REWARDS"}
+    ]
+  },
+  {
+    "text": "Fleets",
+    "icon": "fa fa-link",
+    "sref": "app.fleets",
+    "translate": "FLEETS",
+    "id": 79
+  },
+  {
+    "text" : "Stripe Connect",
+    "icon": "fa fa-link",
+    "sref": "app.stripeConnect",
+    "translate": "STRIPE_CONNECT",
+    "id": 140
+  },
+  {
+    "text" : "Stripe Login",
+    "icon": "fa fa-link",
+    "sref": "app.stripeLogin",
+    "translate": "STRIPE_LOGIN",
+    "id": 141
+  },
+
+  {
+    "text": "Tasks",
+    "icon": "fa fa-ticket",
+    "translate": "BIKE_TASKS",
+    "forBike": true,
+    "submenu": [
+      {"text": "Create Task", "sref": "app.createTask", "id" : 103, "translate": "CREATE_TASK"},
+      {"text": "Tasks", "sref":"app.orders", "id" :104, "translate": "FATAFAT_DELIVERY_LIST"}
+    ]
+  },
+
+  {
+    "text": "Subscriptions",
+    "icon": "fa fa-ticket",
+    "translate": "HITCH_DRIVER_SUBSCRIPTIONS",
+    "submenu": [
+      {"text": "Subscriptions List", "sref": "app.subscriptionPlans", "id" : 88, "translate": "SUBSCRIPTION_LIST"},
+      {"text": "Subscription Drivers", "sref":"app.subscriptionDrivers", "id" :88, "translate": "SUBSCRIPTION_DRIVERS"}
+    ]
+  },
+  {
+    "text": "Customer Subscriptions",
+    "icon": "fa fa-ticket",
+    "translate": "CUSTOMER_SUBSCRIPTIONS",
+    "submenu": [
+      {"text": "Subscriptions List", "sref": "app.customerSubscription", "id" : 156, "translate": "SUBSCRIPTION_LIST"},
+      {"text": "Customers List", "sref": "app.subscribedCustomerList", "id": 157, "translate": "CUSTOMERS_LIST"}
+    ]
+  },
+  {
+    "text": "Driver Subscriptions",
+    "icon": "fa fa-ticket",
+    "translate": "DRIVER_SUBSCRIPTIONS",
+    "submenu": [
+      {"text": "Subscriptions List", "sref": "app.driverSubscription", "id": 85, "translate": "SUBSCRIPTION_LIST"},
+      {"text": "Drivers List", "sref": "app.subscribeDriver", "id": 94, "translate": "DRIVERS_LIST"}
+    ]
+  },
+  {
+    "text": "Promotions",
+    "icon": "fa fa-money",
+    "translate": "PROMOTIONS",
+    "submenu": [
+      {
+        "text": "City Wide",
+        "translate": "CITY_WIDE",
+        "sref": "app.cityWidePromotions",
+        "id" : 41
+      },
+      {
+        "text": "Promo Codes",
+        "translate": "PROMO_CODES",
+        "sref": "app.promoCodes",
+        "id" : 54
+      },
+      {
+        "text": "Coupons",
+        "translate": "COUPONS",
+        "sref": "app.coupons",
+        "id" : 45
+      },
+      {
+        "text": "Driver Recharge Cards",
+        "translate": "DRIVER_RECHARGE_CARDS",
+        "sref": "app.driverRechargeCards",
+        "id" : 114
+      },
+      {
+        "text": "Referrals",
+        "translate": "REFERRALS",
+        "sref": "app.referrals",
+        "id" : 48
+      },
+      {
+        "text": "Driver Referrals",
+        "translate": "DRIVER_REFERRALS",
+        "sref": "app.driverRefferals",
+        "id" : 78
+      },
+      {
+        "text": "Subscriptions",
+        "translate": "SUBSCRIPTIONS",
+        "sref": "app.subcriptions",
+        "id" : 69
+      },
+      {
+        "text": "Scratch Cards",
+        "translate": "SCRATCH_CARDS",
+        "sref": "app.scratchCards",
+        "id" : 108
+      }
+    ]
+  },
+  {
+    "text": "Incentives",
+    "icon": "fa fa-money",
+    "translate": "PROGRAMMES",
+    "submenu": [
+      {"text": "Incentives", "sref":"app.incentive","id" : 49,"translate": "INCENTIVE_PROGRAMMES"},
+      {"text": "Manual Adjustment", "sref":"app.manualAdjustmentshow","id" : 86,"translate": "INCENTIVE_ADJUSTMENT"}
+    ]
+  },
+ 
+  {
+    "text": "Finance",
+    "icon": "fa fa-money",
+    "translate": "FINANCE",
+    "submenu": [
+      {
+        "text": "Manual Adjustments",
+        "sref": "app.manualadjustmentshow",
+        "translate": "MANUAL_ADJUSTMENTS",
+        "id": 20
+      },
+      {
+        "text": "Wallet Recharge",
+        "sref": "app.rechargeApproval",
+        "translate": "WALLET_RECHARGE"
+      },
+      {
+        "text": "Wallet Settlement",
+        "sref": "app.walletSettlement",
+        "translate": "WALLET_STATEMENT"
+      }
+    ]
+  },
+  {
+    "text": "Inventory",
+    "icon": "fa fa-list",
+    "translate": "INVENTORY",
+    "submenu": [
+      {"text": "Databse","sref": "app.inventorydatabase", "translate": "DATABASE" },
+      {"text": "Status Change","sref": "app.statusChangeApproval", "translate": "STATUS_CHANGE" }
+    ]
+
+  },
+  {
+    "text": "Chat Support",
+    "icon": "fa fa-question-circle",
+    "link": "fa fa-external-link",
+    "href": "https://hippochat.io/#/dashboard/all/chats/-1?access_token=",
+    "translate": "CHAT_SUPPORT",
+    "id": 38
+  },
+  {
+    "text": "Analytics",
+    "sref": "app.katoAnalytics",
+    "icon": "fa fa-bar-chart",
+    "translate": "ANALYTICS",
+    "id": 37
+
+  },
+  { "text": "Zone Map View",
+    "sref": "app.zones",
+    "icon": "fa fa-map-pin",
+    "translate": "ZONE_MAP_VIEW",
+    "id": 46
+  },
+  {
+    "text": "Automatic surge",
+    "icon": "icon-settings",
+    "translate": "AUTOMATIC_SURGE",
+    "submenu": [
+      {"text": "City Params", "sref": "app.surgeParams","id":51,"translate": "CITY_PARAMS"},
+      {"text": "Map View", "sref": "app.surgeMapView","id": 52,"translate": "MAP_VIEW"},
+      {"text": "History", "sref": "app.surgeHistory", "id" : 53,"translate": "HISTORY"}
+    ]
+  },
+  {
+    "text": "Driver Online Hours",
+    "sref": "app.driverOnlineHours",
+    "icon":"fa fa-clock-o",
+    "translate": "DRIVER_ONLINE_HOURS",
+    "id": 72
+  },
+  {
+    "text": "Pop Up",
+    "icon": "fa fa-external-link",
+    "translate": "POP_UP",
+    "submenu": [
+      {"text": "View Popup", "sref":"app.popup","id" : 81,"translate": "VIEW_POPUP"},
+      {"text": "Create Popup", "sref":"app.createPopup","id" : 82,"translate": "CREATE_POPUP"},
+      {"text": "Schedule Popup", "sref": "app.schedulePopup", "id" : 83,"translate": "SCHEDULE_POPUP"},
+      {"text": "Scheduled Popup", "sref": "app.scheduledPopups", "id" : 84,"translate": "SCHEDULED_POPUPS"}
+    ]
+  },
+  {
+    "text": "Banners",
+     "icon": "fa fa-image",
+     "translate": "BANNERS",
+     "sref": "app.banners",
+     "id": 105
+  },
+  {
+   "text": "Driver Feedback",
+    "icon": "fa fa-star-o",
+    "translate": "DRIVER_FEEDBACK",
+    "sref": "app.badges",
+    "id": 87
+  },
+  {
+    "text": "Vehicles",
+     "icon": "fa fa-star-o",
+     "translate": "VEHICLES",
+     "submenu": [
+      {"text": "Vehicle List", "sref":"app.vehicles","id" : 96,"translate": "VEHICLE_LIST"},
+      {"text": "Driver Vehicle Enrollment", "sref":"app.vehicleEnrollment","id" : 97,"translate": "DRIVER_VEHICLE_ENROLLMENT"}
+    ]
+  },
+  {
+    "text": "Reward Points",
+     "icon": "fa fa-star-o",
+     "translate": "CUSTOMER_REWARD_POINT",
+     "submenu": [
+      {"text": "Lifetime", "sref":"app.lifetime","id" : 107,"translate": "LIFETIME"},
+      {"text": "City Specific", "sref":"app.citySpecific","id" : 107,"translate": "CITY_SPECIFIC"}
+    ]
+  },
+  {
+    "text": "News Feed",
+     "icon": "fa fa-image",
+     "translate": "NEWS_FEED",
+     "sref": "app.newsFeed",
+     "id": 112
+  },
+  {
+    "text": "Airport Stations",
+     "icon": "fa fa-map-marker",
+     "translate": "AIRPORT_STATION",
+     "sref": "app.airportStation",
+     "id": 113
+  },
+  {
+    "text": "Kiosk",
+     "icon": "fa fa-desktop",
+     "translate": "KIOSK",
+     "submenu": [
+      {"text": "Configuration", "sref":"app.kiosk","id" : 153,"translate": "KIOSK_CONFIGURATION"}
+    ]
+  },
+  {
+    "text": "Vehicles Fleet",
+     "icon": "fa fa-star-o",
+     "translate": "VEHICLE_FLEETS",
+     "submenu": [
+      {"text": "Fleet List", "sref":"app.vehicleFleetList","id" : 99,"translate": "FLEET_LIST"},
+      {"text": "Vehicle Stat", "sref":"app.vehicleStat","id" : 101,"translate": "VEHICLE_STAT"},
+      {"text": "Fleet Enrollment", "sref":"app.vehicleFleetEnrollment","id" : 100,"translate": "FLEET_ENROLLMENT"}
+    ]
+  },
+  {
+    "text": "Rental",
+     "icon": "fa fa-car",
+     "translate": "CAR_RENTAL",
+     "submenu": [
+      {"text": "Active Vehicles", "sref":"app.rentalsVehicles","id" : 123,"translate": "RENTAL_LIST"},
+      {"text": "Enrollment", "sref":"app.rentalsEnrollment","id" : 124,"translate": "RENTAL_ENROLLMENT"},
+      {"text": "Booking", "sref":"app.rentalsRides","id" : 125,"translate": "RENTAL_RIDES"},
+      {"text": "Map View", "sref":"app.carRentalView","id" : 126,"translate": "CAR_RENTAL_VIEW"},
+      {"text": "Rental Requests", "sref":"app.rentalRequests","id" : 129,"translate": "CAR_RENTAL_REQUESTS"},
+      {"text": "Configuration", "sref":"app.config","id" : 149,"translate": "CAR_RENTAL_CONFIG"},
+      {"text" : "Dispute" , "sref" : "app.dispute", "id" : 150 ,"translate" : "CAR_RENTAL_DISPUTE" },
+      {"text" : "History" , "sref" : "app.carRentalHistory", "id" : 151 ,"translate" : "CAR_RENTAL_HISTORY" }
+    ]
+  },
+  {
+    "text": "Custom Geofencing",
+     "icon": "fa fa-star-o",
+     "translate": "CUSTOM_GEOFENCES",
+     "submenu": [
+      {"text": "Custom Geofencing", "sref":"app.customGeofences","id" : 115,"translate": "CUSTOM_GEOFENCES"},
+      {"text": "Smart PickUp", "sref":"app.smartPickup","id" : 160,"translate": "SMART_PICKUP"}
+    ]
+  },
+  {
+    "text": "Settings",
+    "icon": "icon-settings",
+    "translate": "SETTINGS",
+    "submenu": [
+      {"text": "General Settings", "sref":"app.generalSettings", "id": 80, "translate": "GENERAL_SETTINGS" },
+      {"text": "City Settings", "sref":"app.cityParamsSettings", "id": 80, "translate": "CITY_SETTINGS" },
+      {"text": "Dispatcher Settings","sref": "app.manualDispatcherSettingsController", "id": 137,"translate": "MANUAL_DISPATCHER_SETTINGS"},
+      {"text": "Vehicle Filters", "sref": "app.vehicleFilters", "id" : 98,"translate": "VEHICLE_FILTERS"},
+      {"text": "Vehicle Info", "sref":"app.vehicleInfo","id" : 68,"translate": "VEHICLE_INFO"},
+      {"text": "Company Information", "sref":"app.companyInformation", "id":"142", "translate":"COMPANY_INFORMATION"},
+      {"text": "Vehicle Fare Settings", "sref":"app.vehicleType","id" : 32,"translate": "VEHICLE_SETTINGS"},
+      {"text": "Geofencing", "sref": "app.geofencing", "id" : 21,"translate": "GEOFENCING"},
+      {"text": "Managers Settings", "sref": "app.managerView","id":50,"translate": "MANAGERS_SETTINGS"},
+      {"text": "Corporate", "sref":"app.addcorporate", "id" : 60,"translate": "CORPORATE"},
+      {"text": "Corporate Zones", "sref":"app.corporateZones", "id" : 128,"translate": "CORPORATE_ZONES"},
+      {"text": "Vehicle Model", "sref":"app.vehicleModel", "id" : 42,"translate": "VEHICLE_MODEL"},
+      {"text": "City Operational Hours", "sref": "app.citySettings", "id" : 47,"translate": "CITY_OPERATIONAL_HOURS"},
+      {"text": "Enable Delivery", "sref": "app.enableDelivery", "id" : 58,"translate": "ENABLE_DELIVERY"},
+      {"text": "Add card", "sref": "app.billing", "id" : 70,"translate": "ADD_CARD"},
+      {"text": "Toggle City", "sref": "app.toggleCity", "id" : 73,"translate": "TOGGLE_CITY"},
+      {"text": "Onboarding Experience", "sref": "app.tutorials", "id" : 95,"translate": "TUTORIALS"}
+    ]
+  },
+  {
+    "text": "Billing",
+    "icon": "icon-user",
+    "translate": "BILLINGS",
+    "submenu": [
+      {"text": "Billing Add Card", "sref": "app.billingAddCard", "id": 145, "translate": "ADD_CARD_BILLING"},
+      {"text": "Invoice List", "sref": "app.invoiceList", "id": 146, "translate": "INVOICE_LIST"},
+      {"text": "Active Plan", "sref": "app.activePlan", "id": 148, "translate": "ACTIVE_PLAN"}
+    ]
+  },
+  {
+    "text": "App Translate",
+    "icon": "fa fa-book",
+    "sref": "app.appTranslate", 
+    "id" : 152,
+    "translate": "APP_TRANSLATE"
+  }
+]
 
 
-                <div class="form-group">
-                    <div class="col-lg-4"></div>
-                    <div class="col-lg-2"></div>
-                    <div class="col-lg-3" ng-hide="dodoSuspendedDriver">
-                        <input type="checkbox" ng-model="checkbox.jugnoo_unsuspend" ng-disabled="dodo_unsuspendCheckbox" />
-                        <label style="margin-left: 5px;">{{"DEACTIVATED_DRIVERS.HEADING_VIEW_JUGNOO" | translate}}</label>
-                    </div>
-                    <div class="col-lg-3" ng-hide="jugnooSuspendedDriver">
-                        <input type="checkbox" ng-model="checkbox.dodo_unsuspend" ng-disabled="jugnoo_unsuspendCheckbox" />
-                        <label style="margin-left: 5px;">{{"DEACTIVATED_DRIVERS.HEADING_VIEW_DODO" | translate}}</label>
-                    </div>
-                    <div class="col-lg-2"></div>
-                </div>
-                <br>
-                <br>
-                <div class="col-md-7 ">
-                    <!--table_options_container-->
-                    <div class="form-group" style="float: right;">
-                        <label style="width: 160px;">{{"DEACTIVATED_DRIVERS.HEADING_REASON_ACTIVATION" | translate}}</label>
-                        <select style="width:80%;margin: 12px auto 0px;" class="form-control" ng-model="unsuspendedreason.res" style="width: 50%;margin-left: 25%;">
-                            <option value="0">{{"DEACTIVATED_DRIVERS.SELECT_REASON" | translate}}</option>
-                            <option ng-repeat="items in ddnUnSuspendList" value="{{items.id}}">{{items.reason_text}}</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="col-md-4">
-
-                    <div class="form-group">
-                        <label style="float: right;">{{"DEACTIVATED_DRIVERS.HEADING_COUNT" | translate}}: {{unsuspendedreason_other.length ? unsuspendedreason_other.length
-                            : 0}}</label>
-                        <textarea rows="3" type="text" class="form-control ng-pristine ng-valid ng-touched" ng-model="unsuspendedreason_other" placeholder='{{"DEACTIVATED_DRIVERS.PLACEHOLDER_COMMENTS" | translate}}'></textarea>
-                    </div>
-                </div>
-                <div class="col-md-offset-3">
-
-                    <button class="btn btn-dark-custom " ng-click="UnblockOnServer(unsuspendedreason,unsuspendedreason_other,checkbox.jugnoo_unsuspend,checkbox.dodo_unsuspend)"
-                        style="margin-left: 63%;">{{"DEACTIVATED_DRIVERS.BUTTON_ACTIVATION" | translate}}</button>
-
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row">
-        <div class="col-xs-12">
-            <!-- <button type="button" class="btn fancyButton pull-right" send-btn city-selected = "{{city}}" driver-selected="{{driversToSendSms}}" style="margin: 0 15px; height: 36px">
-                    <i class="fa fa-envelope" aria-hidden="true" style="float:left;padding-right:10px;padding-top: 4px"></i>Send SMS
-                </button>-->
-            <!--<md-button style="margin:0" class="fancyButton pull-right" ng-click="bulkSuspendedDriver()" >Bulk Deactivation</md-button>-->
-        </div>
-    </div>
-
-
-    <div class="panel-box-custom" ng-if="!showDeviceText">
-        <ul class="fancy-tabs nav nav-tabs" style="padding-top: 5px" >
-            <li class=" text-center" data-toggle="tab" ng-if="vehicleArray.length" style="padding:0px 0px 0px 0px;" ng-repeat="vehicle in activeDriverTabData"
-                ng-class="{'active':vehicle.selection==true}" ng-click="showSuspendedDriverVehicleRelativeData(vehicle.link);">
-                <a showTabdata-toggle="tab" class="deactivated-tab">{{vehicle.name}}</a>
-            </li>
-        </ul>
-        <ul ng-show="operator == 1" class=" fancy-tabs nav nav-tabs" style="padding-top: 10px">
-            <li class=" text-center" data-toggle="tab" style="padding:0px 0px 0px 0px;" ng-repeat="tabs in SuspendedDriverTabs"
-                ng-class="{'active':tabs.selection==true}" ng-click="showSuspendedDriverTabRelativeData(tabs.link);">
-                <a showTabdata-toggle="tab" class="deactivated-tab">{{tabs.name}}</a>
-            </li>
-        </ul>
-    </div>
-    <div style="display: none" class="form-group" ng-show="operator ==1">
-        <div class="col-lg-3" ng-show="jugnooSuspendedDriver&&!dodoSuspendedDriver">
-            <md-checkbox aria-label="" style="margin-bottom: 0" ng-model="checkbox.bothDriver" ng-click="checkBoxDataAutos(checkbox.bothDriver,checkbox.jugnooDriver, vehicleTab)">
-                {{"DEACTIVATED_DRIVERS.INCLUDE_DODO" | translate}}
-            </md-checkbox>
-        </div>
-        <div class="col-lg-3" ng-show="!jugnooSuspendedDriver&&dodoSuspendedDriver">
-            <md-checkbox aria-label="" style="margin-bottom: 0" ng-model="checkbox.jugnooDriver" ng-click="checkBoxDataDodos(checkbox.bothDriver,checkbox.jugnooDriver, vehicleTab)">
-                {{"DEACTIVATED_DRIVERS.INCLUDE_AUTO" | translate}}
-            </md-checkbox>
-        </div>
-    </div>
-    <md-button class="fancyButton " style="margin-left:30px" ng-click="exportCsv()" ng-show="exportOptionsEnabled">{{"DEACTIVATED_DRIVERS.EXPORT_CSV" | translate}}</md-button>
-
-
-    <!-- START DATATABLE 2 -->
-
-    <div class="panel-table-custom pt-5">
-        <div class="col-md-6" style="margin: 20px;">
-            <div style="display: flex; justify-content: space-between;align-items: center;">    
-                <input class="form-control" type="text" ng-model="searchTerm" style="width: 70% !important;
-                height: 40px; border-color: #00000078;" placeholder="Enter driver id or phone number to filter data" ng-change="searchBlankData()">
-                <button class="md-button fancyButton" ng-click="searchData(searchTerm)">Search</button>
-                <button class="md-button fancyButton" ng-disabled="!searchTerm" ng-click="clearSearchFilter()">Clear</button>
-            </div>
-        </div>
-
-        <table id="deactivatedDriver" class="table t-fancy-table nowrap">
-            <thead>
-                <tr>
-                    <th>{{"DEACTIVATED_DRIVERS.TABLE_HEADING_SELECT" | translate}}</th>
-                    <th>{{showDeviceText ? "DEACTIVATED_DRIVERS.SERVICE_AGENT_ID" : "DEACTIVATED_DRIVERS.TABLE_HEADING_DRIVERID" | translate}}  </th>
-                    <th>{{showDeviceText ? "DEACTIVATED_DRIVERS.SERVICE_AGENT_NAME" : "DEACTIVATED_DRIVERS.TABLE_HEADING_DRIVERNAME" | translate}}</th>
-                    <th>{{showDeviceText ? "DEACTIVATED_DRIVERS.UNIQUE_IMEI" : "DEACTIVATED_DRIVERS.TABLE_HEADING_MOBILE" | translate}}</th>
-                    <th ng-if="!multipleVehicleEnabled"><span ng-if="showDeviceText">{{displayBikeName}} </span>{{showDeviceText ? "DEACTIVATED_DRIVERS.BIKE_NUMBER" : "DEACTIVATED_DRIVERS.TABLE_HEADING_VEHICLENO" | translate}}</th>
-                    <th>{{"DEACTIVATED_DRIVERS.TABLE_HEADING_REGON" | translate}}</th>
-                    <th>{{"DEACTIVATED_DRIVERS.TABLE_HEADING_DEACTIVATIONON" | translate}}</th>
-                    <th>{{"DEACTIVATED_DRIVERS.TABLE_HEADING_LASTLOG" | translate}}</th>
-                    <th>{{"DEACTIVATED_DRIVERS.TABLE_HEADING_TOTALRIDE" | translate}} {{showDeviceText ? "DEACTIVATED_DRIVERS.TASKS" : "DEACTIVATED_DRIVERS.RIDES" | translate}}</th>
-                    <th>{{"DEACTIVATED_DRIVERS.TABLE_HEADING_LAST" | translate}} {{showDeviceText ? "DEACTIVATED_DRIVERS.TASK" : "DEACTIVATED_DRIVERS.RIDE" | translate}} {{"DEACTIVATED_DRIVERS.ON" | translate}}</th>
-                    <th>{{"DEACTIVATED_DRIVERS.TABLE_HEADING_REASON" | translate}}</th>
-
-                </tr>
-            </thead>
-            <tbody>
-                <tr ng-repeat="data in displayData" ng-click="ClickDriverDataUrl(data)">
-                    <td ng-click="$event.stopPropagation();">
-                        <input type="checkbox" aria-label="" style="margin-bottom: 0" id="{{data.driver_id}}" ng-model="data.Selected" ng-click="checkboxvalue(data)"/>
-                    </td>
-                    <td>{{data.driver_id}}</td>
-                    <td>{{data.driver_name}}</td>
-                    <td>{{data.phone_no}}</td>
-                    <td ng-if="!multipleVehicleEnabled">{{data.vehicle_number? data.vehicle_number:'--'}}</td>
-                    <td>{{data.date_reg ? (data.date_reg | date:'dd-MM-yyyy') : "--"}}</td>
-                    <td>{{data.last_suspended_on ? (data.last_suspended_on | date:'dd-MM-yyyy') : "--"}}</td>
-                    <td>{{data.last_login ? (data.last_login | date:'dd-MM-yyyy') :"--"}}</td>
-                    <td>{{data.total_rides? data.total_rides : 0}}</td>
-                    <td>{{data.last_ride_on ? (data.last_ride_on | date:'dd-MM-yyyy') :"--"}}</td>
-                    <td>{{data.last_suspended_reason}}</td>
-                </tr>
-            </tbody>
-        </table>
-        <div class="footer-section" style="float: right;">
-            <ul uib-pagination total-items="pagination.totalItems" max-size="5" items-per-page="pagination.perPage"
-                ng-model="pagination.currentPage" class="pagination-md" ng-change="getData()"
-                boundary-link-numbers="true" rotate="true" boundary-links="true" previous-text="{{ 'PAGINATION.PREVIOUS' | translate }}" next-text="{{ 'PAGINATION.NEXT' | translate }}" first-text="{{ 'PAGINATION.FIRST' | translate }}" last-text="{{ 'PAGINATION.LAST' | translate }}"></ul>
-        </div>
-    </div>
-
-
-    <modal title="Unblock driver" class="dashboardDialogModal" visible="showUnblockFlag">
-        <div class="form-group text-center">
-            <!--table_options_container-->
-            <div class="form-group">
-                <label style="width: 160px;">{{"DEACTIVATED_DRIVERS.HEADING_REASON_ACTIVATION" | translate}} </label>
-                <select class="form-control" ng-model="unsuspendedreason.res" ng-change="otherReason(unsuspendedreason.res)" style="width: 50%;margin-left: 25%;">
-                    <!--style="margin-top: 8px;width:150px;"-->
-                    <option value="0">{{"DEACTIVATED_DRIVERS.SELECT_REASON" | translate}}</option>
-                    <option value="1">{{"DEACTIVATED_DRIVERS.HEADING_WARNING" | translate}}</option>
-                    <option value="2">{{"DEACTIVATED_DRIVERS.HEADING_FINE" | translate}}</option>
-                    <option value="3">{{"DEACTIVATED_DRIVERS.HEADING_OTHER" | translate}}</option>
-                </select>
-            </div>
-            <div style="margin-right: -35%;">{{"DEACTIVATED_DRIVERS.HEADING_COUNT" | translate}}: {{unsuspendedreason_other.length ? unsuspendedreason_other.length
-                : 0}}</div>
-            <div class="form-group" style="width: 50%;margin-left: 25%;">
-                <textarea style="margin: 12px auto 0px" rows="5" type="text" class="form-control" ng-model="unsuspendedreason_other" placeholder='{{"DEACTIVATED_DRIVERS.PLACEHOLDER_COMMENTS" | translate}}'></textarea>
-            </div>
-            <div class="form-group">
-                <button class="btn btn-dark-custom " id="mark_recovered" ng-click="UnblockOnServer(unsuspendedreason.res,unsuspendedreason_other)">{{"DEACTIVATED_DRIVERS.BUTTON_ACTIVATION" | translate}}</button>
-                <button class="btn btn-dark-custom" data-dismiss="modal" aria-hidden="true">{{"DEACTIVATED_DRIVERS.BUTTON_CANCEL" | translate}}</button>
-            </div>
-        </div>
-    </modal>
-
-    <div id="myModal" class="modal fade" role="dialog">
-        <div class="modal-dialog" style="width:25%;top:115px">
-            <!-- Modal content-->
-            <div class="modal-content">
-                <div class="modal-header text-center" style="color:white;background:green">
-                    <button type="button" class="close" data-dismiss="modal">&times;</button>
-                    <h4 class="modal-title">{{"DEACTIVATED_DRIVERS.SUCCESS" | translate}}</h4>
-                </div>
-                <div class="modal-body text-center">
-                    <h4>{{"DEACTIVATED_DRIVERS.DRIVER_ACTIVATED" | translate}}</h4>
-                    <button type="button" class="btn btn-primary-custom" data-dismiss="modal" ng-click="BackDriverTable()">{{"DEACTIVATED_DRIVERS.BUTTON_OK" | translate}}</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="WarnModal" class="modal fade" role="dialog">
-        <div class="modal-dialog" style="width:25%;top:115px">
-            <!-- Modal content-->
-            <div class="modal-content">
-                <div class="modal-header text-center" style="color:white;background:green">
-                    <button type="button" class="close" data-dismiss="modal">&times;</button>
-                    <h4 class="modal-title">Success</h4>
-                </div>
-                <div class="modal-body text-center">
-                    <h4>{{msg_on_success| translate}}</h4>
-                    <button type="button" class="btn btn-primary-custom" data-dismiss="modal" ng-click="refresh()">{{"DEACTIVATED_DRIVERS.BUTTON_OK" | translate}}</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <modal title="Error" class="errorModal" visible="auto_error_flag">
-        <div class=" text-center">
-            <h4 style="text-align: center">{{alert_message| translate}}</h4>
-        </div>
-    </modal>
-
-    <modal title="Warning" class="warningModal" visible="warning_flagpopup">
-        <h4 style="text-align: center;">{{alert_message| translate}}</h4>
-        <button type="button" class="btn btn-primary" style="margin-left: 45%;" data-dismiss="modal">{{"DEACTIVATED_DRIVERS.BUTTON_OK" | translate}}</button>
-
-    </modal>
-
-    <modal title="Success" class="successModal" visible="warning_flag2">
-        <h4 style="text-align: center">{{alert_message| translate}}</h4>
-        <div class="modal_buttons">
-            <button class="btn btn-primary-custom" ng-click="confirm_box()">{{"DEACTIVATED_DRIVERS.BUTTON_OK" | translate}}</button>
-        </div>
-
-    </modal>
-
-    <div id="bulkSuspensionModal" class="modal fade" role="dialog">
-        <div class="modal-dialog" style="width:60%;">
-            <div class="modal-content">
-                <div class="modal-header text-center" style="background:var(--mainColor);color:white">
-                    <button type="button" class="close" data-dismiss="modal">&times;</button>
-                    <h4 class="modal-title">{{"DEACTIVATED_DRIVERS.HEADING_DEACTIVATION" | translate}}</h4>
-                </div>
-
-                <div class="modal-body text-center" style="margin-top: 1%;">
-                    <div ng-if="operator == 1" class="row">
-                        <div class="col-lg-1"></div>
-                        <div class="col-lg-3">
-                            <label style="float: right">{{"DEACTIVATED_DRIVERS.HEADING_DEACTIVATION_FORM" | translate}} </label>
-                        </div>
-                        <div class="col-lg-1">:</div>
-
-                        <div class="col-lg-3">
-                            <input type="checkbox" ng-model="jugnoo_suspend_bulk" style="float: left;">
-                            <label style="margin-left: 5px;float: left;">{{"DEACTIVATED_DRIVERS.HEADING_VIEW_JUGNOO" | translate}}</label>
-
-                        </div>
-                        <div class="col-lg-3" style="margin-left: -4%;">
-                            <input type="checkbox" ng-model="dodo_suspend_bulk" style="float: left;">
-                            <label style="margin-left: 5px;float: left;">{{"DEACTIVATED_DRIVERS.HEADING_VIEW_DODO" | translate}}</label>
-                        </div>
-                    </div>
-                    <br>
-                    <div class="row">
-                        <div class="col-lg-1"></div>
-                        <div class="col-lg-3">
-                            <label style="float: right">{{"DEACTIVATED_DRIVERS.UPLOAD_CSV" | translate}} </label>
-                        </div>
-                        <div class="col-lg-1">:</div>
-                        <div class="col-lg-4" style="margin-left: -12%;">
-                            <div name="upload" class="col-lg-3" id="uploadForm" enctype="multipart/form-data" style="width:100%;">
-                                <input valid-file type="file" my-upload ng-model="fileName" file-model="fileName" file-change="handler($event,files)" class="form-control"
-                                    name="fileName" accept=".csv" style="margin-left: 37%;width: 76%" required/>
-                                <a href="app/csvSample/bulk_deactivate_driver.csv" download style="margin-right: -50%;">{{"DEACTIVATED_DRIVERS.DOWNLOAD_SAMPLE_CSV" | translate}}</a>
-                            </div>
-                        </div>
-                        <div class="col-lg-2">
-                            <md-button class="md-raised fancyButton" style="margin-top: 0" ng-click="UploadCsvDriver();">{{"DEACTIVATED_DRIVERS.UPLOAD_CSV" | translate}}</md-button>
-
-                            <i class="fa fa-info-circle fa-2x" data-toggle="tooltip" data-placement="top" title="Sample CSV Format" style="color:black;margin-left: 2%;"
-                                aria-hidden="true" ng-click="demoDialog=true"></i>
-
-                        </div>
-                    </div>
-                    <br>
-                    <div class="row">
-                        <div class="col-lg-1">
-                        </div>
-                        <div class="col-lg-3" style="overflow:hidden;">
-
-                            <label style="float: right">{{"DEACTIVATED_DRIVERS.SELECT_TIME_PERIODS" | translate}} </label>
-                        </div>
-                        <div class="col-lg-1">:</div>
-
-                        <div class="col-lg-6" style="margin-top: -2%;margin-left: -7%;">
-                            <select style="width:72%;margin: 12px auto 0px;" class="form-control" ng-model="driver_Block_reason_time">
-                                <option value="-1">{{"DEACTIVATED_DRIVERS.SELECT_TIME_PERIOD" | translate}}</option>
-                                <option value="1">{{"DEACTIVATED_DRIVERS.SELECT_TIME_NORMAL" | translate}}</option>
-                                <option value="24">{{"DEACTIVATED_DRIVERS.SELECT_TIME_HOUR" | translate}} </option>
-
-                            </select>
-
-                        </div>
-
-                    </div>
-                    <br>
-                    <div class="row">
-                        <div class="col-lg-1">
-                        </div>
-                        <div class="col-lg-3" style="overflow:hidden;">
-
-                            <label style="float: right">{{"DEACTIVATED_DRIVERS.SELECT_REASON" | translate}} </label>
-                        </div>
-                        <div class="col-lg-1">:</div>
-
-                        <div class="col-lg-6" style="margin-top: -2%;margin-left: -7%;">
-                            <select style="width:72%;margin: 12px auto 0px;" class="form-control" ng-model="deactivate_driver_Block_reason">
-                                <option value="-1">{{"DEACTIVATED_DRIVERS.SELECT_REASON" | translate}}</option>
-                                <option ng-repeat="items in ddnSuspendList" value="{{items.id}}">{{items.reason_text}}</option>
-                            </select>
-
-                        </div>
-
-                    </div>
-                    <div class="row">
-                        <div class="col-lg-1">
-                        </div>
-                        <div class="col-lg-3" style="margin-top: 2%;">
-                            <label style="float: right">{{"DEACTIVATED_DRIVERS.COMMENTS" | translate}}</label>
-                        </div>
-                        <div class="col-lg-1" style="margin-top: 2%;">:</div>
-
-                        <div class=" col-lg-6" style="overflow:hidden">
-                            <div style="margin-right: -32%;">{{"DEACTIVATED_DRIVERS.HEADING_COUNT" | translate}}:
-                                <span class="textAr">{{newSuspendTextForBulk.length ? newSuspendTextForBulk.length : 0}}</span>
-                            </div>
-                            <div class="form-group" style="margin-top:-2%;margin-left: -29%;">
-                                <textarea style="width:56%;margin: 12px auto 0px" rows="2" class="form-control textAr" ng-init="newSuspendText = ''" ng-model="newSuspendTextForBulk"
-                                    placeholder='{{"DEACTIVATED_DRIVERS.PLACEHOLDER_COMMENTS" | translate}}'>
-
-                                    </textarea>
-                            </div>
-
-                            <md-button class="md-raised fancyButton" ng-disabled="disabledButton" style="margin-left: -29%;" ng-click="suspendbulkDriver(jugnoo_suspend_bulk,dodo_suspend_bulk,deactivate_driver_Block_reason,driver_Block_reason_time,newSuspendTextForBulk)">
-                                {{"DEACTIVATED_DRIVERS.BUTTON_DEACTIVATE" | translate}}
-                            </md-button>
-                            <md-button class="md-raised md-warn" data-dismiss="modal" aria-hidden="true">{{"DEACTIVATED_DRIVERS.BUTTON_CANCEL" | translate}}</md-button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-    </div>
-
-    <modal title="Sample CSV Format" class="dashboardDialogModal" visible="demoDialog">
-
-        <div class="row">
-            <div class="table-responsive">
-                <table class="table table-striped">
-                    <thead class="thead-style">
-                        <tr>
-                            <th>{{"DEACTIVATED_DRIVERS.DRIVER_ID" | translate}}</th>
-                        </tr>
-                    </thead>
-                    <tr>
-                        <td>1111</td>
-                    </tr>
-                    <tr>
-                        <td>2222</td>
-                    </tr>
-                    <tr>
-                        <td>3333</td>
-                    </tr>
-                </table>
-            </div>
-        </div>
-
-    </modal>
-
-    <modal title="Warning" class="warningModal" visible="warning_flag">
-        <h4 style="text-align: center">{{alert_message| translate}}</h4>
-    </modal>
-
-    <modal title="Success" class="successModal" visible="success_flag">
-        <h4 style="text-align: center">{{alert_message| translate}}</h4>
-        <div class="modal_buttons">
-            <button class="btn btn-primary-custom" ng-click="confirm_box()">{{"DEACTIVATED_DRIVERS.BUTTON_OK" | translate}}</button>
-        </div>
-
-    </modal>
-
-    <modal title="Success" class="successModal" visible="success_flag_upload">
-        <h4 style="text-align: center">{{alert_message| translate}}</h4>
-    </modal>
-
-    <modal title="Error" class="errorModal" visible="error_flag">
-        <div class=" text-center">
-            <h4 style="text-align: center">{{alert_message| translate}}</h4>
-        </div>
-    </modal>
-</div>

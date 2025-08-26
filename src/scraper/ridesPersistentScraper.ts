@@ -28,6 +28,9 @@ export class RidesPersistentScraper {
   private cacheManager: DataCacheManager;
   private baseUrl: string;
   private ridesPages: Array<{name: string, url: string}>;
+  
+  // 🔥 CONTROLE INTERNO DE LOGIN
+  private static hasLoggedInSuccessfully: boolean = false;
 
   constructor() {
     this.sessionManager = BrowserSessionManager.getInstance();
@@ -53,6 +56,18 @@ export class RidesPersistentScraper {
   public async scrapeAllData(skipLoginVerification: boolean = false): Promise<PersistentScrapeResult> {
     try {
       console.log('🚀 Iniciando scraping com sessão persistente...');
+      console.log(`🔧 [RIDES] Skip Login Verification PARÂMETRO: ${skipLoginVerification}`);
+      
+      // 🔥 CONTROLE INTERNO: Se já fez login uma vez, sempre pular
+      let finalSkipLogin = skipLoginVerification;
+      if (RidesPersistentScraper.hasLoggedInSuccessfully) {
+        finalSkipLogin = true;
+        console.log('🔥 [RIDES-CONTROL] JÁ FEZ LOGIN ANTES - FORÇANDO skipLogin=true');
+      } else {
+        console.log('🔥 [RIDES-CONTROL] PRIMEIRA EXECUÇÃO - USANDO parâmetro original');
+      }
+      
+      console.log(`🔧 [RIDES] Skip Login Verification FINAL: ${finalSkipLogin}`);
       
       // Verificar status detalhado antes de começar
       const browserWasActive = this.sessionManager.isActive();
@@ -63,16 +78,21 @@ export class RidesPersistentScraper {
       // 🔥 NOVA LÓGICA: Pular verificação se solicitado
       let loginSuccess = true;
       
-      if (skipLoginVerification) {
-        console.log('⚡ Pulando verificação de login - assumindo login manual válido');
+      if (finalSkipLogin) {
+        console.log('⚡ [RIDES] Pulando verificação de login - assumindo login manual válido');
+        console.log('🔧 [RIDES] skipLoginVerification === true - NÃO chamando ensureLoginWithCaptchaHandling()');
         
         // Garantir que browser está ativo
         if (!this.sessionManager.isActive()) {
+          console.log('🔧 [RIDES] Browser inativo, inicializando...');
           await this.sessionManager.initializeBrowser();
+        } else {
+          console.log('🔧 [RIDES] Browser já está ativo - seguindo direto para scraping');
         }
       } else {
+        console.log('🔧 [RIDES] skipLoginVerification === false - chamando ensureLoginWithCaptchaHandling()');
         // Garantir que está logado (com tratamento de captcha)
-        loginSuccess = await this.sessionManager.ensureLoginWithCaptchaHandling();
+        loginSuccess = await this.sessionManager.ensureLoginWithCaptchaHandling(false);
         
         if (!loginSuccess) {
           const finalStatus = await this.sessionManager.getSessionStatus();
@@ -140,6 +160,12 @@ export class RidesPersistentScraper {
       }
 
       console.log(resultMessage);
+      
+      // 🔥 MARCAR LOGIN COMO BEM-SUCEDIDO
+      if (!RidesPersistentScraper.hasLoggedInSuccessfully) {
+        RidesPersistentScraper.hasLoggedInSuccessfully = true;
+        console.log('🔥 [RIDES-CONTROL] ✅ MARCANDO LOGIN COMO BEM-SUCEDIDO - Próximas execuções pularão login');
+      }
       
       return {
         success: true,

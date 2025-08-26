@@ -951,8 +951,14 @@ export class BrowserSessionManager {
   /**
    * Método híbrido que usa a mesma lógica do início - funciona para reinicialização
    */
-  public async ensureLoginWithCaptchaHandling(): Promise<boolean> {
+  public async ensureLoginWithCaptchaHandling(skipIfLoggedIn: boolean = false): Promise<boolean> {
     try {
+      // Se skipIfLoggedIn=true, verificar se já está logado e pular se estiver
+      if (skipIfLoggedIn && this.isActive()) {
+        console.log('⏭️ Skip login ativado - sessão ativa, pulando verificação');
+        return true;
+      }
+      
       console.log('🔄 Iniciando processo de login com tratamento de captcha...');
       
       // Garantir que browser está ativo

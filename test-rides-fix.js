@@ -7,7 +7,7 @@ async function testRidesFix() {
   
   try {
     // Executar uma vez para testar
-    await monitor.runOnce();
+    await monitor.runOnce(false); // Primeira execução com login
     console.log('✅ Teste concluído - verifique os logs acima');
   } catch (error) {
     console.error('❌ Erro no teste:', error);

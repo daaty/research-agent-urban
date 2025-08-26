@@ -62,14 +62,29 @@ export class EnvironmentDetector {
       displayVar = process.env.DISPLAY || ':99';
       needsXvfb = true;
     } else if (isLocal) {
-      // Local: verificar se tem display disponível
-      if (process.env.DISPLAY && process.env.DISPLAY !== '') {
-        displayMode = 'vnc'; // Display local
-        displayVar = process.env.DISPLAY;
+      // Local: verificar sistema operacional
+      const isWindows = process.platform === 'win32';
+      
+      if (isWindows) {
+        // Windows: usar modo visual por padrão para desenvolvimento
+        // Só usar headless se explicitamente definido na env
+        if (process.env.HEADLESS_MODE === 'true') {
+          displayMode = 'headless';
+        } else {
+          displayMode = 'vnc'; // Modo visual no Windows (sem XVFB)
+        }
+        needsXvfb = false;
+        vncEnabled = false;
       } else {
-        displayMode = 'xvfb';
-        displayVar = ':99';
-        needsXvfb = true;
+        // Linux/Mac: verificar se tem display disponível
+        if (process.env.DISPLAY && process.env.DISPLAY !== '') {
+          displayMode = 'vnc'; // Display local
+          displayVar = process.env.DISPLAY;
+        } else {
+          displayMode = 'xvfb';
+          displayVar = ':99';
+          needsXvfb = true;
+        }
       }
     }
 
@@ -166,6 +181,7 @@ export class EnvironmentDetector {
    */
   public getPlaywrightConfig(): any {
     const config = this.getConfig();
+    const isWindows = process.platform === 'win32';
     
     const baseConfig = {
       headless: config.displayMode === 'headless',
@@ -197,9 +213,9 @@ export class EnvironmentDetector {
       ]
     };
 
-    if (config.displayMode === 'vnc' || config.displayMode === 'xvfb') {
+    // 🔧 Configurações específicas para Linux/Docker com display
+    if (config.displayMode === 'xvfb' && config.displayVar) {
       baseConfig.args.push(`--display=${config.displayVar}`);
-      // 🔧 Configurações adicionais para VNC
       baseConfig.args.push(
         '--disable-gpu-sandbox',
         '--disable-software-rasterizer',
@@ -210,6 +226,17 @@ export class EnvironmentDetector {
         '--disable-translate',
         '--hide-scrollbars',
         '--mute-audio',
+        '--no-default-browser-check',
+        '--no-first-run'
+      );
+    }
+
+    // 🔧 Configurações específicas para Windows (não adicionar --display)
+    if (isWindows && config.displayMode === 'vnc') {
+      // Windows em modo visual - não usar --display
+      baseConfig.args.push(
+        '--disable-background-networking',
+        '--disable-default-apps',
         '--no-default-browser-check',
         '--no-first-run'
       );

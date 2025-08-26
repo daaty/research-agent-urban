@@ -35,7 +35,7 @@ async function testAdaptedScraper() {
     const monitoringService = new MonitoringService();
     
     console.log('⚡ Executando scraping único...');
-    await monitoringService.runOnce();
+    await monitoringService.runOnce(false); // Primeira execução com login
     
     console.log('\n📊 APÓS TESTE - Verificando novos dados:');
     const afterTest = await pool.query(`
@@ -98,7 +98,7 @@ async function testAdaptedScraper() {
     console.log('\n🔄 TESTANDO ANTI-DUPLICAÇÃO...');
     console.log('Executando scraping novamente para testar duplicação...');
     
-    await monitoringService.runOnce();
+    await monitoringService.runOnce(true); // Segunda execução sem login
     
     const finalCount = await pool.query(`
       SELECT table_name, COUNT(*) as count, source

@@ -282,7 +282,7 @@ app.get('/api/drivers/scrape', async (req: any, res: any) => {
   try {
     console.log('🎯 [API] Iniciando scraping de drivers...');
     
-    const result = await scrapeAllDriversDataPersistent();
+    const result = await scrapeAllDriversDataPersistent(false); // API sempre faz login se necessário
     
     if (result.success) {
       // Transformar e salvar dados
@@ -1078,18 +1078,14 @@ app.listen(PORT, async () => {
         console.log('🔄 Iniciando MonitoringService (Rides + Drivers integrado)...');
         
         try {
-          // Executar uma vez imediatamente
-          await monitoringService.runOnce();
-          console.log('✅ Execução inicial de Rides + Drivers concluída!');
-          
-          // 🔄 Iniciar monitoramento automático (substitui o setInterval antigo)
+          // 🔄 Iniciar monitoramento automático (já inclui execução inicial após 5 segundos)
           monitoringService.startMonitoring();
           console.log('✅ Monitoramento automático (Rides + Drivers) iniciado!');
-          console.log('⏰ Frequência: A cada 2,5 minutos');
+          console.log('⏰ Frequência: A cada 5 minutos (configurável via SCRAPE_INTERVAL)');
           console.log('🚗 Incluindo scraping de todas as 5 páginas de drivers');
           
         } catch (error) {
-          console.error('❌ Erro na execução inicial integrada:', error);
+          console.error('❌ Erro na inicialização do monitoramento:', error);
           console.log('💡 Tentando fallback para método tradicional...');
           
           // Fallback para método antigo se o novo falhar
