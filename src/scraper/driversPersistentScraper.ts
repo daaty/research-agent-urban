@@ -1,3 +1,13 @@
+/**
+ * Mapeia dinamicamente uma linha de dados para um objeto usando os headers como chave.
+ * Exemplo: rowToObject(['Driver ID', 'Name'], ['123', 'João']) => { 'Driver ID': '123', Name: 'João' }
+ */
+export function rowToObject(headers: string[], row: string[]): Record<string, string> {
+  return headers.reduce((acc, header, idx) => {
+    acc[header] = row[idx];
+    return acc;
+  }, {} as Record<string, string>);
+}
 import { BrowserSessionManager } from '../services/browserSessionManager';
 import { DriverCacheManager } from '../services/driverCacheManager';
 
@@ -42,9 +52,7 @@ export interface DriverScrapeResult {
     browserStatus: string;
     sessionValid: boolean;
   };
-  hasChanges?: boolean;
-  onlyNewData?: boolean;
-  differences?: any[];
+  differences?: any;
 }
 
 export class DriversPersistentScraper {
@@ -159,7 +167,6 @@ export class DriversPersistentScraper {
           browserStatus: 'active',
           sessionValid: true
         },
-        hasChanges: comparison.hasChanges,
         differences: comparison.differences
       };
 
@@ -180,6 +187,8 @@ export class DriversPersistentScraper {
 
   /**
    * Extrai dados específicos da tabela de drivers com seletores otimizados
+   *
+   * Após a extração, imprime exemplos de objetos mapeados dinamicamente para Active Drivers e Drivers Enrollment.
    */
   private async extractDriverTableData(tableName: string): Promise<DriverTableData> {
     const page = this.sessionManager.getPage();
@@ -215,28 +224,22 @@ export class DriversPersistentScraper {
         tableSelector = 'table.t-fancy-table';
         rowSelector = 'table.t-fancy-table tbody tr[ng-repeat*="data in displayData"]';
       }
-      
+
       console.log(`🔍 Usando seletor: ${tableSelector} para ${tableName}`);
-      
+
       // Tratamento especial para Driver Performance
       if (tableName.includes('Performance')) {
         return await this.extractPerformanceTableData(tableName, currentUrl);
       }
-      
-      // Aguardar a tabela específica de drivers carregar (timeout otimizado)
+
       await page.waitForSelector(tableSelector, { timeout: 5000 });
-      
-      // Aguardar dados carregarem na tabela (reduzido)
       await page.waitForTimeout(1500);
-      
-      // Aguardar especificamente pelos dados nas linhas (timeout otimizado)
       try {
         await page.waitForSelector(`${tableSelector} tbody tr`, { timeout: 3000 });
       } catch (error) {
         console.log(`⚠️ Nenhuma linha encontrada em ${tableName} - tabela pode estar vazia`);
       }
-      
-      // Verificar se a tabela existe
+
       const tableExists = await page.$(tableSelector);
       if (!tableExists) {
         return {
@@ -248,16 +251,56 @@ export class DriversPersistentScraper {
         };
       }
 
-      // Extrair headers da tabela de drivers
-      const headers = await page.$$eval(`${tableSelector} thead th`, ths => 
-        ths.map(th => {
-          // Limpar texto dos headers removendo elementos internos
-          const text = th.textContent?.trim() || '';
-          return text.replace(/\s+/g, ' ').trim();
-        }).filter(header => header !== '') // Remover headers vazios
-      );
-
+      // 1. Extrair headers visíveis e seus índices reais (sem offsetParent)
+      let headerInfo = await page.$$eval(`${tableSelector} thead tr th`, (ths: Element[]) => {
+        const result: {text: string, realIndex: number}[] = [];
+        ths.forEach((th, idx) => {
+          const classList = (th as HTMLElement).classList;
+          const hidden = classList.contains('ng-hide') || th.getAttribute('aria-hidden') === 'true';
+          const style = th.getAttribute('style') || '';
+          const widthZero = /width:\s*0(px)?/.test(style) || /display:\s*none/.test(style);
+          if (!hidden && !widthZero) {
+            result.push({ text: (th.textContent || '').trim(), realIndex: idx });
+          }
+        });
+        return result;
+      });
+      // Fallback: se não encontrar nenhum header visível, extrai todos para debug
+      if (headerInfo.length === 0) {
+        headerInfo = await page.$$eval(`${tableSelector} thead tr th`, (ths: Element[]) => {
+          return ths.map((th, idx) => ({ text: (th.textContent || '').trim(), realIndex: idx }));
+        });
+        console.log(`[extractDriverTableData][DEBUG] Fallback: headers brutos extraídos:`, headerInfo);
+      }
+      const headers = headerInfo.map(h => h.text);
+      const headerIndices = headerInfo.map(h => h.realIndex);
       console.log(`📋 Headers encontrados para ${tableName}:`, headers);
+
+      // 2. Para cada linha, extrair os <td> usando o índice real de cada header
+      const rows: string[][] = await page.$$eval(
+        `${tableSelector} tbody tr`,
+        (trs: Element[], headerInfo: {text: string, realIndex: number}[]) => {
+          return trs.map((tr: Element, trIdx: number) => {
+            const tds = Array.from(tr.children);
+            // Para cada header, pega o <td> pelo realIndex (garante alinhamento)
+            return headerInfo.map(h => {
+              const td = tds[h.realIndex];
+              return td ? (td.textContent || '').trim() : '';
+            });
+          });
+        },
+        headerInfo
+      );
+      if (rows.length > 0) {
+        console.log('[extractDriverTableData] First 3 rows:', rows.slice(0, 3));
+        // Tentar recuperar o log de ordem dos tds
+        try {
+          const tdOrder = await page.evaluate(() => (window as any).__debug_td_order || []);
+          if (tdOrder && tdOrder.length > 0) {
+            console.log('[extractDriverTableData][DEBUG] Ordem real dos <td> e índices usados nas 3 primeiras linhas:', JSON.stringify(tdOrder, null, 2));
+          }
+        } catch (e) { /* ignore */ }
+      }
 
       // Verificar se a tabela está vazia (com mensagem "No drivers found !!!")
       const emptyMessage = await page.$eval(`${tableSelector} tbody`, tbody => {
@@ -276,10 +319,7 @@ export class DriversPersistentScraper {
         };
       }
 
-      // Verificar se há dados na tabela
-      const hasData = await page.$$(rowSelector);
-      
-      if (hasData.length === 0) {
+      if (rows.length === 0) {
         console.log(`⚠️ Nenhuma linha de dados encontrada em ${tableName}`);
         return {
           name: tableName,
@@ -290,35 +330,15 @@ export class DriversPersistentScraper {
         };
       }
 
-      // Extrair dados das linhas específicas de drivers
-      const rows = await page.$$eval(rowSelector, trs => 
-        trs.map(tr => {
-          const tds = tr.querySelectorAll('td');
-          return Array.from(tds).map(td => {
-            // Extrair texto limpo, ignorando elementos filho como spans
-            let text = '';
-            
-            // Verificar se há span com label (status)
-            const statusSpan = td.querySelector('span.label');
-            if (statusSpan) {
-              text = statusSpan.textContent?.trim() || '';
-            } else {
-              // Para outros campos, pegar todo o texto
-              text = td.textContent?.trim() || '';
-            }
-            
-            // Limpar texto extra (como spans ocultos)
-            text = text.replace(/\s+/g, ' ').trim();
-            return text;
-          });
-        })
-      );
-
       console.log(`📊 Extraídas ${rows.length} linhas de dados de ${tableName}`);
-      
-      // Log da primeira linha para debug
       if (rows.length > 0) {
         console.log(`🔍 Primeira linha de exemplo:`, rows[0]);
+      }
+
+      // Exemplo de uso do mapeamento dinâmico para debug
+      if (tableName.includes('Active') || tableName.includes('Enrollment')) {
+        const exemplos = rows.slice(0, 3).map(row => rowToObject(headers, row));
+        console.log(`[DEBUG] Exemplo de objetos mapeados dinamicamente (${tableName}):`, exemplos);
       }
 
       return {
@@ -615,6 +635,10 @@ export class DriversPersistentScraper {
         try {
           rows = await page.$$eval(rowSelector, trs => 
             trs.map(tr => {
+              // Se a linha contém a mensagem de "No data available", retorna uma linha vazia
+              if (tr.textContent?.trim() === 'No data available in table') {
+                return [];
+              }
               const cells = tr.querySelectorAll('td');
               return Array.from(cells).map(td => {
                 const text = td.textContent?.trim() || '';
@@ -633,6 +657,10 @@ export class DriversPersistentScraper {
       }
       
       console.log(`📊 Driver Performance - Headers: ${headers.length}, Rows: ${rows.length}`);
+      if (rows.length > 0) {
+        console.log(`[DEBUG] Driver Performance - Primeira linha de exemplo:`, rows[0]);
+        console.log(`[DEBUG] Driver Performance - Headers extraídos:`, headers);
+      }
       
       return {
         name: tableName,
@@ -659,72 +687,49 @@ export class DriversPersistentScraper {
    */
   public processDriverPerformanceData(tableData: DriverTableData): DriverPerformanceData[] {
     const performanceData: DriverPerformanceData[] = [];
-    
     if (!tableData || tableData.isEmpty || tableData.rows.length === 0) {
       console.log('⚠️ Nenhum dado de performance para processar');
       return performanceData;
     }
 
     console.log(`🔄 Processando ${tableData.rows.length} registros de Driver Performance...`);
-    
-    // Headers esperados da tabela Driver Performance (baseado no HTML fornecido)
-    const expectedHeaders = [
-      'Driver ID', 'Driver Name', 'Phone Number', 'Request Sent', 'Requests Received',
-      'User Cancelled Rides', 'User Cancelled Ride (cash)', 'User Cancelled Ride (wallet)',
-      'Driver Cancelled Rides', 'Driver Cancelled Ride (cash)', 'Driver Cancelled Ride (wallet)',
-      'Rejected Rides', 'Success Rides', 'Missed Rides', 'Active Days', 'Online Hours',
-      'D2C Referral', 'D2D Referral', 'Start End Cheating Rides', 'Manual Start End Cheating Rides',
-      'Vehicle'
-    ];
-
-    // Verificar se headers correspondem
-    console.log(`📋 Headers encontrados: ${tableData.headers.length}`);
-    console.log(`📋 Headers esperados: ${expectedHeaders.length}`);
-    
+    const headers = tableData.headers;
     for (const row of tableData.rows) {
       try {
-        // Garantir que temos pelo menos os dados mínimos (primeiros 3 campos)
-        if (row.length < 3) {
-          console.log('⚠️ Linha com dados insuficientes ignorada:', row);
+        const obj = rowToObject(headers, row);
+        // Garantir que temos pelo menos os dados mínimos (ID e nome)
+        if (!obj['Driver ID'] || !obj['Driver Name']) {
+          console.log('⚠️ Registro inválido ignorado - falta ID ou nome:', obj);
           continue;
         }
-
         const performance: DriverPerformanceData = {
-          driver_id: row[0] || '',
-          driver_name: row[1] || '',
-          phone_number: row[2] || '',
-          request_sent: parseInt(row[3]) || 0,
-          requests_received: parseInt(row[4]) || 0,
-          user_cancelled_rides: parseInt(row[5]) || 0,
-          user_cancelled_ride_cash: parseInt(row[6]) || 0,
-          user_cancelled_ride_wallet: parseInt(row[7]) || 0,
-          driver_cancelled_rides: parseInt(row[8]) || 0,
-          driver_cancelled_ride_cash: parseInt(row[9]) || 0,
-          driver_cancelled_ride_wallet: parseInt(row[10]) || 0,
-          rejected_rides: parseInt(row[11]) || 0,
-          success_rides: parseInt(row[12]) || 0,
-          missed_rides: parseInt(row[13]) || 0,
-          active_days: parseInt(row[14]) || 0,
-          online_hours: parseFloat(row[15]) || 0,
-          d2c_referral: parseInt(row[16]) || 0,
-          d2d_referral: parseInt(row[17]) || 0,
-          start_end_cheating_rides: parseInt(row[18]) || 0,
-          manual_start_end_cheating_rides: parseInt(row[19]) || 0,
-          vehicle: row[20] || ''
+          driver_id: obj['Driver ID'] || '',
+          driver_name: obj['Driver Name'] || '',
+          phone_number: obj['Phone Number'] || '',
+          request_sent: parseInt(obj['Request Sent'] || '0') || 0,
+          requests_received: parseInt(obj['Requests Received'] || '0') || 0,
+          user_cancelled_rides: parseInt(obj['User Cancelled Rides'] || '0') || 0,
+          user_cancelled_ride_cash: parseInt(obj['User Cancelled Ride (cash)'] || '0') || 0,
+          user_cancelled_ride_wallet: parseInt(obj['User Cancelled Ride (wallet)'] || '0') || 0,
+          driver_cancelled_rides: parseInt(obj['Driver Cancelled Rides'] || '0') || 0,
+          driver_cancelled_ride_cash: parseInt(obj['Driver Cancelled Ride (cash)'] || '0') || 0,
+          driver_cancelled_ride_wallet: parseInt(obj['Driver Cancelled Ride (wallet)'] || '0') || 0,
+          rejected_rides: parseInt(obj['Rejected Rides'] || '0') || 0,
+          success_rides: parseInt(obj['Success Rides'] || '0') || 0,
+          missed_rides: parseInt(obj['Missed Rides'] || '0') || 0,
+          active_days: parseInt(obj['Active Days'] || '0') || 0,
+          online_hours: parseFloat(obj['Online Hours'] || '0') || 0,
+          d2c_referral: parseInt(obj['D2C Referral'] || '0') || 0,
+          d2d_referral: parseInt(obj['D2D Referral'] || '0') || 0,
+          start_end_cheating_rides: parseInt(obj['Start End Cheating Rides'] || '0') || 0,
+          manual_start_end_cheating_rides: parseInt(obj['Manual Start End Cheating Rides'] || '0') || 0,
+          vehicle: obj['Vehicle'] || ''
         };
-
-        // Validar dados mínimos
-        if (performance.driver_id && performance.driver_name) {
-          performanceData.push(performance);
-        } else {
-          console.log('⚠️ Registro inválido ignorado - falta ID ou nome:', performance);
-        }
-
+        performanceData.push(performance);
       } catch (error: any) {
         console.log('❌ Erro processando linha de performance:', error.message, row);
       }
     }
-
     console.log(`✅ ${performanceData.length} registros de Driver Performance processados`);
     return performanceData;
   }

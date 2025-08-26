@@ -94,8 +94,8 @@ export class DriverCacheManager {
     const dataString = JSON.stringify(data.map(table => ({
       name: table.name,
       rowCount: table.rows.length,
-      rows: table.rows.sort(), // Ordenar para hash consistente
-      headers: table.headers.sort() // Incluir headers ordenados
+      rows: table.rows, // NÃO ORDENAR rows - manter ordem original!
+      headers: table.headers // NÃO ORDENAR headers - manter ordem original!
     })).sort((a, b) => a.name.localeCompare(b.name))); // Ordenar tabelas por nome
     
     return createHash('md5').update(dataString).digest('hex');
@@ -196,15 +196,15 @@ export class DriverCacheManager {
    * Compara registros entre duas tabelas
    */
   private compareTableRecords(previousTable: DriverTableData, currentTable: DriverTableData): DriverDataDifference {
-    const previousRowsSet = new Set(previousTable.rows.map(row => JSON.stringify(row.sort())));
-    const currentRowsSet = new Set(currentTable.rows.map(row => JSON.stringify(row.sort())));
+    const previousRowsSet = new Set(previousTable.rows.map(row => JSON.stringify(row)));
+    const currentRowsSet = new Set(currentTable.rows.map(row => JSON.stringify(row)));
     
     const newRecords: string[][] = [];
     const removedRecords: string[][] = [];
     
     // Encontrar novos registros
     currentTable.rows.forEach(row => {
-      const rowKey = JSON.stringify(row.sort());
+      const rowKey = JSON.stringify(row);
       if (!previousRowsSet.has(rowKey)) {
         newRecords.push(row);
       }
@@ -212,7 +212,7 @@ export class DriverCacheManager {
     
     // Encontrar registros removidos
     previousTable.rows.forEach(row => {
-      const rowKey = JSON.stringify(row.sort());
+      const rowKey = JSON.stringify(row);
       if (!currentRowsSet.has(rowKey)) {
         removedRecords.push(row);
       }
