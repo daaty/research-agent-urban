@@ -174,52 +174,39 @@ export class EnvironmentDetector {
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--disable-web-security',
+        '--no-first-run',
         '--disable-background-timer-throttling',
         '--disable-backgrounding-occluded-windows',
         '--disable-renderer-backgrounding',
-        // 🔧 Melhorias específicas para VNC/Docker
-        '--disable-blink-features=AutomationControlled',
-        '--disable-features=VizDisplayCompositor',
-        '--disable-ipc-flooding-protection',
-        '--disable-hang-monitor',
-        '--disable-prompt-on-repost',
-        '--disable-client-side-phishing-detection',
+        // � OTIMIZAÇÕES PARA PERFORMANCE VNC
+        '--disable-extensions',
+        '--disable-plugins',
+        '--disable-images',  // 🔧 Acelera carregamento
+        '--disable-javascript-harmony-shipping',
+        '--disable-background-networking',
         '--disable-sync',
-        '--metrics-recording-only',
-        '--no-first-run',
-        '--safebrowsing-disable-auto-update',
-        '--enable-automation',
-        '--password-store=basic',
-        '--use-mock-keychain',
-        // 🚀 Performance para VNC
+        '--disable-translate',
+        '--disable-ipc-flooding-protection',
         '--memory-pressure-off',
-        '--max_old_space_size=4096'
+        '--max_old_space_size=2048'  // 🔧 Reduzido de 4GB para 2GB
       ]
     };
 
     if (config.displayMode === 'vnc' || config.displayMode === 'xvfb') {
       baseConfig.args.push(`--display=${config.displayVar}`);
-      // 🔧 Configurações adicionais para VNC
+      // 🔧 APENAS configurações essenciais para VNC
       baseConfig.args.push(
-        '--disable-gpu-sandbox',
+        '--disable-gpu',
         '--disable-software-rasterizer',
-        '--disable-background-networking',
-        '--disable-default-apps',
-        '--disable-extensions',
-        '--disable-sync',
-        '--disable-translate',
         '--hide-scrollbars',
-        '--mute-audio',
-        '--no-default-browser-check',
-        '--no-first-run'
+        '--mute-audio'
       );
     }
 
     if (config.isDocker) {
       baseConfig.args.push(
         '--disable-gpu',
-        '--disable-software-rasterizer',
-        '--no-first-run'
+        '--disable-software-rasterizer'
       );
     }
 

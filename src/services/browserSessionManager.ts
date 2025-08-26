@@ -253,7 +253,15 @@ export class BrowserSessionManager {
       this.context = await chromium.launchPersistentContext(this.userDataDir, {
         headless: playwrightConfig.headless,
         args: playwrightConfig.args,
-        viewport: { width: 1366, height: 768 }
+        viewport: { width: 1600, height: 1200 },  // 🔧 VNC resolution
+        // 🚀 TIMEOUTS OTIMIZADOS
+        timeout: 120000,  // 2 minutos para inicialização
+        // 🔧 Performance settings
+        deviceScaleFactor: 1,
+        hasTouch: false,
+        isMobile: false,
+        locale: 'pt-BR',
+        timezoneId: 'America/Sao_Paulo'
       });
 
       // Obter referência do browser do context
@@ -269,6 +277,10 @@ export class BrowserSessionManager {
       // Pegar a página existente ou criar uma nova
       const pages = this.context.pages();
       this.page = pages.length > 0 ? pages[0] : await this.context.newPage();
+      
+      // 🔧 CONFIGURAÇÕES DE TIMEOUT OTIMIZADAS PARA VNC
+      this.page.setDefaultTimeout(90000);  // 90s timeout global
+      this.page.setDefaultNavigationTimeout(120000);  // 2min para navegação
       
       console.log('✅ Browser inicializado com sucesso');
       
@@ -961,13 +973,15 @@ export class BrowserSessionManager {
       }
       
       console.log('📍 Navegando para página de login...');
+      
+      // 🔧 CORREÇÃO: Usar load em vez de domcontentloaded para garantir recursos carregados
       await this.page!.goto(this.loginUrl, { 
-        waitUntil: 'domcontentloaded',  // 🔧 Mais confiável que networkidle
-        timeout: 60000  // 🔧 60s timeout
+        waitUntil: 'load',  // 🔧 Aguardar tudo carregar, não só DOM
+        timeout: 120000  // 🔧 2 minutos timeout para VNC
       });
 
       console.log('⏳ Aguardando página estabilizar no ambiente VNC...');
-      await this.page!.waitForTimeout(8000);  // 🔧 VNC: mais tempo inicial
+      await this.page!.waitForTimeout(3000);  // 🔧 Reduzido de 8s para 3s
 
       // � AGUARDAR ANGULARJS CARREGAR ANTES DE PREENCHER
       console.log('⏳ Aguardando página AngularJS carregar completamente...');
