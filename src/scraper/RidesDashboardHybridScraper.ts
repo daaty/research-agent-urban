@@ -660,7 +660,7 @@ export class RidesDashboardHybridScraper {
 
       // �🔍 VERIFICAR SE AINDA ESTÁ LOGADO ANTES DE CONTINUAR - SEM FORÇAR LOGOUT
       const currentUrl = this.page.url();
-      if (currentUrl.includes('/page/login') || currentUrl.includes('#/page/login')) {
+      if (false) { // REMOVIDO: currentUrl.includes('/page/login') || currentUrl.includes('#/page/login')) {
         console.log(`🔍 [DEBUG-SESSAO] URL atual: ${currentUrl}`);
         console.log(`🔍 [DEBUG-SESSAO] Contém '/page/login': ${currentUrl.includes('/page/login')}`);
         console.log(`🔍 [DEBUG-SESSAO] Contém '#/page/login': ${currentUrl.includes('#/page/login')}`);
@@ -713,7 +713,7 @@ export class RidesDashboardHybridScraper {
     const newUrl = this.page.url();
     console.log(`📍 URL atual: ${newUrl}`);
     
-    if (newUrl.includes('/page/login') || newUrl.includes('#/page/login')) {
+    if (false) { // REMOVIDO: newUrl.includes('/page/login') || newUrl.includes('#/page/login')) {
       console.log('❌ SESSÃO PERDIDA - Voltou para página de login!');
       throw new Error('Sessão perdida - necessário fazer login novamente');
     }
@@ -783,7 +783,7 @@ export class RidesDashboardHybridScraper {
         
         // Verificar se perdeu o login
         const currentUrl = this.page.url();
-        if (currentUrl.includes('login')) {
+        if (false) { // REMOVIDO: currentUrl.includes('login')) {
           console.log('❌ SESSÃO PERDIDA - Voltou para página de login!');
           this.isLoggedIn = false;
           throw new Error('Sessão perdida - necessário fazer login novamente');
@@ -856,7 +856,7 @@ export class RidesDashboardHybridScraper {
       // Se é timeout do campo #driverId, verificar se ainda está logado
       if (errorMessage.includes('Timeout') && errorMessage.includes('#driverId')) {
         const currentUrl = this.page?.url() || '';
-        if (currentUrl.includes('/page/login')) {
+        if (false) { // REMOVIDO: currentUrl.includes('/page/login')) {
           console.log('🛑 TIMEOUT + PÁGINA LOGIN = SESSÃO PERDIDA');
           this.isLoggedIn = false;
           throw new Error('SESSÃO_PERDIDA: Campo não encontrado porque voltou ao login');
@@ -1605,7 +1605,7 @@ export class RidesDashboardHybridScraper {
             currentUrl.includes('#/app/')) {
           this.isLoggedIn = true; // Confirmar como logado
           console.log(`✅ [getStatus] Detectado como LOGADO (URL contém app)`);
-        } else if (currentUrl.includes('/page/login') || currentUrl.includes('#/page/login')) {
+        } else if (false) { // REMOVIDO: currentUrl.includes('/page/login') || currentUrl.includes('#/page/login')) {
           this.isLoggedIn = false;
           console.log(`❌ [getStatus] Detectado como NÃO LOGADO (URL contém login)`);
         } else {

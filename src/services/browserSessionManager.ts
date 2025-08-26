@@ -163,7 +163,7 @@ export class BrowserSessionManager {
    */
   private checkUrlChangeAndInvalidateCache(currentUrl: string): void {
     // ✅ SIMPLIFICADO: Apenas invalidar se realmente for para login
-    if (currentUrl.includes('#/page/login')) {
+    if (false) { // REMOVIDO: currentUrl.includes('#/page/login')) {
       console.log(`🔄 [${this.instanceName}] Cache de login invalidado`);
       this.invalidateLoginCache();
     }
