@@ -431,23 +431,54 @@ export class BrowserSessionManager {
    * Aguarda login manual quando há captcha - versão melhorada para reinicialização
    * Monitora mudança de URL para detectar quando usuário completa login via VNC
    */
-  public async waitForManualLogin(timeoutMs: number = 300000): Promise<boolean> {
+  public async waitForManualLogin(timeoutMs: number = 600000): Promise<boolean> {
     console.log('⏳ Aguardando login manual via VNC...');
     console.log('💡 Acesse o VNC em http://localhost:6080 para resolver o captcha');
+    console.log('🤖 CAPTCHA detectado - resolva manualmente no VNC');
+    console.log('📝 Credenciais já foram preenchidas automaticamente');
+    console.log('✅ Apenas resolva o captcha e clique em "Log in" ou pressione Enter');
     console.log('🔄 O sistema detectará automaticamente quando você fizer login...');
+    console.log('⏰ Tempo limite: 10 minutos');
     
-    const maxWaitTime = 5 * 60 * 1000; // 5 minutos
-    const checkInterval = 3000; // 3 segundos (mais rápido)
+    const maxWaitTime = 10 * 60 * 1000; // 10 minutos (aumentado de 5)
+    const checkInterval = 5000; // 5 segundos (aumentado para ser menos agressivo)
     const startTime = Date.now();
     
     while ((Date.now() - startTime) < maxWaitTime) {
       try {
         const currentUrl = this.page!.url();
-        console.log(`🔍 Verificando URL: ${currentUrl.substring(0, 50)}...`);
+        const elapsedMinutes = Math.floor((Date.now() - startTime) / (60 * 1000));
+        console.log(`🔍 Verificando login... (${elapsedMinutes} min)`);
+        
+        // 🔍 NOVA LÓGICA: Verificar se captcha foi resolvido mesmo na página de login
+        if (currentUrl.includes('login')) {
+          // Verificar se ainda há captcha visível
+          const captchaStillPresent = await this.checkForCaptcha();
+          
+          if (!captchaStillPresent) {
+            console.log('✅ Captcha resolvido! Tentando fazer login automático...');
+            
+            // Tentar pressionar Enter para fazer login
+            try {
+              await this.page!.press('#exampleInputPassword1', 'Enter');
+              await this.page!.waitForTimeout(5000);
+              
+              // Verificar se funcionou
+              const newUrl = this.page!.url();
+              if (!newUrl.includes('login')) {
+                console.log('🎉 Login realizado com sucesso após captcha!');
+                const finalCheck = await this.isCurrentlyLoggedIn(true);
+                if (finalCheck) return true;
+              }
+            } catch (enterError) {
+              console.log('⚠️ Erro ao tentar login após captcha:', enterError);
+            }
+          }
+        }
         
         // Verificar se saiu da página de login OU se está logado
         const notInLogin = !currentUrl.includes('login');
-        const isLoggedIn = await this.isCurrentlyLoggedIn(true);
+        const isLoggedIn = await this.isCurrentlyLoggedIn(false); // Modo não-verbose para ser mais rápido
         
         if (notInLogin || isLoggedIn) {
           console.log('🔍 Mudança detectada, verificando login completo...');
@@ -485,16 +516,41 @@ export class BrowserSessionManager {
         }
         
         // Aguardar antes da próxima verificação
-        console.log(`⏳ Aguardando... (${Math.round((Date.now() - startTime) / 1000)}s/${Math.round(maxWaitTime / 1000)}s)`);
+        const elapsedSeconds = Math.round((Date.now() - startTime) / 1000);
+        const totalSeconds = Math.round(maxWaitTime / 1000);
+        const remainingMinutes = Math.floor((maxWaitTime - (Date.now() - startTime)) / (60 * 1000));
+        
+        // 📊 Feedback visual melhorado para VNC
+        if (elapsedSeconds % 60 === 0) { // A cada minuto
+          console.log(`🔄 VNC: Aguardando resolução do captcha...`);
+          console.log(`⏰ Tempo: ${elapsedSeconds}s/${totalSeconds}s (${remainingMinutes} min restantes)`);
+          console.log(`📍 Acesse via VNC: ${currentUrl}`);
+          console.log(`💡 Após resolver captcha, pressione Enter ou clique em Login`);
+        }
+        
         await this.page!.waitForTimeout(checkInterval);
         
       } catch (error) {
-        console.log('⚠️ Erro durante polling de login manual:', error);
+        const elapsed = Math.floor((Date.now() - startTime) / (60 * 1000));
+        console.log(`⚠️ Erro durante polling (${elapsed} min):`, error);
+        
+        // Verificar se a página ainda está ativa
+        try {
+          await this.page!.evaluate(() => document.title);
+        } catch (pageError) {
+          console.log('❌ Página inativa, tentando recarregar...');
+          await this.page!.reload({ waitUntil: 'domcontentloaded' });
+        }
+        
         await this.page!.waitForTimeout(checkInterval);
       }
     }
     
     console.log('⏰ Timeout aguardando login manual');
+    console.log('💡 DICA VNC: Se o captcha foi resolvido mas ainda está na página de login:');
+    console.log('   1. Pressione Enter no campo de senha');
+    console.log('   2. Ou clique no botão "Login"');
+    console.log('   3. Certifique-se que os campos email/senha estão preenchidos');
     return false;
   }
 
