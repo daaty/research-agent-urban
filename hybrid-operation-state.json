@@ -1,9 +1,9 @@
 {
-  "currentDriverId": null,
+  "currentDriverId": "17166153",
   "extractionMode": true,
   "rechargeMode": false,
-  "lastSavedAt": "2025-08-23T04:27:23.610Z",
-  "totalProcessed": 484,
+  "lastSavedAt": "2025-08-26T14:30:46.469Z",
+  "totalProcessed": 560,
   "sessionStarted": "2025-08-21T10:53:42.121Z",
   "queueSnapshot": {
     "driverIds": [],

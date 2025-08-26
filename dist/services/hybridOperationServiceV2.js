@@ -137,17 +137,33 @@ class HybridOperationService {
                 logger_1.logger.debug('HYBRID', 'Tentando extrair IDs reais da página Active Drivers...');
                 try {
                     yield this.ensureDashboardReady();
+                    logger_1.logger.debug('HYBRID', '🔍 Chamando extractAllDriverIds...');
                     const realDriverIds = yield this.dashboardScraper.extractAllDriverIds();
+                    logger_1.logger.debug('HYBRID', `🔍 extractAllDriverIds retornou: ${(realDriverIds === null || realDriverIds === void 0 ? void 0 : realDriverIds.length) || 0} IDs`);
                     if (realDriverIds && realDriverIds.length > 0) {
                         logger_1.logger.success('HYBRID', `${realDriverIds.length} IDs reais extraídos da dashboard Active Drivers`);
+                        // 🎯 OTIMIZAÇÃO: Preparar dashboard UMA VEZ após extrair IDs
+                        logger_1.logger.info('HYBRID', '🎯 Preparando dashboard para processamento em lote...');
+                        try {
+                            yield this.dashboardScraper.prepareDashboardForBatch();
+                            logger_1.logger.success('HYBRID', '✅ Dashboard preparado - pronto para processar fila de IDs');
+                        }
+                        catch (prepareBatchError) {
+                            logger_1.logger.error('HYBRID', `❌ Erro ao preparar dashboard para lote: ${prepareBatchError.message}`);
+                            // Continuar mesmo com erro na preparação
+                        }
                         // Adicionar IDs reais com prioridade alta
                         this.driverQueue.addDriverIds(realDriverIds, 'high');
                         logger_1.logger.info('HYBRID', `IDs da dashboard carregados: ${realDriverIds.length} IDs reais (alta prioridade)`);
                         return; // Sucesso, não precisa buscar nas APIs
                     }
+                    else {
+                        logger_1.logger.warn('HYBRID', 'Nenhum ID foi extraído da dashboard Active Drivers');
+                    }
                 }
                 catch (dashboardError) {
-                    logger_1.logger.warn('HYBRID', `Erro ao extrair IDs da dashboard: ${dashboardError.message}`);
+                    logger_1.logger.error('HYBRID', `❌ ERRO COMPLETO ao extrair IDs da dashboard: ${dashboardError.message}`);
+                    logger_1.logger.error('HYBRID', `❌ Stack trace: ${dashboardError.stack}`);
                     logger_1.logger.debug('HYBRID', 'Tentando fallback para APIs das cidades...');
                 }
                 // 2. Fallback: usar APIs das cidades
@@ -202,10 +218,13 @@ class HybridOperationService {
                         logger_1.logger.debug('HYBRID', 'Extraindo IDs atuais da dashboard...');
                         const realDriverIds = yield this.dashboardScraper.extractAllDriverIds();
                         if (realDriverIds && realDriverIds.length > 0) {
-                            // Filtrar IDs que já não estão na fila
+                            // 🎯 OTIMIZAÇÃO: Preparar dashboard se extraiu novos IDs
                             const currentIds = this.driverQueue.getAllIds();
                             const newIds = realDriverIds.filter(id => !currentIds.includes(id));
                             if (newIds.length > 0) {
+                                // Preparar dashboard para o processamento
+                                logger_1.logger.debug('HYBRID', 'Preparando dashboard para novos IDs...');
+                                yield this.dashboardScraper.prepareDashboardForBatch();
                                 this.driverQueue.addDriverIds(newIds, 'high');
                                 logger_1.logger.info('HYBRID', `Auto-feed: ${newIds.length} novos IDs reais da dashboard adicionados`);
                             }
@@ -503,8 +522,7 @@ class HybridOperationService {
         });
     }
     /**
-     * Garante que o dashboard scraper está pronto e logado
-     * CORRIGIDO: Evita reinicializar se já estiver logado
+     * 🔧 SIMPLIFICADO: Confia no status já confirmado, não fica verificando URL toda hora
      */
     ensureDashboardReady() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -512,17 +530,16 @@ class HybridOperationService {
                 // Verificar se scraper está logado
                 const status = this.dashboardScraper.getStatus();
                 logger_1.logger.debug('HYBRID', `Status atual: logado=${status.isLoggedIn}, URL=${status.pageUrl}`);
-                if (!status.isLoggedIn) {
-                    logger_1.logger.debug('HYBRID', 'Dashboard não está logada, iniciando processo de login...');
-                    logger_1.logger.debug('HYBRID', 'Abrindo dashboard...');
-                    // Inicializar scraper (faz login automaticamente)
-                    logger_1.logger.warn('HYBRID', '⏳ 🤖 ATENÇÃO: O sistema abrirá a dashboard - resolva o CAPTCHA e faça login se necessário!');
-                    yield this.dashboardScraper.initialize();
-                    logger_1.logger.success('HYBRID', 'Login concluído com sucesso! Prosseguindo com a extração...');
+                // 🚨 CORREÇÃO: Se JÁ ESTÁ LOGADO, NÃO REINICIALIZAR!
+                if (status.isLoggedIn) {
+                    logger_1.logger.debug('HYBRID', '✅ Dashboard já confirmado como logado, prosseguindo...');
+                    return;
                 }
-                else {
-                    logger_1.logger.debug('HYBRID', 'Dashboard já está logada, prosseguindo com extração...');
-                }
+                // Só inicializar se realmente não está logado
+                logger_1.logger.debug('HYBRID', 'Dashboard não está logada, iniciando processo de login...');
+                logger_1.logger.warn('HYBRID', '⏳ 🤖 ATENÇÃO: O sistema abrirá a dashboard - resolva o CAPTCHA e faça login se necessário!');
+                yield this.dashboardScraper.initialize();
+                logger_1.logger.success('HYBRID', 'Login concluído com sucesso! Prosseguindo com a extração...');
             }
             catch (error) {
                 logger_1.logger.error('HYBRID', 'Erro ao preparar dashboard', error);

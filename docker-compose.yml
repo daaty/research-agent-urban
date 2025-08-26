@@ -13,6 +13,9 @@ services:
       - agent_data:/app/data
       - agent_browser:/app/browser-data
       - agent_cache:/app/cache
+      # CORREÇÃO ESPECÍFICA PARA DOCKER - Garantir persistência de sessão
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /dev/shm:/dev/shm
       
     environment:
       # Configurações básicas

@@ -634,15 +634,55 @@ export class RidesDashboardHybridScraper {
     console.log(`📊 Extraindo dados do motorista: ${driverId}`);
 
     try {
-      // 🔍 VERIFICAR SE AINDA ESTÁ LOGADO ANTES DE CONTINUAR
+      // � FORÇAR MANUTENÇÃO DE SESSÃO ANTES DE QUALQUER VERIFICAÇÃO (ESPECÍFICO PARA DOCKER)
+      if (this.isLoggedIn) {
+        try {
+          // Salvar cookies e session storage ANTES de verificar URL
+          const cookies = await this.page.context().cookies();
+          if (cookies.length > 0) {
+            console.log(`🍪 [DOCKER-FIX] ${cookies.length} cookies mantidos na sessão`);
+          }
+          
+          // Executar JavaScript para manter session storage
+          await this.page.evaluate(() => {
+            // Força manutenção de session storage
+            const authData = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
+            if (authData) {
+              sessionStorage.setItem('authToken', authData);
+              localStorage.setItem('authToken', authData);
+            }
+          }).catch(() => {}); // Ignora erros
+          
+        } catch (e: any) {
+          console.log('⚠️ [DOCKER-FIX] Erro ao manter sessão, mas continuando:', e.message);
+        }
+      }
+
+      // �🔍 VERIFICAR SE AINDA ESTÁ LOGADO ANTES DE CONTINUAR - SEM FORÇAR LOGOUT
       const currentUrl = this.page.url();
       if (currentUrl.includes('/page/login') || currentUrl.includes('#/page/login')) {
         console.log('⚠️ SESSÃO PERDIDA DETECTADA! Tentando recuperar automaticamente...');
-        this.isLoggedIn = false;
         
-        // Tentar recuperar sessão automaticamente para Docker/VPS
+        // EM VEZ DE RESETAR isLoggedIn, MANTER E TENTAR RECUPERAR
+        console.log('🔄 [DOCKER-FIX] Mantendo isLoggedIn=true e tentando navegação direta para dashboard...');
+        
         try {
-          console.log('🔄 Tentando login automático para recuperar sessão...');
+          // TENTAR NAVEGAR DIRETAMENTE PARA DASHBOARD PRIMEIRO
+          console.log('🎯 [DOCKER-FIX] Tentando navegar diretamente para dashboard sem perder sessão...');
+          await this.page.goto(this.DASHBOARD_URL, { waitUntil: 'networkidle', timeout: 15000 });
+          
+          const afterNavUrl = this.page.url();
+          if (!afterNavUrl.includes('/page/login')) {
+            console.log('✅ [DOCKER-FIX] Sucesso! Dashboard acessado sem perder sessão');
+            // Continuar normalmente sem resetar nada
+          } else {
+            throw new Error('Ainda na página de login após navegação');
+          }
+          
+        } catch (navError) {
+          console.log('❌ [DOCKER-FIX] Navegação direta falhou, tentando login automático...');
+          
+          // Só agora tentar recuperação automática
           const username = process.env.RIDES_USERNAME;
           const password = process.env.RIDES_PASSWORD;
           
@@ -652,9 +692,6 @@ export class RidesDashboardHybridScraper {
           } else {
             throw new Error('Credenciais não disponíveis para recuperação automática');
           }
-        } catch (recoveryError) {
-          console.log('❌ Falha na recuperação automática:', recoveryError);
-          throw new Error('Sessão perdida - necessário login manual');
         }
       }
 

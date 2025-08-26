@@ -101,7 +101,9 @@ class RidesDashboardHybridScraper {
         return __awaiter(this, void 0, void 0, function* () {
             if (!this.page)
                 throw new Error('Página não disponível');
-            yield this.browserManager.navigateWithLock(loginUrl, { waitUntil: 'networkidle' });
+            console.log('🌐 [hybrid_scraper] Navegando para: ' + loginUrl + '...');
+            yield this.page.goto(loginUrl, { waitUntil: 'networkidle' });
+            console.log('✅ [hybrid_scraper] Navegação concluída com sucesso');
             // 🔍 Verificar se já está logado primeiro
             const currentUrl = this.page.url();
             console.log('🔍 URL sugere login manual, verificando...');
@@ -115,7 +117,15 @@ class RidesDashboardHybridScraper {
             const captchaVisible = yield this.page.isVisible('div[id*="captcha"]:visible, iframe[src*="captcha"]:visible, .g-recaptcha:visible');
             if (captchaVisible) {
                 console.log('📋 Captcha detectado na página');
-                console.log('❌ Login automático não possível com captcha presente');
+                console.log('⚠️ Captcha presente, mas preenchendo campos de login e senha automaticamente antes do login manual');
+                try {
+                    yield this.page.fill('#exampleInputEmail1', username);
+                    yield this.page.fill('#exampleInputPassword1', password);
+                    console.log('📝 Campos de login e senha preenchidos automaticamente mesmo com captcha visível.');
+                }
+                catch (e) {
+                    console.log('❌ Erro ao preencher campos de login e senha com captcha visível:', e);
+                }
                 yield this.waitForManualLogin();
                 return;
             }
@@ -358,6 +368,34 @@ class RidesDashboardHybridScraper {
         });
     }
     /**
+     * 🎯 SIMPLIFICADO: Apenas navega para dashboard sem verificações idiotas de login
+     * O login JÁ FOI CONFIRMADO quando extraiu os IDs!
+     */
+    prepareDashboardForBatch() {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!this.page)
+                throw new Error('Página não disponível');
+            console.log('🎯 [SCRAPER] Preparando dashboard para processamento em lote de IDs...');
+            try {
+                const currentUrl = this.page.url();
+                console.log(`🔍 [SCRAPER] URL atual antes de navegar: ${currentUrl}`);
+                // Simplesmente navegar para o dashboard - PONTO!
+                console.log('🌐 [SCRAPER] Navegando para Dashboard...');
+                yield this.page.goto(this.DASHBOARD_URL, { waitUntil: 'domcontentloaded', timeout: 15000 });
+                console.log('✅ [SCRAPER] Navegação para dashboard concluída');
+                const newUrl = this.page.url();
+                console.log(`📍 [SCRAPER] URL após navegação: ${newUrl}`);
+                // Aguardar um pouco para estabilizar
+                yield this.page.waitForTimeout(1000);
+                console.log('🎯 [SCRAPER] Dashboard pronto para processamento em lote');
+            }
+            catch (error) {
+                console.error('❌ [SCRAPER] Erro ao preparar dashboard:', error.message);
+                throw error;
+            }
+        });
+    }
+    /**
      * Extrai todos os IDs dos motoristas da página Active Drivers
      */
     extractAllDriverIds() {
@@ -518,27 +556,102 @@ class RidesDashboardHybridScraper {
     extractDriverData(driverId) {
         return __awaiter(this, void 0, void 0, function* () {
             var _a;
-            if (!this.page || !this.isLoggedIn) {
-                throw new Error('Scraper não inicializado ou não logado');
+            if (!this.page) {
+                throw new Error('Scraper não inicializado');
             }
             console.log(`📊 Extraindo dados do motorista: ${driverId}`);
             try {
-                // 🔍 VERIFICAR SE AINDA ESTÁ LOGADO ANTES DE CONTINUAR
+                // � FORÇAR MANUTENÇÃO DE SESSÃO ANTES DE QUALQUER VERIFICAÇÃO (ESPECÍFICO PARA DOCKER)
+                if (this.isLoggedIn) {
+                    try {
+                        // Salvar cookies e session storage ANTES de verificar URL
+                        const cookies = yield this.page.context().cookies();
+                        if (cookies.length > 0) {
+                            console.log(`🍪 [DOCKER-FIX] ${cookies.length} cookies mantidos na sessão`);
+                        }
+                        // Executar JavaScript para manter session storage
+                        yield this.page.evaluate(() => {
+                            // Força manutenção de session storage
+                            const authData = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
+                            if (authData) {
+                                sessionStorage.setItem('authToken', authData);
+                                localStorage.setItem('authToken', authData);
+                            }
+                        }).catch(() => { }); // Ignora erros
+                    }
+                    catch (e) {
+                        console.log('⚠️ [DOCKER-FIX] Erro ao manter sessão, mas continuando:', e.message);
+                    }
+                }
+                // �🔍 VERIFICAR SE AINDA ESTÁ LOGADO ANTES DE CONTINUAR - SEM FORÇAR LOGOUT
                 const currentUrl = this.page.url();
                 if (currentUrl.includes('/page/login') || currentUrl.includes('#/page/login')) {
-                    console.log('❌ SESSÃO PERDIDA! Retornando à página de login...');
-                    this.isLoggedIn = false;
-                    throw new Error('Sessão perdida - necessário login manual');
+                    console.log('⚠️ SESSÃO PERDIDA DETECTADA! Tentando recuperar automaticamente...');
+                    // EM VEZ DE RESETAR isLoggedIn, MANTER E TENTAR RECUPERAR
+                    console.log('🔄 [DOCKER-FIX] Mantendo isLoggedIn=true e tentando navegação direta para dashboard...');
+                    try {
+                        // TENTAR NAVEGAR DIRETAMENTE PARA DASHBOARD PRIMEIRO
+                        console.log('🎯 [DOCKER-FIX] Tentando navegar diretamente para dashboard sem perder sessão...');
+                        yield this.page.goto(this.DASHBOARD_URL, { waitUntil: 'networkidle', timeout: 15000 });
+                        const afterNavUrl = this.page.url();
+                        if (!afterNavUrl.includes('/page/login')) {
+                            console.log('✅ [DOCKER-FIX] Sucesso! Dashboard acessado sem perder sessão');
+                            // Continuar normalmente sem resetar nada
+                        }
+                        else {
+                            throw new Error('Ainda na página de login após navegação');
+                        }
+                    }
+                    catch (navError) {
+                        console.log('❌ [DOCKER-FIX] Navegação direta falhou, tentando login automático...');
+                        // Só agora tentar recuperação automática
+                        const username = process.env.RIDES_USERNAME;
+                        const password = process.env.RIDES_PASSWORD;
+                        if (username && password) {
+                            yield this.performLogin(currentUrl, username, password);
+                            console.log('✅ Sessão recuperada automaticamente');
+                        }
+                        else {
+                            throw new Error('Credenciais não disponíveis para recuperação automática');
+                        }
+                    }
                 }
-                // Garantir que estamos na página Dashboard (onde está o campo #driverId)
-                console.log('🌐 Navegando para Dashboard para extração de dados...');
-                yield this.browserManager.navigateWithLock(this.DASHBOARD_URL, { waitUntil: 'networkidle', timeout: 15000 }); // Verificar se foi redirecionado para login após navegação
+                // 🎯 OTIMIZADO: Verificar se já está no dashboard, só navegar se necessário
+                const currentUrlCheck = this.page.url();
+                if (!currentUrlCheck.includes('/app/dashboard')) {
+                    console.log('🌐 Navegando para Dashboard para extração de dados...');
+                    console.log(`🌐 [hybrid_scraper] Navegando para: ${this.DASHBOARD_URL}...`);
+                    yield this.page.goto(this.DASHBOARD_URL, { waitUntil: 'networkidle', timeout: 15000 });
+                    console.log('✅ [hybrid_scraper] Navegação concluída com sucesso');
+                }
+                else {
+                    console.log('✅ [hybrid_scraper] Já está no dashboard, prosseguindo...');
+                }
+                // Verificar se foi redirecionado para login após navegação
                 const newUrl = this.page.url();
                 console.log(`📍 URL atual: ${newUrl}`);
                 if (newUrl.includes('/page/login') || newUrl.includes('#/page/login')) {
-                    console.log('❌ REDIRECIONADO PARA LOGIN! Sessão expirou...');
+                    console.log('⚠️ REDIRECIONADO PARA LOGIN após navegação! Tentando recuperar...');
                     this.isLoggedIn = false;
-                    throw new Error('Sessão expirou - redirecionado para login');
+                    // Tentar recuperar sessão automaticamente para Docker/VPS
+                    try {
+                        console.log('🔄 Tentando login automático após redirecionamento...');
+                        const username = process.env.RIDES_USERNAME;
+                        const password = process.env.RIDES_PASSWORD;
+                        if (username && password) {
+                            yield this.performLogin(newUrl, username, password);
+                            console.log('✅ Sessão recuperada após redirecionamento');
+                            // Navegar novamente para dashboard após recuperação
+                            yield this.page.goto(this.DASHBOARD_URL, { waitUntil: 'networkidle', timeout: 15000 });
+                        }
+                        else {
+                            throw new Error('Credenciais não disponíveis para recuperação');
+                        }
+                    }
+                    catch (recoveryError) {
+                        console.log('❌ Falha na recuperação após redirecionamento:', recoveryError);
+                        throw new Error('Sessão expirou - redirecionado para login');
+                    }
                 }
                 // 🎯 VERIFICAÇÃO ROBUSTA DO CAMPO driverId
                 console.log('🔍 Procurando campo #driverId...');
@@ -1170,7 +1283,9 @@ class RidesDashboardHybridScraper {
                     throw new Error('Página não disponível');
                 // 1. Navegar para dashboard principal (forçar URL correta)
                 console.log('🌐 Navegando para Dashboard para recarga...');
-                yield this.browserManager.navigateWithLock('https://rides.ec2dashboard.com/#/app/dashboard', { waitUntil: 'networkidle' });
+                console.log('🌐 [hybrid_scraper] Navegando para: https://rides.ec2dashboard.com/#/app/dashboard...');
+                yield this.page.goto('https://rides.ec2dashboard.com/#/app/dashboard', { waitUntil: 'networkidle' });
+                console.log('✅ [hybrid_scraper] Navegação concluída com sucesso');
                 yield this.page.waitForTimeout(3000);
                 // 2. Verificar URL atual
                 const currentUrl = this.page.url();
@@ -1266,26 +1381,45 @@ class RidesDashboardHybridScraper {
         });
     }
     /**
-     * Obtém informações do estado atual
-     * CORRIGIDO: Verifica o status real de login baseado na URL atual
+     * 🔧 CORRIGIDO: Força atualização do status de login
+     */
+    setLoggedIn(status) {
+        this.isLoggedIn = status;
+    }
+    /**
+     * 🔧 CORRIGIDO: Mantém status de login uma vez confirmado, não verifica URL constantemente
      */
     getStatus() {
-        var _a;
-        // 🔧 CORREÇÃO: Verificar status real de login baseado na URL atual
-        let actualLoginStatus = this.isLoggedIn;
+        var _a, _b;
+        // � CORREÇÃO: Se já foi confirmado logado uma vez, MANTER até dar erro real
+        if (this.isLoggedIn) {
+            console.log(`✅ [getStatus] Já confirmado como LOGADO - mantendo status`);
+            return {
+                isLoggedIn: true,
+                currentCity: this.currentCity,
+                pageUrl: ((_a = this.page) === null || _a === void 0 ? void 0 : _a.url()) || 'N/A',
+                timestamp: new Date().toISOString()
+            };
+        }
+        // Só verificar URL se ainda não foi confirmado como logado
         if (this.page && !this.page.isClosed()) {
             try {
                 const currentUrl = this.page.url();
+                console.log(`🔍 [getStatus] URL atual: ${currentUrl}`);
+                console.log(`🔍 [getStatus] isLoggedIn inicial: ${this.isLoggedIn}`);
                 // Se está numa página do app, está logado
                 if (currentUrl.includes('/app/dashboard') ||
                     currentUrl.includes('/app/active-drivers') ||
                     currentUrl.includes('#/app/')) {
-                    actualLoginStatus = true;
-                    this.isLoggedIn = true; // Atualizar estado interno
+                    this.isLoggedIn = true; // Confirmar como logado
+                    console.log(`✅ [getStatus] Detectado como LOGADO (URL contém app)`);
                 }
                 else if (currentUrl.includes('/page/login') || currentUrl.includes('#/page/login')) {
-                    actualLoginStatus = false;
                     this.isLoggedIn = false;
+                    console.log(`❌ [getStatus] Detectado como NÃO LOGADO (URL contém login)`);
+                }
+                else {
+                    console.log(`⚠️ [getStatus] URL indeterminada, mantendo status: ${this.isLoggedIn}`);
                 }
             }
             catch (error) {
@@ -1293,9 +1427,9 @@ class RidesDashboardHybridScraper {
             }
         }
         return {
-            isLoggedIn: actualLoginStatus,
+            isLoggedIn: this.isLoggedIn,
             currentCity: this.currentCity,
-            pageUrl: ((_a = this.page) === null || _a === void 0 ? void 0 : _a.url()) || 'N/A',
+            pageUrl: ((_b = this.page) === null || _b === void 0 ? void 0 : _b.url()) || 'N/A',
             timestamp: new Date().toISOString()
         };
     }

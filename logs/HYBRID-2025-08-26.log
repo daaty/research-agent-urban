@@ -1,0 +1,1092 @@
+[2025-08-26T13:23:33.693Z] [INFO] [HYBRID] Iniciando Sistema Híbrido...
+[2025-08-26T13:23:33.694Z] [INFO] [HYBRID] Iniciando sistema de operação híbrida...
+[2025-08-26T13:23:33.694Z] [INFO] [HYBRID] Inicializando navegador do sistema híbrido...
+[2025-08-26T13:25:10.545Z] [SUCCESS] [HYBRID] Navegador do sistema híbrido inicializado
+[2025-08-26T13:25:10.545Z] [DEBUG] [HYBRID] Verificando recuperação de estado...
+[2025-08-26T13:25:10.546Z] [INFO] [HYBRID] Estado de recuperação detectado:
+[2025-08-26T13:25:10.546Z] [INFO] [HYBRID]    - ID atual: nenhum
+[2025-08-26T13:25:10.546Z] [INFO] [HYBRID]    - Total processado: 484
+[2025-08-26T13:25:10.547Z] [INFO] [HYBRID]    - Última gravação: 4857.8 min atrás
+[2025-08-26T13:25:10.547Z] [DEBUG] [HYBRID] Carregando estados das filas...
+[2025-08-26T13:25:10.548Z] [DEBUG] [HYBRID] Buscando IDs iniciais das APIs...
+[2025-08-26T13:25:10.548Z] [DEBUG] [HYBRID] Carregando IDs iniciais das dashboards...
+[2025-08-26T13:25:10.548Z] [DEBUG] [HYBRID] Tentando extrair IDs reais da página Active Drivers...
+[2025-08-26T13:25:10.549Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/active-drivers//
+[2025-08-26T13:25:10.549Z] [DEBUG] [HYBRID] Dashboard já está logada, prosseguindo com extração...
+[2025-08-26T13:25:13.618Z] [SUCCESS] [HYBRID] 19 IDs reais extraídos da dashboard Active Drivers
+[2025-08-26T13:25:13.619Z] [INFO] [HYBRID] IDs da dashboard carregados: 19 IDs reais (alta prioridade)
+[2025-08-26T13:25:13.620Z] [DEBUG] [HYBRID] Loop principal iniciado
+[2025-08-26T13:25:13.620Z] [DEBUG] [HYBRID] Alimentação automática de IDs iniciada
+[2025-08-26T13:25:13.620Z] [SUCCESS] [HYBRID] Sistema híbrido iniciado - batch=1, threshold=1
+[2025-08-26T13:25:13.620Z] [SUCCESS] [HYBRID] Sistema Híbrido iniciado com sucesso
+[2025-08-26T13:25:21.624Z] [INFO] [HYBRID] Mudando para modo EXTRAÇÃO
+[2025-08-26T13:25:21.626Z] [INFO] [HYBRID] Extraindo dados do motorista: 18181466
+[2025-08-26T13:25:21.634Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 18181466
+[2025-08-26T13:25:21.635Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/active-drivers//
+[2025-08-26T13:25:21.635Z] [DEBUG] [HYBRID] Dashboard já está logada, prosseguindo com extração...
+[2025-08-26T13:25:21.635Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 18181466
+[2025-08-26T13:25:29.633Z] [INFO] [HYBRID] Extraindo dados do motorista: 17650720
+[2025-08-26T13:25:29.635Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17650720
+[2025-08-26T13:25:29.636Z] [DEBUG] [HYBRID] Status atual: logado=false, URL=https://rides.ec2dashboard.com/#/page/login
+[2025-08-26T13:25:29.637Z] [DEBUG] [HYBRID] Dashboard não está logada, iniciando processo de login...
+[2025-08-26T13:25:29.637Z] [DEBUG] [HYBRID] Abrindo dashboard...
+[2025-08-26T13:25:29.637Z] [WARN] [HYBRID] ⏳ 🤖 ATENÇÃO: O sistema abrirá a dashboard - resolva o CAPTCHA e faça login se necessário!
+[2025-08-26T13:25:37.637Z] [INFO] [HYBRID] Extraindo dados do motorista: 17528787
+[2025-08-26T13:25:37.638Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17528787
+[2025-08-26T13:25:37.639Z] [DEBUG] [HYBRID] Status atual: logado=false, URL=https://rides.ec2dashboard.com/#/page/login
+[2025-08-26T13:25:37.639Z] [DEBUG] [HYBRID] Dashboard não está logada, iniciando processo de login...
+[2025-08-26T13:25:37.639Z] [DEBUG] [HYBRID] Abrindo dashboard...
+[2025-08-26T13:25:37.639Z] [WARN] [HYBRID] ⏳ 🤖 ATENÇÃO: O sistema abrirá a dashboard - resolva o CAPTCHA e faça login se necessário!
+[2025-08-26T13:25:41.707Z] [ERROR] [HYBRID] Erro na extração para motorista 18181466 - SESSÃO_PERDIDA: Necessário login manual via VNC
+[2025-08-26T13:25:41.708Z] [ERROR] [HYBRID] Stack: Error: SESSÃO_PERDIDA: Necessário login manual via VNC
+    at RidesDashboardHybridScraper.<anonymous> (C:\Users\arcti\OneDrive\Área de Trabalho\GAYBERT\research-agent-urban3\research-agent-urban\src\scraper\RidesDashboardHybridScraper.ts:725:15)
+    at Generator.throw (<anonymous>)
+    at rejected (C:\Users\arcti\OneDrive\Área de Trabalho\GAYBERT\research-agent-urban3\research-agent-urban\src\scraper\RidesDashboardHybridScraper.ts:6:65)
+[2025-08-26T13:25:41.708Z] [ERROR] [HYBRID] Erro na extração 18181466 - SESSÃO_PERDIDA: Necessário login manual via VNC
+[2025-08-26T13:25:41.709Z] [ERROR] [HYBRID] Stack: Error: SESSÃO_PERDIDA: Necessário login manual via VNC
+    at RidesDashboardHybridScraper.<anonymous> (C:\Users\arcti\OneDrive\Área de Trabalho\GAYBERT\research-agent-urban3\research-agent-urban\src\scraper\RidesDashboardHybridScraper.ts:725:15)
+    at Generator.throw (<anonymous>)
+    at rejected (C:\Users\arcti\OneDrive\Área de Trabalho\GAYBERT\research-agent-urban3\research-agent-urban\src\scraper\RidesDashboardHybridScraper.ts:6:65)
+[2025-08-26T13:25:41.709Z] [INFO] [HYBRID] Extraindo dados do motorista: 17291892
+[2025-08-26T13:25:41.711Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17291892
+[2025-08-26T13:25:41.712Z] [DEBUG] [HYBRID] Status atual: logado=false, URL=https://rides.ec2dashboard.com/#/page/login
+[2025-08-26T13:25:41.712Z] [DEBUG] [HYBRID] Dashboard não está logada, iniciando processo de login...
+[2025-08-26T13:25:41.712Z] [DEBUG] [HYBRID] Abrindo dashboard...
+[2025-08-26T13:25:41.713Z] [WARN] [HYBRID] ⏳ 🤖 ATENÇÃO: O sistema abrirá a dashboard - resolva o CAPTCHA e faça login se necessário!
+[2025-08-26T13:25:45.636Z] [INFO] [HYBRID] Extraindo dados do motorista: 17207660
+[2025-08-26T13:25:45.638Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17207660
+[2025-08-26T13:25:45.639Z] [DEBUG] [HYBRID] Status atual: logado=false, URL=https://rides.ec2dashboard.com/#/page/login
+[2025-08-26T13:25:45.639Z] [DEBUG] [HYBRID] Dashboard não está logada, iniciando processo de login...
+[2025-08-26T13:25:45.639Z] [DEBUG] [HYBRID] Abrindo dashboard...
+[2025-08-26T13:25:45.639Z] [WARN] [HYBRID] ⏳ 🤖 ATENÇÃO: O sistema abrirá a dashboard - resolva o CAPTCHA e faça login se necessário!
+[2025-08-26T13:25:53.638Z] [INFO] [HYBRID] Extraindo dados do motorista: 17177142
+[2025-08-26T13:25:53.640Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17177142
+[2025-08-26T13:25:53.641Z] [DEBUG] [HYBRID] Status atual: logado=false, URL=https://rides.ec2dashboard.com/#/page/login
+[2025-08-26T13:25:53.641Z] [DEBUG] [HYBRID] Dashboard não está logada, iniciando processo de login...
+[2025-08-26T13:25:53.642Z] [DEBUG] [HYBRID] Abrindo dashboard...
+[2025-08-26T13:25:53.642Z] [WARN] [HYBRID] ⏳ 🤖 ATENÇÃO: O sistema abrirá a dashboard - resolva o CAPTCHA e faça login se necessário!
+[2025-08-26T13:26:01.645Z] [INFO] [HYBRID] Extraindo dados do motorista: 17174024
+[2025-08-26T13:26:01.646Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17174024
+[2025-08-26T13:26:01.647Z] [DEBUG] [HYBRID] Status atual: logado=false, URL=https://rides.ec2dashboard.com/#/page/login
+[2025-08-26T13:26:01.647Z] [DEBUG] [HYBRID] Dashboard não está logada, iniciando processo de login...
+[2025-08-26T13:26:01.647Z] [DEBUG] [HYBRID] Abrindo dashboard...
+[2025-08-26T13:26:01.648Z] [WARN] [HYBRID] ⏳ 🤖 ATENÇÃO: O sistema abrirá a dashboard - resolva o CAPTCHA e faça login se necessário!
+[2025-08-26T13:26:09.650Z] [INFO] [HYBRID] Extraindo dados do motorista: 17168907
+[2025-08-26T13:26:09.651Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17168907
+[2025-08-26T13:26:09.652Z] [DEBUG] [HYBRID] Status atual: logado=false, URL=https://rides.ec2dashboard.com/#/page/login
+[2025-08-26T13:26:09.653Z] [DEBUG] [HYBRID] Dashboard não está logada, iniciando processo de login...
+[2025-08-26T13:26:09.653Z] [DEBUG] [HYBRID] Abrindo dashboard...
+[2025-08-26T13:26:09.653Z] [WARN] [HYBRID] ⏳ 🤖 ATENÇÃO: O sistema abrirá a dashboard - resolva o CAPTCHA e faça login se necessário!
+[2025-08-26T13:26:13.634Z] [DEBUG] [HYBRID] Alimentação automática: buscando novos IDs...
+[2025-08-26T13:26:17.656Z] [INFO] [HYBRID] Extraindo dados do motorista: 17166153
+[2025-08-26T13:26:17.657Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17166153
+[2025-08-26T13:26:17.658Z] [DEBUG] [HYBRID] Status atual: logado=false, URL=https://rides.ec2dashboard.com/#/page/login
+[2025-08-26T13:26:17.658Z] [DEBUG] [HYBRID] Dashboard não está logada, iniciando processo de login...
+[2025-08-26T13:26:17.658Z] [DEBUG] [HYBRID] Abrindo dashboard...
+[2025-08-26T13:26:17.658Z] [WARN] [HYBRID] ⏳ 🤖 ATENÇÃO: O sistema abrirá a dashboard - resolva o CAPTCHA e faça login se necessário!
+[2025-08-26T13:26:25.670Z] [INFO] [HYBRID] Extraindo dados do motorista: 17147322
+[2025-08-26T13:26:25.671Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17147322
+[2025-08-26T13:26:25.672Z] [DEBUG] [HYBRID] Status atual: logado=false, URL=https://rides.ec2dashboard.com/#/page/login
+[2025-08-26T13:26:25.672Z] [DEBUG] [HYBRID] Dashboard não está logada, iniciando processo de login...
+[2025-08-26T13:26:25.673Z] [DEBUG] [HYBRID] Abrindo dashboard...
+[2025-08-26T13:26:25.673Z] [WARN] [HYBRID] ⏳ 🤖 ATENÇÃO: O sistema abrirá a dashboard - resolva o CAPTCHA e faça login se necessário!
+[2025-08-26T13:26:33.685Z] [INFO] [HYBRID] Extraindo dados do motorista: 17116809
+[2025-08-26T13:26:33.686Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17116809
+[2025-08-26T13:26:33.687Z] [DEBUG] [HYBRID] Status atual: logado=false, URL=https://rides.ec2dashboard.com/#/page/login
+[2025-08-26T13:26:33.688Z] [DEBUG] [HYBRID] Dashboard não está logada, iniciando processo de login...
+[2025-08-26T13:26:33.688Z] [DEBUG] [HYBRID] Abrindo dashboard...
+[2025-08-26T13:26:33.688Z] [WARN] [HYBRID] ⏳ 🤖 ATENÇÃO: O sistema abrirá a dashboard - resolva o CAPTCHA e faça login se necessário!
+[2025-08-26T13:39:09.029Z] [INFO] [HYBRID] Iniciando Sistema Híbrido...
+[2025-08-26T13:39:09.030Z] [INFO] [HYBRID] Iniciando sistema de operação híbrida...
+[2025-08-26T13:39:09.030Z] [INFO] [HYBRID] Inicializando navegador do sistema híbrido...
+[2025-08-26T13:41:15.009Z] [SUCCESS] [HYBRID] Navegador do sistema híbrido inicializado
+[2025-08-26T13:41:15.010Z] [DEBUG] [HYBRID] Verificando recuperação de estado...
+[2025-08-26T13:41:15.010Z] [INFO] [HYBRID] Estado de recuperação detectado:
+[2025-08-26T13:41:15.011Z] [INFO] [HYBRID]    - ID atual: 17116809
+[2025-08-26T13:41:15.012Z] [INFO] [HYBRID]    - Total processado: 484
+[2025-08-26T13:41:15.013Z] [INFO] [HYBRID]    - Última gravação: 14.7 min atrás
+[2025-08-26T13:41:15.013Z] [DEBUG] [HYBRID] Carregando estados das filas...
+[2025-08-26T13:41:15.013Z] [DEBUG] [HYBRID] Buscando IDs iniciais das APIs...
+[2025-08-26T13:41:15.014Z] [DEBUG] [HYBRID] Carregando IDs iniciais das dashboards...
+[2025-08-26T13:41:15.014Z] [DEBUG] [HYBRID] Tentando extrair IDs reais da página Active Drivers...
+[2025-08-26T13:41:15.015Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/active-drivers//
+[2025-08-26T13:41:15.016Z] [DEBUG] [HYBRID] Dashboard já está logada, prosseguindo...
+[2025-08-26T13:41:18.092Z] [SUCCESS] [HYBRID] 19 IDs reais extraídos da dashboard Active Drivers
+[2025-08-26T13:41:18.092Z] [INFO] [HYBRID] Preparando dashboard para processamento em lote...
+[2025-08-26T13:41:25.120Z] [SUCCESS] [HYBRID] Dashboard preparado - pronto para processar fila de IDs
+[2025-08-26T13:41:25.121Z] [INFO] [HYBRID] IDs da dashboard carregados: 19 IDs reais (alta prioridade)
+[2025-08-26T13:41:25.121Z] [DEBUG] [HYBRID] Loop principal iniciado
+[2025-08-26T13:41:25.122Z] [DEBUG] [HYBRID] Alimentação automática de IDs iniciada
+[2025-08-26T13:41:25.122Z] [SUCCESS] [HYBRID] Sistema híbrido iniciado - batch=1, threshold=1
+[2025-08-26T13:41:25.122Z] [SUCCESS] [HYBRID] Sistema Híbrido iniciado com sucesso
+[2025-08-26T13:41:33.136Z] [INFO] [HYBRID] Mudando para modo EXTRAÇÃO
+[2025-08-26T13:41:33.138Z] [INFO] [HYBRID] Extraindo dados do motorista: 18181466
+[2025-08-26T13:41:33.146Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 18181466
+[2025-08-26T13:41:33.147Z] [DEBUG] [HYBRID] Status atual: logado=false, URL=https://rides.ec2dashboard.com/#/page/login
+[2025-08-26T13:41:33.147Z] [DEBUG] [HYBRID] Dashboard não está logada, iniciando processo de login...
+[2025-08-26T13:41:33.147Z] [DEBUG] [HYBRID] Abrindo dashboard...
+[2025-08-26T13:41:33.148Z] [WARN] [HYBRID] ⏳ 🤖 ATENÇÃO: O sistema abrirá a dashboard - resolva o CAPTCHA e faça login se necessário!
+[2025-08-26T13:41:41.147Z] [INFO] [HYBRID] Extraindo dados do motorista: 17650720
+[2025-08-26T13:41:41.149Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17650720
+[2025-08-26T13:41:41.150Z] [DEBUG] [HYBRID] Status atual: logado=false, URL=https://rides.ec2dashboard.com/#/page/login
+[2025-08-26T13:41:41.151Z] [DEBUG] [HYBRID] Dashboard não está logada, iniciando processo de login...
+[2025-08-26T13:41:41.151Z] [DEBUG] [HYBRID] Abrindo dashboard...
+[2025-08-26T13:41:41.151Z] [WARN] [HYBRID] ⏳ 🤖 ATENÇÃO: O sistema abrirá a dashboard - resolva o CAPTCHA e faça login se necessário!
+[2025-08-26T13:46:50.133Z] [INFO] [HYBRID] Iniciando Sistema Híbrido...
+[2025-08-26T13:46:50.134Z] [INFO] [HYBRID] Iniciando sistema de operação híbrida...
+[2025-08-26T13:46:50.134Z] [INFO] [HYBRID] Inicializando navegador do sistema híbrido...
+[2025-08-26T13:48:53.124Z] [SUCCESS] [HYBRID] Navegador do sistema híbrido inicializado
+[2025-08-26T13:48:53.125Z] [DEBUG] [HYBRID] Verificando recuperação de estado...
+[2025-08-26T13:48:53.125Z] [INFO] [HYBRID] Estado de recuperação detectado:
+[2025-08-26T13:48:53.126Z] [INFO] [HYBRID]    - ID atual: 17650720
+[2025-08-26T13:48:53.126Z] [INFO] [HYBRID]    - Total processado: 484
+[2025-08-26T13:48:53.126Z] [INFO] [HYBRID]    - Última gravação: 7.2 min atrás
+[2025-08-26T13:48:53.127Z] [DEBUG] [HYBRID] Carregando estados das filas...
+[2025-08-26T13:48:53.127Z] [DEBUG] [HYBRID] Buscando IDs iniciais das APIs...
+[2025-08-26T13:48:53.128Z] [DEBUG] [HYBRID] Carregando IDs iniciais das dashboards...
+[2025-08-26T13:48:53.128Z] [DEBUG] [HYBRID] Tentando extrair IDs reais da página Active Drivers...
+[2025-08-26T13:48:53.129Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/active-drivers//
+[2025-08-26T13:48:53.129Z] [DEBUG] [HYBRID] Dashboard já está logada, prosseguindo...
+[2025-08-26T13:48:53.129Z] [DEBUG] [HYBRID] 🔍 Chamando extractAllDriverIds...
+[2025-08-26T13:48:56.187Z] [DEBUG] [HYBRID] 🔍 extractAllDriverIds retornou: 19 IDs
+[2025-08-26T13:48:56.187Z] [SUCCESS] [HYBRID] 19 IDs reais extraídos da dashboard Active Drivers
+[2025-08-26T13:48:56.188Z] [INFO] [HYBRID] 🎯 Preparando dashboard para processamento em lote...
+[2025-08-26T13:48:59.218Z] [ERROR] [HYBRID] ❌ Erro ao preparar dashboard para lote: Sessão perdida após carregamento - redirecionado para login
+[2025-08-26T13:48:59.219Z] [INFO] [HYBRID] IDs da dashboard carregados: 19 IDs reais (alta prioridade)
+[2025-08-26T13:48:59.220Z] [DEBUG] [HYBRID] Loop principal iniciado
+[2025-08-26T13:48:59.220Z] [DEBUG] [HYBRID] Alimentação automática de IDs iniciada
+[2025-08-26T13:48:59.220Z] [SUCCESS] [HYBRID] Sistema híbrido iniciado - batch=1, threshold=1
+[2025-08-26T13:48:59.221Z] [SUCCESS] [HYBRID] Sistema Híbrido iniciado com sucesso
+[2025-08-26T13:49:07.226Z] [INFO] [HYBRID] Mudando para modo EXTRAÇÃO
+[2025-08-26T13:49:07.228Z] [INFO] [HYBRID] Extraindo dados do motorista: 18181466
+[2025-08-26T13:49:07.235Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 18181466
+[2025-08-26T13:49:07.236Z] [DEBUG] [HYBRID] Status atual: logado=false, URL=https://rides.ec2dashboard.com/#/page/login
+[2025-08-26T13:49:07.237Z] [DEBUG] [HYBRID] Dashboard não está logada, iniciando processo de login...
+[2025-08-26T13:49:07.237Z] [DEBUG] [HYBRID] Abrindo dashboard...
+[2025-08-26T13:49:07.237Z] [WARN] [HYBRID] ⏳ 🤖 ATENÇÃO: O sistema abrirá a dashboard - resolva o CAPTCHA e faça login se necessário!
+[2025-08-26T13:49:15.238Z] [INFO] [HYBRID] Extraindo dados do motorista: 17650720
+[2025-08-26T13:49:15.239Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17650720
+[2025-08-26T13:49:15.240Z] [DEBUG] [HYBRID] Status atual: logado=false, URL=https://rides.ec2dashboard.com/#/page/login
+[2025-08-26T13:49:15.241Z] [DEBUG] [HYBRID] Dashboard não está logada, iniciando processo de login...
+[2025-08-26T13:49:15.241Z] [DEBUG] [HYBRID] Abrindo dashboard...
+[2025-08-26T13:49:15.241Z] [WARN] [HYBRID] ⏳ 🤖 ATENÇÃO: O sistema abrirá a dashboard - resolva o CAPTCHA e faça login se necessário!
+[2025-08-26T13:49:23.244Z] [INFO] [HYBRID] Extraindo dados do motorista: 17528787
+[2025-08-26T13:49:23.248Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17528787
+[2025-08-26T13:49:23.250Z] [DEBUG] [HYBRID] Status atual: logado=false, URL=https://rides.ec2dashboard.com/#/page/login
+[2025-08-26T13:49:23.251Z] [DEBUG] [HYBRID] Dashboard não está logada, iniciando processo de login...
+[2025-08-26T13:49:23.251Z] [DEBUG] [HYBRID] Abrindo dashboard...
+[2025-08-26T13:49:23.252Z] [WARN] [HYBRID] ⏳ 🤖 ATENÇÃO: O sistema abrirá a dashboard - resolva o CAPTCHA e faça login se necessário!
+[2025-08-26T13:49:31.250Z] [INFO] [HYBRID] Extraindo dados do motorista: 17291892
+[2025-08-26T13:49:31.252Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17291892
+[2025-08-26T13:49:31.252Z] [DEBUG] [HYBRID] Status atual: logado=false, URL=https://rides.ec2dashboard.com/#/page/login
+[2025-08-26T13:49:31.253Z] [DEBUG] [HYBRID] Dashboard não está logada, iniciando processo de login...
+[2025-08-26T13:49:31.253Z] [DEBUG] [HYBRID] Abrindo dashboard...
+[2025-08-26T13:49:31.253Z] [WARN] [HYBRID] ⏳ 🤖 ATENÇÃO: O sistema abrirá a dashboard - resolva o CAPTCHA e faça login se necessário!
+[2025-08-26T13:49:39.261Z] [INFO] [HYBRID] Extraindo dados do motorista: 17207660
+[2025-08-26T13:49:39.263Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17207660
+[2025-08-26T13:49:39.264Z] [DEBUG] [HYBRID] Status atual: logado=false, URL=https://rides.ec2dashboard.com/#/page/login
+[2025-08-26T13:49:39.264Z] [DEBUG] [HYBRID] Dashboard não está logada, iniciando processo de login...
+[2025-08-26T13:49:39.264Z] [DEBUG] [HYBRID] Abrindo dashboard...
+[2025-08-26T13:49:39.264Z] [WARN] [HYBRID] ⏳ 🤖 ATENÇÃO: O sistema abrirá a dashboard - resolva o CAPTCHA e faça login se necessário!
+[2025-08-26T13:49:47.264Z] [INFO] [HYBRID] Extraindo dados do motorista: 17177142
+[2025-08-26T13:49:47.265Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17177142
+[2025-08-26T13:49:47.266Z] [DEBUG] [HYBRID] Status atual: logado=false, URL=https://rides.ec2dashboard.com/#/page/login
+[2025-08-26T13:49:47.266Z] [DEBUG] [HYBRID] Dashboard não está logada, iniciando processo de login...
+[2025-08-26T13:49:47.267Z] [DEBUG] [HYBRID] Abrindo dashboard...
+[2025-08-26T13:49:47.267Z] [WARN] [HYBRID] ⏳ 🤖 ATENÇÃO: O sistema abrirá a dashboard - resolva o CAPTCHA e faça login se necessário!
+[2025-08-26T13:49:55.269Z] [INFO] [HYBRID] Extraindo dados do motorista: 17174024
+[2025-08-26T13:49:55.270Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17174024
+[2025-08-26T13:49:55.271Z] [DEBUG] [HYBRID] Status atual: logado=false, URL=https://rides.ec2dashboard.com/#/page/login
+[2025-08-26T13:49:55.272Z] [DEBUG] [HYBRID] Dashboard não está logada, iniciando processo de login...
+[2025-08-26T13:49:55.272Z] [DEBUG] [HYBRID] Abrindo dashboard...
+[2025-08-26T13:49:55.273Z] [WARN] [HYBRID] ⏳ 🤖 ATENÇÃO: O sistema abrirá a dashboard - resolva o CAPTCHA e faça login se necessário!
+[2025-08-26T13:49:59.224Z] [DEBUG] [HYBRID] Alimentação automática: buscando novos IDs...
+[2025-08-26T13:50:03.277Z] [INFO] [HYBRID] Extraindo dados do motorista: 17168907
+[2025-08-26T13:50:03.279Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17168907
+[2025-08-26T13:50:03.280Z] [DEBUG] [HYBRID] Status atual: logado=false, URL=https://rides.ec2dashboard.com/#/page/login
+[2025-08-26T13:50:03.280Z] [DEBUG] [HYBRID] Dashboard não está logada, iniciando processo de login...
+[2025-08-26T13:50:03.280Z] [DEBUG] [HYBRID] Abrindo dashboard...
+[2025-08-26T13:50:03.281Z] [WARN] [HYBRID] ⏳ 🤖 ATENÇÃO: O sistema abrirá a dashboard - resolva o CAPTCHA e faça login se necessário!
+[2025-08-26T13:50:11.280Z] [INFO] [HYBRID] Extraindo dados do motorista: 17166153
+[2025-08-26T13:50:11.281Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17166153
+[2025-08-26T13:50:11.282Z] [DEBUG] [HYBRID] Status atual: logado=false, URL=https://rides.ec2dashboard.com/#/page/login
+[2025-08-26T13:50:11.282Z] [DEBUG] [HYBRID] Dashboard não está logada, iniciando processo de login...
+[2025-08-26T13:50:11.283Z] [DEBUG] [HYBRID] Abrindo dashboard...
+[2025-08-26T13:50:11.283Z] [WARN] [HYBRID] ⏳ 🤖 ATENÇÃO: O sistema abrirá a dashboard - resolva o CAPTCHA e faça login se necessário!
+[2025-08-26T13:50:19.289Z] [INFO] [HYBRID] Extraindo dados do motorista: 17147322
+[2025-08-26T13:50:19.291Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17147322
+[2025-08-26T13:50:19.292Z] [DEBUG] [HYBRID] Status atual: logado=false, URL=https://rides.ec2dashboard.com/#/page/login
+[2025-08-26T13:50:19.292Z] [DEBUG] [HYBRID] Dashboard não está logada, iniciando processo de login...
+[2025-08-26T13:50:19.292Z] [DEBUG] [HYBRID] Abrindo dashboard...
+[2025-08-26T13:50:19.293Z] [WARN] [HYBRID] ⏳ 🤖 ATENÇÃO: O sistema abrirá a dashboard - resolva o CAPTCHA e faça login se necessário!
+[2025-08-26T13:50:27.296Z] [INFO] [HYBRID] Extraindo dados do motorista: 17116809
+[2025-08-26T13:50:27.297Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17116809
+[2025-08-26T13:50:27.299Z] [DEBUG] [HYBRID] Status atual: logado=false, URL=https://rides.ec2dashboard.com/#/page/login
+[2025-08-26T13:50:27.299Z] [DEBUG] [HYBRID] Dashboard não está logada, iniciando processo de login...
+[2025-08-26T13:50:27.299Z] [DEBUG] [HYBRID] Abrindo dashboard...
+[2025-08-26T13:50:27.299Z] [WARN] [HYBRID] ⏳ 🤖 ATENÇÃO: O sistema abrirá a dashboard - resolva o CAPTCHA e faça login se necessário!
+[2025-08-26T13:51:18.512Z] [INFO] [HYBRID] Iniciando Sistema Híbrido...
+[2025-08-26T13:51:18.512Z] [INFO] [HYBRID] Iniciando sistema de operação híbrida...
+[2025-08-26T13:51:18.513Z] [INFO] [HYBRID] Inicializando navegador do sistema híbrido...
+[2025-08-26T13:53:01.263Z] [SUCCESS] [HYBRID] Navegador do sistema híbrido inicializado
+[2025-08-26T13:53:01.264Z] [DEBUG] [HYBRID] Verificando recuperação de estado...
+[2025-08-26T13:53:01.264Z] [INFO] [HYBRID] Estado de recuperação detectado:
+[2025-08-26T13:53:01.265Z] [INFO] [HYBRID]    - ID atual: 17116809
+[2025-08-26T13:53:01.265Z] [INFO] [HYBRID]    - Total processado: 484
+[2025-08-26T13:53:01.266Z] [INFO] [HYBRID]    - Última gravação: 2.6 min atrás
+[2025-08-26T13:53:01.266Z] [DEBUG] [HYBRID] Carregando estados das filas...
+[2025-08-26T13:53:01.267Z] [DEBUG] [HYBRID] Buscando IDs iniciais das APIs...
+[2025-08-26T13:53:01.267Z] [DEBUG] [HYBRID] Carregando IDs iniciais das dashboards...
+[2025-08-26T13:53:01.268Z] [DEBUG] [HYBRID] Tentando extrair IDs reais da página Active Drivers...
+[2025-08-26T13:53:01.269Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/active-drivers//
+[2025-08-26T13:53:01.269Z] [DEBUG] [HYBRID] Dashboard detectado pela URL, considerando logado
+[2025-08-26T13:53:01.269Z] [DEBUG] [HYBRID] 🔍 Chamando extractAllDriverIds...
+[2025-08-26T13:53:04.337Z] [DEBUG] [HYBRID] 🔍 extractAllDriverIds retornou: 19 IDs
+[2025-08-26T13:53:04.337Z] [SUCCESS] [HYBRID] 19 IDs reais extraídos da dashboard Active Drivers
+[2025-08-26T13:53:04.338Z] [INFO] [HYBRID] 🎯 Preparando dashboard para processamento em lote...
+[2025-08-26T13:53:07.377Z] [ERROR] [HYBRID] ❌ Erro ao preparar dashboard para lote: Sessão perdida após carregamento - redirecionado para login
+[2025-08-26T13:53:07.378Z] [INFO] [HYBRID] IDs da dashboard carregados: 19 IDs reais (alta prioridade)
+[2025-08-26T13:53:07.379Z] [DEBUG] [HYBRID] Loop principal iniciado
+[2025-08-26T13:53:07.379Z] [DEBUG] [HYBRID] Alimentação automática de IDs iniciada
+[2025-08-26T13:53:07.379Z] [SUCCESS] [HYBRID] Sistema híbrido iniciado - batch=1, threshold=1
+[2025-08-26T13:53:07.379Z] [SUCCESS] [HYBRID] Sistema Híbrido iniciado com sucesso
+[2025-08-26T13:53:15.388Z] [INFO] [HYBRID] Mudando para modo EXTRAÇÃO
+[2025-08-26T13:53:15.390Z] [INFO] [HYBRID] Extraindo dados do motorista: 18181466
+[2025-08-26T13:53:15.398Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 18181466
+[2025-08-26T13:53:15.400Z] [DEBUG] [HYBRID] Status atual: logado=false, URL=https://rides.ec2dashboard.com/#/page/login
+[2025-08-26T13:53:15.400Z] [DEBUG] [HYBRID] Dashboard não está logada, iniciando processo de login...
+[2025-08-26T13:53:15.400Z] [DEBUG] [HYBRID] Abrindo dashboard...
+[2025-08-26T13:53:15.401Z] [WARN] [HYBRID] ⏳ 🤖 ATENÇÃO: O sistema abrirá a dashboard - resolva o CAPTCHA e faça login se necessário!
+[2025-08-26T13:53:23.401Z] [INFO] [HYBRID] Extraindo dados do motorista: 17650720
+[2025-08-26T13:53:23.402Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17650720
+[2025-08-26T13:53:23.403Z] [DEBUG] [HYBRID] Status atual: logado=false, URL=https://rides.ec2dashboard.com/#/page/login
+[2025-08-26T13:53:23.404Z] [DEBUG] [HYBRID] Dashboard não está logada, iniciando processo de login...
+[2025-08-26T13:53:23.404Z] [DEBUG] [HYBRID] Abrindo dashboard...
+[2025-08-26T13:53:23.404Z] [WARN] [HYBRID] ⏳ 🤖 ATENÇÃO: O sistema abrirá a dashboard - resolva o CAPTCHA e faça login se necessário!
+[2025-08-26T13:53:31.411Z] [INFO] [HYBRID] Extraindo dados do motorista: 17528787
+[2025-08-26T13:53:31.413Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17528787
+[2025-08-26T13:53:31.414Z] [DEBUG] [HYBRID] Status atual: logado=false, URL=https://rides.ec2dashboard.com/#/page/login
+[2025-08-26T13:53:31.414Z] [DEBUG] [HYBRID] Dashboard não está logada, iniciando processo de login...
+[2025-08-26T13:53:31.414Z] [DEBUG] [HYBRID] Abrindo dashboard...
+[2025-08-26T13:53:31.414Z] [WARN] [HYBRID] ⏳ 🤖 ATENÇÃO: O sistema abrirá a dashboard - resolva o CAPTCHA e faça login se necessário!
+[2025-08-26T13:53:39.422Z] [INFO] [HYBRID] Extraindo dados do motorista: 17291892
+[2025-08-26T13:53:39.423Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17291892
+[2025-08-26T13:53:39.424Z] [DEBUG] [HYBRID] Status atual: logado=false, URL=https://rides.ec2dashboard.com/#/page/login
+[2025-08-26T13:53:39.424Z] [DEBUG] [HYBRID] Dashboard não está logada, iniciando processo de login...
+[2025-08-26T13:53:39.424Z] [DEBUG] [HYBRID] Abrindo dashboard...
+[2025-08-26T13:53:39.425Z] [WARN] [HYBRID] ⏳ 🤖 ATENÇÃO: O sistema abrirá a dashboard - resolva o CAPTCHA e faça login se necessário!
+[2025-08-26T13:53:52.355Z] [INFO] [HYBRID] Iniciando Sistema Híbrido...
+[2025-08-26T13:53:52.355Z] [INFO] [HYBRID] Iniciando sistema de operação híbrida...
+[2025-08-26T13:53:52.356Z] [INFO] [HYBRID] Inicializando navegador do sistema híbrido...
+[2025-08-26T13:54:29.038Z] [INFO] [HYBRID] Iniciando Sistema Híbrido...
+[2025-08-26T13:54:29.039Z] [INFO] [HYBRID] Iniciando sistema de operação híbrida...
+[2025-08-26T13:54:29.039Z] [INFO] [HYBRID] Inicializando navegador do sistema híbrido...
+[2025-08-26T13:56:58.904Z] [INFO] [HYBRID] Iniciando Sistema Híbrido...
+[2025-08-26T13:56:58.905Z] [INFO] [HYBRID] Iniciando sistema de operação híbrida...
+[2025-08-26T13:56:58.905Z] [INFO] [HYBRID] Inicializando navegador do sistema híbrido...
+[2025-08-26T13:57:31.353Z] [INFO] [HYBRID] Iniciando Sistema Híbrido...
+[2025-08-26T13:57:31.353Z] [INFO] [HYBRID] Iniciando sistema de operação híbrida...
+[2025-08-26T13:57:31.354Z] [INFO] [HYBRID] Inicializando navegador do sistema híbrido...
+[2025-08-26T13:57:52.663Z] [INFO] [HYBRID] Iniciando Sistema Híbrido...
+[2025-08-26T13:57:52.664Z] [INFO] [HYBRID] Iniciando sistema de operação híbrida...
+[2025-08-26T13:57:52.664Z] [INFO] [HYBRID] Inicializando navegador do sistema híbrido...
+[2025-08-26T13:58:38.020Z] [INFO] [HYBRID] Iniciando Sistema Híbrido...
+[2025-08-26T13:58:38.021Z] [INFO] [HYBRID] Iniciando sistema de operação híbrida...
+[2025-08-26T13:58:38.021Z] [INFO] [HYBRID] Inicializando navegador do sistema híbrido...
+[2025-08-26T13:59:37.473Z] [SUCCESS] [HYBRID] Navegador do sistema híbrido inicializado
+[2025-08-26T13:59:37.473Z] [DEBUG] [HYBRID] Verificando recuperação de estado...
+[2025-08-26T13:59:37.474Z] [INFO] [HYBRID] Estado de recuperação detectado:
+[2025-08-26T13:59:37.474Z] [INFO] [HYBRID]    - ID atual: 17291892
+[2025-08-26T13:59:37.475Z] [INFO] [HYBRID]    - Total processado: 484
+[2025-08-26T13:59:37.475Z] [INFO] [HYBRID]    - Última gravação: 6.0 min atrás
+[2025-08-26T13:59:37.475Z] [DEBUG] [HYBRID] Carregando estados das filas...
+[2025-08-26T13:59:37.476Z] [DEBUG] [HYBRID] Buscando IDs iniciais das APIs...
+[2025-08-26T13:59:37.477Z] [DEBUG] [HYBRID] Carregando IDs iniciais das dashboards...
+[2025-08-26T13:59:37.477Z] [DEBUG] [HYBRID] Tentando extrair IDs reais da página Active Drivers...
+[2025-08-26T13:59:37.478Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/active-drivers//
+[2025-08-26T13:59:37.478Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T13:59:37.478Z] [DEBUG] [HYBRID] 🔍 Chamando extractAllDriverIds...
+[2025-08-26T13:59:40.558Z] [DEBUG] [HYBRID] 🔍 extractAllDriverIds retornou: 19 IDs
+[2025-08-26T13:59:40.559Z] [SUCCESS] [HYBRID] 19 IDs reais extraídos da dashboard Active Drivers
+[2025-08-26T13:59:40.559Z] [INFO] [HYBRID] 🎯 Preparando dashboard para processamento em lote...
+[2025-08-26T13:59:41.593Z] [SUCCESS] [HYBRID] ✅ Dashboard preparado - pronto para processar fila de IDs
+[2025-08-26T13:59:41.594Z] [INFO] [HYBRID] IDs da dashboard carregados: 19 IDs reais (alta prioridade)
+[2025-08-26T13:59:41.595Z] [DEBUG] [HYBRID] Loop principal iniciado
+[2025-08-26T13:59:41.595Z] [DEBUG] [HYBRID] Alimentação automática de IDs iniciada
+[2025-08-26T13:59:41.595Z] [SUCCESS] [HYBRID] Sistema híbrido iniciado - batch=1, threshold=1
+[2025-08-26T13:59:41.596Z] [SUCCESS] [HYBRID] Sistema Híbrido iniciado com sucesso
+[2025-08-26T13:59:49.599Z] [INFO] [HYBRID] Mudando para modo EXTRAÇÃO
+[2025-08-26T13:59:49.602Z] [INFO] [HYBRID] Extraindo dados do motorista: 18181466
+[2025-08-26T13:59:49.611Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 18181466
+[2025-08-26T13:59:49.612Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T13:59:49.612Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T13:59:49.612Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 18181466
+[2025-08-26T13:59:57.602Z] [INFO] [HYBRID] Extraindo dados do motorista: 17650720
+[2025-08-26T13:59:57.604Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17650720
+[2025-08-26T13:59:57.605Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T13:59:57.605Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T13:59:57.606Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17650720
+[2025-08-26T14:00:05.610Z] [INFO] [HYBRID] Extraindo dados do motorista: 17528787
+[2025-08-26T14:00:05.612Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17528787
+[2025-08-26T14:00:05.612Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:00:05.612Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:00:05.613Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17528787
+[2025-08-26T14:00:09.132Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 18181466
+[2025-08-26T14:00:09.133Z] [DEBUG] [HYBRID] Dados salvos para motorista 18181466
+[2025-08-26T14:00:13.613Z] [INFO] [HYBRID] Extraindo dados do motorista: 17291892
+[2025-08-26T14:00:13.614Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17291892
+[2025-08-26T14:00:13.615Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:00:13.615Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:00:13.615Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17291892
+[2025-08-26T14:00:16.831Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17650720
+[2025-08-26T14:00:16.832Z] [DEBUG] [HYBRID] Dados salvos para motorista 17650720
+[2025-08-26T14:00:21.626Z] [INFO] [HYBRID] Extraindo dados do motorista: 17207660
+[2025-08-26T14:00:21.628Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17207660
+[2025-08-26T14:00:21.628Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:00:21.629Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:00:21.629Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17207660
+[2025-08-26T14:00:24.878Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17528787
+[2025-08-26T14:00:24.879Z] [DEBUG] [HYBRID] Dados salvos para motorista 17528787
+[2025-08-26T14:00:29.639Z] [INFO] [HYBRID] Extraindo dados do motorista: 17177142
+[2025-08-26T14:00:29.640Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17177142
+[2025-08-26T14:00:29.640Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:00:29.641Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:00:29.641Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17177142
+[2025-08-26T14:00:33.045Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17291892
+[2025-08-26T14:00:33.046Z] [DEBUG] [HYBRID] Dados salvos para motorista 17291892
+[2025-08-26T14:00:37.644Z] [INFO] [HYBRID] Extraindo dados do motorista: 17174024
+[2025-08-26T14:00:37.645Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17174024
+[2025-08-26T14:00:37.646Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:00:37.646Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:00:37.646Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17174024
+[2025-08-26T14:00:41.071Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17207660
+[2025-08-26T14:00:41.072Z] [DEBUG] [HYBRID] Dados salvos para motorista 17207660
+[2025-08-26T14:00:41.607Z] [DEBUG] [HYBRID] Alimentação automática: buscando novos IDs...
+[2025-08-26T14:00:45.645Z] [INFO] [HYBRID] Extraindo dados do motorista: 17168907
+[2025-08-26T14:00:45.646Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17168907
+[2025-08-26T14:00:45.647Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:00:45.647Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:00:45.648Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17168907
+[2025-08-26T14:00:49.164Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17177142
+[2025-08-26T14:00:49.164Z] [DEBUG] [HYBRID] Dados salvos para motorista 17177142
+[2025-08-26T14:00:53.655Z] [INFO] [HYBRID] Extraindo dados do motorista: 17166153
+[2025-08-26T14:00:53.656Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17166153
+[2025-08-26T14:00:53.657Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:00:53.657Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:00:53.658Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17166153
+[2025-08-26T14:00:57.068Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17174024
+[2025-08-26T14:00:57.069Z] [DEBUG] [HYBRID] Dados salvos para motorista 17174024
+[2025-08-26T14:01:01.669Z] [INFO] [HYBRID] Extraindo dados do motorista: 17147322
+[2025-08-26T14:01:01.670Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17147322
+[2025-08-26T14:01:01.670Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:01:01.670Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:01:01.671Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17147322
+[2025-08-26T14:01:04.903Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17168907
+[2025-08-26T14:01:04.903Z] [DEBUG] [HYBRID] Dados salvos para motorista 17168907
+[2025-08-26T14:01:09.682Z] [INFO] [HYBRID] Extraindo dados do motorista: 17116809
+[2025-08-26T14:01:09.683Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17116809
+[2025-08-26T14:01:09.683Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:01:09.684Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:01:09.684Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17116809
+[2025-08-26T14:01:13.223Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17166153
+[2025-08-26T14:01:13.224Z] [DEBUG] [HYBRID] Dados salvos para motorista 17166153
+[2025-08-26T14:01:17.685Z] [INFO] [HYBRID] Extraindo dados do motorista: 17109343
+[2025-08-26T14:01:17.686Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17109343
+[2025-08-26T14:01:17.687Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:01:17.687Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:01:17.687Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17109343
+[2025-08-26T14:01:21.057Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17147322
+[2025-08-26T14:01:21.058Z] [DEBUG] [HYBRID] Dados salvos para motorista 17147322
+[2025-08-26T14:01:25.693Z] [INFO] [HYBRID] Extraindo dados do motorista: 17101714
+[2025-08-26T14:01:25.694Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17101714
+[2025-08-26T14:01:25.695Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:01:25.695Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:01:25.695Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17101714
+[2025-08-26T14:01:29.084Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17116809
+[2025-08-26T14:01:29.084Z] [DEBUG] [HYBRID] Dados salvos para motorista 17116809
+[2025-08-26T14:01:33.693Z] [INFO] [HYBRID] Extraindo dados do motorista: 17089446
+[2025-08-26T14:01:33.694Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17089446
+[2025-08-26T14:01:33.695Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:01:33.695Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:01:33.696Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17089446
+[2025-08-26T14:01:37.100Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17109343
+[2025-08-26T14:01:37.101Z] [DEBUG] [HYBRID] Dados salvos para motorista 17109343
+[2025-08-26T14:01:41.608Z] [DEBUG] [HYBRID] Alimentação automática: buscando novos IDs...
+[2025-08-26T14:01:41.701Z] [INFO] [HYBRID] Extraindo dados do motorista: 17079326
+[2025-08-26T14:01:41.703Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17079326
+[2025-08-26T14:01:41.703Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:01:41.703Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:01:41.704Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17079326
+[2025-08-26T14:01:45.107Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17101714
+[2025-08-26T14:01:45.108Z] [DEBUG] [HYBRID] Dados salvos para motorista 17101714
+[2025-08-26T14:01:49.703Z] [INFO] [HYBRID] Extraindo dados do motorista: 16629776
+[2025-08-26T14:01:49.704Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 16629776
+[2025-08-26T14:01:49.705Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:01:49.705Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:01:49.705Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 16629776
+[2025-08-26T14:01:52.931Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17089446
+[2025-08-26T14:01:52.931Z] [DEBUG] [HYBRID] Dados salvos para motorista 17089446
+[2025-08-26T14:01:57.707Z] [INFO] [HYBRID] Extraindo dados do motorista: 16359250
+[2025-08-26T14:01:57.709Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 16359250
+[2025-08-26T14:01:57.709Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:01:57.710Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:01:57.710Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 16359250
+[2025-08-26T14:02:01.190Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17079326
+[2025-08-26T14:02:01.191Z] [DEBUG] [HYBRID] Dados salvos para motorista 17079326
+[2025-08-26T14:02:05.722Z] [INFO] [HYBRID] Extraindo dados do motorista: 16263441
+[2025-08-26T14:02:05.723Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 16263441
+[2025-08-26T14:02:05.724Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:02:05.724Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:02:05.724Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 16263441
+[2025-08-26T14:02:09.107Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 16629776
+[2025-08-26T14:02:09.107Z] [DEBUG] [HYBRID] Dados salvos para motorista 16629776
+[2025-08-26T14:02:13.733Z] [INFO] [HYBRID] Extraindo dados do motorista: 12146346
+[2025-08-26T14:02:13.735Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 12146346
+[2025-08-26T14:02:13.735Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:02:13.735Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:02:13.736Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 12146346
+[2025-08-26T14:02:17.129Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 16359250
+[2025-08-26T14:02:17.129Z] [DEBUG] [HYBRID] Dados salvos para motorista 16359250
+[2025-08-26T14:02:21.746Z] [WARN] [HYBRID] Fila de extração vazia, tentando buscar novos IDs...
+[2025-08-26T14:02:21.747Z] [DEBUG] [HYBRID] Carregando IDs iniciais das dashboards...
+[2025-08-26T14:02:21.747Z] [DEBUG] [HYBRID] Tentando extrair IDs reais da página Active Drivers...
+[2025-08-26T14:02:21.748Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:02:21.748Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:02:21.748Z] [DEBUG] [HYBRID] 🔍 Chamando extractAllDriverIds...
+[2025-08-26T14:02:22.133Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 16263441
+[2025-08-26T14:02:22.133Z] [DEBUG] [HYBRID] Dados salvos para motorista 16263441
+[2025-08-26T14:02:27.116Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 12146346
+[2025-08-26T14:02:27.117Z] [DEBUG] [HYBRID] Dados salvos para motorista 12146346
+[2025-08-26T14:02:27.920Z] [DEBUG] [HYBRID] 🔍 extractAllDriverIds retornou: 19 IDs
+[2025-08-26T14:02:27.920Z] [SUCCESS] [HYBRID] 19 IDs reais extraídos da dashboard Active Drivers
+[2025-08-26T14:02:27.921Z] [INFO] [HYBRID] 🎯 Preparando dashboard para processamento em lote...
+[2025-08-26T14:02:28.944Z] [SUCCESS] [HYBRID] ✅ Dashboard preparado - pronto para processar fila de IDs
+[2025-08-26T14:02:28.945Z] [INFO] [HYBRID] IDs da dashboard carregados: 19 IDs reais (alta prioridade)
+[2025-08-26T14:02:29.747Z] [INFO] [HYBRID] Mudando para modo EXTRAÇÃO
+[2025-08-26T14:02:29.749Z] [INFO] [HYBRID] Extraindo dados do motorista: 18181466
+[2025-08-26T14:02:29.757Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 18181466
+[2025-08-26T14:02:29.757Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:02:29.757Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:02:29.758Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 18181466
+[2025-08-26T14:02:37.756Z] [INFO] [HYBRID] Extraindo dados do motorista: 17650720
+[2025-08-26T14:02:37.758Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17650720
+[2025-08-26T14:02:37.758Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:02:37.759Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:02:37.759Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17650720
+[2025-08-26T14:02:41.619Z] [DEBUG] [HYBRID] Alimentação automática: buscando novos IDs...
+[2025-08-26T14:02:45.758Z] [INFO] [HYBRID] Extraindo dados do motorista: 17528787
+[2025-08-26T14:02:45.759Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17528787
+[2025-08-26T14:02:45.759Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:02:45.760Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:02:45.760Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17528787
+[2025-08-26T14:02:49.233Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 18181466
+[2025-08-26T14:02:49.234Z] [DEBUG] [HYBRID] Dados salvos para motorista 18181466
+[2025-08-26T14:02:53.768Z] [INFO] [HYBRID] Extraindo dados do motorista: 17291892
+[2025-08-26T14:02:53.776Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17291892
+[2025-08-26T14:02:53.776Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:02:53.777Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:02:53.777Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17291892
+[2025-08-26T14:02:57.028Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17650720
+[2025-08-26T14:02:57.029Z] [DEBUG] [HYBRID] Dados salvos para motorista 17650720
+[2025-08-26T14:03:01.771Z] [INFO] [HYBRID] Extraindo dados do motorista: 17207660
+[2025-08-26T14:03:01.772Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17207660
+[2025-08-26T14:03:01.773Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:03:01.773Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:03:01.774Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17207660
+[2025-08-26T14:03:05.018Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17528787
+[2025-08-26T14:03:05.019Z] [DEBUG] [HYBRID] Dados salvos para motorista 17528787
+[2025-08-26T14:03:09.784Z] [INFO] [HYBRID] Extraindo dados do motorista: 17177142
+[2025-08-26T14:03:09.785Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17177142
+[2025-08-26T14:03:09.786Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:03:09.786Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:03:09.787Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17177142
+[2025-08-26T14:03:13.050Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17291892
+[2025-08-26T14:03:13.051Z] [DEBUG] [HYBRID] Dados salvos para motorista 17291892
+[2025-08-26T14:03:17.794Z] [INFO] [HYBRID] Extraindo dados do motorista: 17174024
+[2025-08-26T14:03:17.795Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17174024
+[2025-08-26T14:03:17.795Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:03:17.795Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:03:17.796Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17174024
+[2025-08-26T14:03:21.195Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17207660
+[2025-08-26T14:03:21.196Z] [DEBUG] [HYBRID] Dados salvos para motorista 17207660
+[2025-08-26T14:03:25.796Z] [INFO] [HYBRID] Extraindo dados do motorista: 17168907
+[2025-08-26T14:03:25.797Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17168907
+[2025-08-26T14:03:25.798Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:03:25.798Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:03:25.798Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17168907
+[2025-08-26T14:03:29.121Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17177142
+[2025-08-26T14:03:29.121Z] [DEBUG] [HYBRID] Dados salvos para motorista 17177142
+[2025-08-26T14:03:33.808Z] [INFO] [HYBRID] Extraindo dados do motorista: 17166153
+[2025-08-26T14:03:33.810Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17166153
+[2025-08-26T14:03:33.810Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:03:33.811Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:03:33.811Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17166153
+[2025-08-26T14:03:37.209Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17174024
+[2025-08-26T14:03:37.210Z] [DEBUG] [HYBRID] Dados salvos para motorista 17174024
+[2025-08-26T14:03:41.631Z] [DEBUG] [HYBRID] Alimentação automática: buscando novos IDs...
+[2025-08-26T14:03:41.816Z] [INFO] [HYBRID] Extraindo dados do motorista: 17147322
+[2025-08-26T14:03:41.817Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17147322
+[2025-08-26T14:03:41.818Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:03:41.818Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:03:41.818Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17147322
+[2025-08-26T14:03:45.056Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17168907
+[2025-08-26T14:03:45.056Z] [DEBUG] [HYBRID] Dados salvos para motorista 17168907
+[2025-08-26T14:03:49.824Z] [INFO] [HYBRID] Extraindo dados do motorista: 17116809
+[2025-08-26T14:03:49.825Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17116809
+[2025-08-26T14:03:49.826Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:03:49.826Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:03:49.826Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17116809
+[2025-08-26T14:03:53.118Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17166153
+[2025-08-26T14:03:53.118Z] [DEBUG] [HYBRID] Dados salvos para motorista 17166153
+[2025-08-26T14:03:57.832Z] [INFO] [HYBRID] Extraindo dados do motorista: 17109343
+[2025-08-26T14:03:57.833Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17109343
+[2025-08-26T14:03:57.833Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:03:57.834Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:03:57.834Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17109343
+[2025-08-26T14:04:01.232Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17147322
+[2025-08-26T14:04:01.233Z] [DEBUG] [HYBRID] Dados salvos para motorista 17147322
+[2025-08-26T14:04:05.840Z] [INFO] [HYBRID] Extraindo dados do motorista: 17101714
+[2025-08-26T14:04:05.841Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17101714
+[2025-08-26T14:04:05.842Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:04:05.842Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:04:05.842Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17101714
+[2025-08-26T14:04:09.264Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17116809
+[2025-08-26T14:04:09.264Z] [DEBUG] [HYBRID] Dados salvos para motorista 17116809
+[2025-08-26T14:04:13.851Z] [INFO] [HYBRID] Extraindo dados do motorista: 17089446
+[2025-08-26T14:04:13.853Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17089446
+[2025-08-26T14:04:13.854Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:04:13.854Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:04:13.854Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17089446
+[2025-08-26T14:04:17.250Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17109343
+[2025-08-26T14:04:17.251Z] [DEBUG] [HYBRID] Dados salvos para motorista 17109343
+[2025-08-26T14:08:57.702Z] [INFO] [HYBRID] Iniciando Sistema Híbrido...
+[2025-08-26T14:08:57.703Z] [INFO] [HYBRID] Iniciando sistema de operação híbrida...
+[2025-08-26T14:08:57.703Z] [INFO] [HYBRID] Inicializando navegador do sistema híbrido...
+[2025-08-26T14:10:50.797Z] [SUCCESS] [HYBRID] Navegador do sistema híbrido inicializado
+[2025-08-26T14:10:50.798Z] [DEBUG] [HYBRID] Verificando recuperação de estado...
+[2025-08-26T14:10:50.798Z] [INFO] [HYBRID] Estado de recuperação detectado:
+[2025-08-26T14:10:50.799Z] [INFO] [HYBRID]    - ID atual: nenhum
+[2025-08-26T14:10:50.799Z] [INFO] [HYBRID]    - Total processado: 515
+[2025-08-26T14:10:50.799Z] [INFO] [HYBRID]    - Última gravação: 6.6 min atrás
+[2025-08-26T14:10:50.800Z] [DEBUG] [HYBRID] Carregando estados das filas...
+[2025-08-26T14:10:50.800Z] [DEBUG] [HYBRID] Buscando IDs iniciais das APIs...
+[2025-08-26T14:10:50.801Z] [DEBUG] [HYBRID] Carregando IDs iniciais das dashboards...
+[2025-08-26T14:10:50.801Z] [DEBUG] [HYBRID] Tentando extrair IDs reais da página Active Drivers...
+[2025-08-26T14:10:50.801Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/active-drivers//
+[2025-08-26T14:10:50.802Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:10:50.802Z] [DEBUG] [HYBRID] 🔍 Chamando extractAllDriverIds...
+[2025-08-26T14:10:53.888Z] [DEBUG] [HYBRID] 🔍 extractAllDriverIds retornou: 19 IDs
+[2025-08-26T14:10:53.889Z] [SUCCESS] [HYBRID] 19 IDs reais extraídos da dashboard Active Drivers
+[2025-08-26T14:10:53.889Z] [INFO] [HYBRID] 🎯 Preparando dashboard para processamento em lote...
+[2025-08-26T14:10:54.918Z] [SUCCESS] [HYBRID] ✅ Dashboard preparado - pronto para processar fila de IDs
+[2025-08-26T14:10:54.919Z] [INFO] [HYBRID] IDs da dashboard carregados: 19 IDs reais (alta prioridade)
+[2025-08-26T14:10:54.920Z] [DEBUG] [HYBRID] Loop principal iniciado
+[2025-08-26T14:10:54.920Z] [DEBUG] [HYBRID] Alimentação automática de IDs iniciada
+[2025-08-26T14:10:54.920Z] [SUCCESS] [HYBRID] Sistema híbrido iniciado - batch=1, threshold=1
+[2025-08-26T14:10:54.921Z] [SUCCESS] [HYBRID] Sistema Híbrido iniciado com sucesso
+[2025-08-26T14:11:02.921Z] [INFO] [HYBRID] Mudando para modo EXTRAÇÃO
+[2025-08-26T14:11:02.923Z] [INFO] [HYBRID] Extraindo dados do motorista: 18181466
+[2025-08-26T14:11:02.932Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 18181466
+[2025-08-26T14:11:02.933Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/page/login
+[2025-08-26T14:11:02.934Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:11:02.934Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 18181466
+[2025-08-26T14:11:02.941Z] [ERROR] [HYBRID] Erro na extração para motorista 18181466 - SESSÃO_PERDIDA: Necessário login manual via VNC
+[2025-08-26T14:11:02.942Z] [ERROR] [HYBRID] Stack: Error: SESSÃO_PERDIDA: Necessário login manual via VNC
+    at RidesDashboardHybridScraper.<anonymous> (C:\Users\arcti\OneDrive\Área de Trabalho\GAYBERT\research-agent-urban3\research-agent-urban\src\scraper\RidesDashboardHybridScraper.ts:767:15)
+    at Generator.next (<anonymous>)
+    at C:\Users\arcti\OneDrive\Área de Trabalho\GAYBERT\research-agent-urban3\research-agent-urban\src\scraper\RidesDashboardHybridScraper.ts:8:71
+    at new Promise (<anonymous>)
+    at __awaiter (C:\Users\arcti\OneDrive\Área de Trabalho\GAYBERT\research-agent-urban3\research-agent-urban\src\scraper\RidesDashboardHybridScraper.ts:4:12)
+    at RidesDashboardHybridScraper.extractDriverData (C:\Users\arcti\OneDrive\Área de Trabalho\GAYBERT\research-agent-urban3\research-agent-urban\src\scraper\RidesDashboardHybridScraper.ts:556:16)
+    at HybridOperationService.<anonymous> (C:\Users\arcti\OneDrive\Área de Trabalho\GAYBERT\research-agent-urban3\research-agent-urban\src\services\hybridOperationServiceV2.ts:572:57)
+    at Generator.next (<anonymous>)
+    at fulfilled (C:\Users\arcti\OneDrive\Área de Trabalho\GAYBERT\research-agent-urban3\research-agent-urban\src\services\hybridOperationServiceV2.ts:5:58)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+[2025-08-26T14:11:02.943Z] [ERROR] [HYBRID] Erro na extração 18181466 - SESSÃO_PERDIDA: Necessário login manual via VNC
+[2025-08-26T14:11:02.944Z] [ERROR] [HYBRID] Stack: Error: SESSÃO_PERDIDA: Necessário login manual via VNC
+    at RidesDashboardHybridScraper.<anonymous> (C:\Users\arcti\OneDrive\Área de Trabalho\GAYBERT\research-agent-urban3\research-agent-urban\src\scraper\RidesDashboardHybridScraper.ts:767:15)
+    at Generator.next (<anonymous>)
+    at C:\Users\arcti\OneDrive\Área de Trabalho\GAYBERT\research-agent-urban3\research-agent-urban\src\scraper\RidesDashboardHybridScraper.ts:8:71
+    at new Promise (<anonymous>)
+    at __awaiter (C:\Users\arcti\OneDrive\Área de Trabalho\GAYBERT\research-agent-urban3\research-agent-urban\src\scraper\RidesDashboardHybridScraper.ts:4:12)
+    at RidesDashboardHybridScraper.extractDriverData (C:\Users\arcti\OneDrive\Área de Trabalho\GAYBERT\research-agent-urban3\research-agent-urban\src\scraper\RidesDashboardHybridScraper.ts:556:16)
+    at HybridOperationService.<anonymous> (C:\Users\arcti\OneDrive\Área de Trabalho\GAYBERT\research-agent-urban3\research-agent-urban\src\services\hybridOperationServiceV2.ts:572:57)
+    at Generator.next (<anonymous>)
+    at fulfilled (C:\Users\arcti\OneDrive\Área de Trabalho\GAYBERT\research-agent-urban3\research-agent-urban\src\services\hybridOperationServiceV2.ts:5:58)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+[2025-08-26T14:11:02.945Z] [INFO] [HYBRID] Extraindo dados do motorista: 17650720
+[2025-08-26T14:11:02.946Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17650720
+[2025-08-26T14:11:02.948Z] [DEBUG] [HYBRID] Status atual: logado=false, URL=https://rides.ec2dashboard.com/#/page/login
+[2025-08-26T14:11:02.948Z] [DEBUG] [HYBRID] Dashboard não está logada, iniciando processo de login...
+[2025-08-26T14:11:02.948Z] [WARN] [HYBRID] ⏳ 🤖 ATENÇÃO: O sistema abrirá a dashboard - resolva o CAPTCHA e faça login se necessário!
+[2025-08-26T14:11:10.921Z] [INFO] [HYBRID] Extraindo dados do motorista: 17528787
+[2025-08-26T14:11:10.922Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17528787
+[2025-08-26T14:11:10.923Z] [DEBUG] [HYBRID] Status atual: logado=false, URL=https://rides.ec2dashboard.com/#/page/login
+[2025-08-26T14:11:10.924Z] [DEBUG] [HYBRID] Dashboard não está logada, iniciando processo de login...
+[2025-08-26T14:11:10.924Z] [WARN] [HYBRID] ⏳ 🤖 ATENÇÃO: O sistema abrirá a dashboard - resolva o CAPTCHA e faça login se necessário!
+[2025-08-26T14:11:18.930Z] [INFO] [HYBRID] Extraindo dados do motorista: 17291892
+[2025-08-26T14:11:18.932Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17291892
+[2025-08-26T14:11:18.933Z] [DEBUG] [HYBRID] Status atual: logado=false, URL=https://rides.ec2dashboard.com/#/page/login
+[2025-08-26T14:11:18.933Z] [DEBUG] [HYBRID] Dashboard não está logada, iniciando processo de login...
+[2025-08-26T14:11:18.933Z] [WARN] [HYBRID] ⏳ 🤖 ATENÇÃO: O sistema abrirá a dashboard - resolva o CAPTCHA e faça login se necessário!
+[2025-08-26T14:11:26.933Z] [INFO] [HYBRID] Extraindo dados do motorista: 17207660
+[2025-08-26T14:11:26.935Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17207660
+[2025-08-26T14:11:26.936Z] [DEBUG] [HYBRID] Status atual: logado=false, URL=https://rides.ec2dashboard.com/#/page/login
+[2025-08-26T14:11:26.936Z] [DEBUG] [HYBRID] Dashboard não está logada, iniciando processo de login...
+[2025-08-26T14:11:26.936Z] [WARN] [HYBRID] ⏳ 🤖 ATENÇÃO: O sistema abrirá a dashboard - resolva o CAPTCHA e faça login se necessário!
+[2025-08-26T14:11:34.948Z] [INFO] [HYBRID] Extraindo dados do motorista: 17177142
+[2025-08-26T14:11:34.950Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17177142
+[2025-08-26T14:11:34.951Z] [DEBUG] [HYBRID] Status atual: logado=false, URL=https://rides.ec2dashboard.com/#/page/login
+[2025-08-26T14:11:34.951Z] [DEBUG] [HYBRID] Dashboard não está logada, iniciando processo de login...
+[2025-08-26T14:11:34.951Z] [WARN] [HYBRID] ⏳ 🤖 ATENÇÃO: O sistema abrirá a dashboard - resolva o CAPTCHA e faça login se necessário!
+[2025-08-26T14:11:42.958Z] [INFO] [HYBRID] Extraindo dados do motorista: 17174024
+[2025-08-26T14:11:42.960Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17174024
+[2025-08-26T14:11:42.960Z] [DEBUG] [HYBRID] Status atual: logado=false, URL=https://rides.ec2dashboard.com/#/page/login
+[2025-08-26T14:11:42.961Z] [DEBUG] [HYBRID] Dashboard não está logada, iniciando processo de login...
+[2025-08-26T14:11:42.961Z] [WARN] [HYBRID] ⏳ 🤖 ATENÇÃO: O sistema abrirá a dashboard - resolva o CAPTCHA e faça login se necessário!
+[2025-08-26T14:11:50.967Z] [INFO] [HYBRID] Extraindo dados do motorista: 17168907
+[2025-08-26T14:11:50.969Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17168907
+[2025-08-26T14:11:50.969Z] [DEBUG] [HYBRID] Status atual: logado=false, URL=https://rides.ec2dashboard.com/#/page/login
+[2025-08-26T14:11:50.970Z] [DEBUG] [HYBRID] Dashboard não está logada, iniciando processo de login...
+[2025-08-26T14:11:50.970Z] [WARN] [HYBRID] ⏳ 🤖 ATENÇÃO: O sistema abrirá a dashboard - resolva o CAPTCHA e faça login se necessário!
+[2025-08-26T14:11:54.931Z] [DEBUG] [HYBRID] Alimentação automática: buscando novos IDs...
+[2025-08-26T14:11:58.969Z] [INFO] [HYBRID] Extraindo dados do motorista: 17166153
+[2025-08-26T14:11:58.970Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17166153
+[2025-08-26T14:11:58.971Z] [DEBUG] [HYBRID] Status atual: logado=false, URL=https://rides.ec2dashboard.com/#/page/login
+[2025-08-26T14:11:58.971Z] [DEBUG] [HYBRID] Dashboard não está logada, iniciando processo de login...
+[2025-08-26T14:11:58.971Z] [WARN] [HYBRID] ⏳ 🤖 ATENÇÃO: O sistema abrirá a dashboard - resolva o CAPTCHA e faça login se necessário!
+[2025-08-26T14:12:58.561Z] [INFO] [HYBRID] Iniciando Sistema Híbrido...
+[2025-08-26T14:12:58.562Z] [INFO] [HYBRID] Iniciando sistema de operação híbrida...
+[2025-08-26T14:12:58.562Z] [INFO] [HYBRID] Inicializando navegador do sistema híbrido...
+[2025-08-26T14:14:16.572Z] [SUCCESS] [HYBRID] Navegador do sistema híbrido inicializado
+[2025-08-26T14:14:16.572Z] [DEBUG] [HYBRID] Verificando recuperação de estado...
+[2025-08-26T14:14:16.573Z] [INFO] [HYBRID] Estado de recuperação detectado:
+[2025-08-26T14:14:16.573Z] [INFO] [HYBRID]    - ID atual: 17166153
+[2025-08-26T14:14:16.574Z] [INFO] [HYBRID]    - Total processado: 515
+[2025-08-26T14:14:16.574Z] [INFO] [HYBRID]    - Última gravação: 2.3 min atrás
+[2025-08-26T14:14:16.574Z] [DEBUG] [HYBRID] Carregando estados das filas...
+[2025-08-26T14:14:16.574Z] [DEBUG] [HYBRID] Buscando IDs iniciais das APIs...
+[2025-08-26T14:14:16.575Z] [DEBUG] [HYBRID] Carregando IDs iniciais das dashboards...
+[2025-08-26T14:14:16.575Z] [DEBUG] [HYBRID] Tentando extrair IDs reais da página Active Drivers...
+[2025-08-26T14:14:16.576Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/active-drivers//
+[2025-08-26T14:14:16.576Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:14:16.576Z] [DEBUG] [HYBRID] 🔍 Chamando extractAllDriverIds...
+[2025-08-26T14:14:19.641Z] [DEBUG] [HYBRID] 🔍 extractAllDriverIds retornou: 19 IDs
+[2025-08-26T14:14:19.642Z] [SUCCESS] [HYBRID] 19 IDs reais extraídos da dashboard Active Drivers
+[2025-08-26T14:14:19.642Z] [INFO] [HYBRID] 🎯 Preparando dashboard para processamento em lote...
+[2025-08-26T14:14:20.661Z] [SUCCESS] [HYBRID] ✅ Dashboard preparado - pronto para processar fila de IDs
+[2025-08-26T14:14:20.662Z] [INFO] [HYBRID] IDs da dashboard carregados: 19 IDs reais (alta prioridade)
+[2025-08-26T14:14:20.662Z] [DEBUG] [HYBRID] Loop principal iniciado
+[2025-08-26T14:14:20.662Z] [DEBUG] [HYBRID] Alimentação automática de IDs iniciada
+[2025-08-26T14:14:20.663Z] [SUCCESS] [HYBRID] Sistema híbrido iniciado - batch=1, threshold=1
+[2025-08-26T14:14:20.663Z] [SUCCESS] [HYBRID] Sistema Híbrido iniciado com sucesso
+[2025-08-26T14:14:28.669Z] [INFO] [HYBRID] Mudando para modo EXTRAÇÃO
+[2025-08-26T14:14:28.671Z] [INFO] [HYBRID] Extraindo dados do motorista: 18181466
+[2025-08-26T14:14:28.678Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 18181466
+[2025-08-26T14:14:28.679Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:14:28.679Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:14:28.679Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 18181466
+[2025-08-26T14:14:36.680Z] [INFO] [HYBRID] Extraindo dados do motorista: 17650720
+[2025-08-26T14:14:36.682Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17650720
+[2025-08-26T14:14:36.682Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:14:36.682Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:14:36.683Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17650720
+[2025-08-26T14:14:44.694Z] [INFO] [HYBRID] Extraindo dados do motorista: 17528787
+[2025-08-26T14:14:44.696Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17528787
+[2025-08-26T14:14:44.696Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:14:44.697Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:14:44.697Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17528787
+[2025-08-26T14:14:48.158Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 18181466
+[2025-08-26T14:14:48.158Z] [DEBUG] [HYBRID] Dados salvos para motorista 18181466
+[2025-08-26T14:15:01.168Z] [INFO] [HYBRID] Iniciando Sistema Híbrido...
+[2025-08-26T14:15:01.169Z] [INFO] [HYBRID] Iniciando sistema de operação híbrida...
+[2025-08-26T14:15:01.170Z] [INFO] [HYBRID] Inicializando navegador do sistema híbrido...
+[2025-08-26T14:22:35.898Z] [INFO] [HYBRID] Iniciando Sistema Híbrido...
+[2025-08-26T14:22:35.899Z] [INFO] [HYBRID] Iniciando sistema de operação híbrida...
+[2025-08-26T14:22:35.899Z] [INFO] [HYBRID] Inicializando navegador do sistema híbrido...
+[2025-08-26T14:23:54.003Z] [SUCCESS] [HYBRID] Navegador do sistema híbrido inicializado
+[2025-08-26T14:23:54.004Z] [DEBUG] [HYBRID] Verificando recuperação de estado...
+[2025-08-26T14:23:54.004Z] [INFO] [HYBRID] Estado de recuperação detectado:
+[2025-08-26T14:23:54.005Z] [INFO] [HYBRID]    - ID atual: nenhum
+[2025-08-26T14:23:54.005Z] [INFO] [HYBRID]    - Total processado: 516
+[2025-08-26T14:23:54.005Z] [INFO] [HYBRID]    - Última gravação: 9.1 min atrás
+[2025-08-26T14:23:54.006Z] [DEBUG] [HYBRID] Carregando estados das filas...
+[2025-08-26T14:23:54.006Z] [DEBUG] [HYBRID] Buscando IDs iniciais das APIs...
+[2025-08-26T14:23:54.007Z] [DEBUG] [HYBRID] Carregando IDs iniciais das dashboards...
+[2025-08-26T14:23:54.007Z] [DEBUG] [HYBRID] Tentando extrair IDs reais da página Active Drivers...
+[2025-08-26T14:23:54.008Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/active-drivers//
+[2025-08-26T14:23:54.008Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:23:54.008Z] [DEBUG] [HYBRID] 🔍 Chamando extractAllDriverIds...
+[2025-08-26T14:23:57.082Z] [DEBUG] [HYBRID] 🔍 extractAllDriverIds retornou: 19 IDs
+[2025-08-26T14:23:57.083Z] [SUCCESS] [HYBRID] 19 IDs reais extraídos da dashboard Active Drivers
+[2025-08-26T14:23:57.083Z] [INFO] [HYBRID] 🎯 Preparando dashboard para processamento em lote...
+[2025-08-26T14:23:58.107Z] [SUCCESS] [HYBRID] ✅ Dashboard preparado - pronto para processar fila de IDs
+[2025-08-26T14:23:58.108Z] [INFO] [HYBRID] IDs da dashboard carregados: 19 IDs reais (alta prioridade)
+[2025-08-26T14:23:58.109Z] [DEBUG] [HYBRID] Loop principal iniciado
+[2025-08-26T14:23:58.109Z] [DEBUG] [HYBRID] Alimentação automática de IDs iniciada
+[2025-08-26T14:23:58.110Z] [SUCCESS] [HYBRID] Sistema híbrido iniciado - batch=1, threshold=1
+[2025-08-26T14:23:58.110Z] [SUCCESS] [HYBRID] Sistema Híbrido iniciado com sucesso
+[2025-08-26T14:24:06.112Z] [INFO] [HYBRID] Mudando para modo EXTRAÇÃO
+[2025-08-26T14:24:06.114Z] [INFO] [HYBRID] Extraindo dados do motorista: 18181466
+[2025-08-26T14:24:06.120Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 18181466
+[2025-08-26T14:24:06.121Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:24:06.121Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:24:06.121Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 18181466
+[2025-08-26T14:24:14.116Z] [INFO] [HYBRID] Extraindo dados do motorista: 17650720
+[2025-08-26T14:24:14.117Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17650720
+[2025-08-26T14:24:14.118Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:24:14.118Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:24:14.118Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17650720
+[2025-08-26T14:24:22.124Z] [INFO] [HYBRID] Extraindo dados do motorista: 17528787
+[2025-08-26T14:24:22.125Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17528787
+[2025-08-26T14:24:22.126Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:24:22.126Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:24:22.126Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17528787
+[2025-08-26T14:24:25.624Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 18181466
+[2025-08-26T14:24:25.624Z] [DEBUG] [HYBRID] Dados salvos para motorista 18181466
+[2025-08-26T14:24:30.137Z] [INFO] [HYBRID] Extraindo dados do motorista: 17291892
+[2025-08-26T14:24:30.138Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17291892
+[2025-08-26T14:24:30.139Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:24:30.139Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:24:30.139Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17291892
+[2025-08-26T14:24:33.383Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17650720
+[2025-08-26T14:24:33.384Z] [DEBUG] [HYBRID] Dados salvos para motorista 17650720
+[2025-08-26T14:24:38.150Z] [INFO] [HYBRID] Extraindo dados do motorista: 17207660
+[2025-08-26T14:24:38.151Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17207660
+[2025-08-26T14:24:38.152Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:24:38.152Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:24:38.152Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17207660
+[2025-08-26T14:24:41.413Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17528787
+[2025-08-26T14:24:41.414Z] [DEBUG] [HYBRID] Dados salvos para motorista 17528787
+[2025-08-26T14:24:46.161Z] [INFO] [HYBRID] Extraindo dados do motorista: 17177142
+[2025-08-26T14:24:46.162Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17177142
+[2025-08-26T14:24:46.163Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:24:46.163Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:24:46.163Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17177142
+[2025-08-26T14:24:49.396Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17291892
+[2025-08-26T14:24:49.397Z] [DEBUG] [HYBRID] Dados salvos para motorista 17291892
+[2025-08-26T14:24:54.162Z] [INFO] [HYBRID] Extraindo dados do motorista: 17174024
+[2025-08-26T14:24:54.164Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17174024
+[2025-08-26T14:24:54.164Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:24:54.165Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:24:54.165Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17174024
+[2025-08-26T14:24:57.612Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17207660
+[2025-08-26T14:24:57.612Z] [DEBUG] [HYBRID] Dados salvos para motorista 17207660
+[2025-08-26T14:24:58.117Z] [DEBUG] [HYBRID] Alimentação automática: buscando novos IDs...
+[2025-08-26T14:25:02.173Z] [INFO] [HYBRID] Extraindo dados do motorista: 17168907
+[2025-08-26T14:25:02.175Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17168907
+[2025-08-26T14:25:02.175Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:25:02.175Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:25:02.176Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17168907
+[2025-08-26T14:25:05.504Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17177142
+[2025-08-26T14:25:05.504Z] [DEBUG] [HYBRID] Dados salvos para motorista 17177142
+[2025-08-26T14:25:10.174Z] [INFO] [HYBRID] Extraindo dados do motorista: 17166153
+[2025-08-26T14:25:10.175Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17166153
+[2025-08-26T14:25:10.176Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:25:10.176Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:25:10.177Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17166153
+[2025-08-26T14:25:14.579Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17174024
+[2025-08-26T14:25:14.580Z] [DEBUG] [HYBRID] Dados salvos para motorista 17174024
+[2025-08-26T14:25:18.175Z] [INFO] [HYBRID] Extraindo dados do motorista: 17147322
+[2025-08-26T14:25:18.176Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17147322
+[2025-08-26T14:25:18.177Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:25:18.177Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:25:18.177Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17147322
+[2025-08-26T14:25:22.416Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17168907
+[2025-08-26T14:25:22.417Z] [DEBUG] [HYBRID] Dados salvos para motorista 17168907
+[2025-08-26T14:25:26.187Z] [INFO] [HYBRID] Extraindo dados do motorista: 17116809
+[2025-08-26T14:25:26.189Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17116809
+[2025-08-26T14:25:26.189Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:25:26.189Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:25:26.190Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17116809
+[2025-08-26T14:25:30.453Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17166153
+[2025-08-26T14:25:30.453Z] [DEBUG] [HYBRID] Dados salvos para motorista 17166153
+[2025-08-26T14:25:34.199Z] [INFO] [HYBRID] Extraindo dados do motorista: 17109343
+[2025-08-26T14:25:34.201Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17109343
+[2025-08-26T14:25:34.201Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:25:34.201Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:25:34.202Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17109343
+[2025-08-26T14:25:38.596Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17147322
+[2025-08-26T14:25:38.597Z] [DEBUG] [HYBRID] Dados salvos para motorista 17147322
+[2025-08-26T14:25:42.201Z] [INFO] [HYBRID] Extraindo dados do motorista: 17101714
+[2025-08-26T14:25:42.202Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17101714
+[2025-08-26T14:25:42.203Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:25:42.203Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:25:42.203Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17101714
+[2025-08-26T14:25:46.627Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17116809
+[2025-08-26T14:25:46.628Z] [DEBUG] [HYBRID] Dados salvos para motorista 17116809
+[2025-08-26T14:25:50.211Z] [INFO] [HYBRID] Extraindo dados do motorista: 17089446
+[2025-08-26T14:25:50.212Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17089446
+[2025-08-26T14:25:50.213Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:25:50.213Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:25:50.214Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17089446
+[2025-08-26T14:25:54.630Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17109343
+[2025-08-26T14:25:54.631Z] [DEBUG] [HYBRID] Dados salvos para motorista 17109343
+[2025-08-26T14:25:58.123Z] [DEBUG] [HYBRID] Alimentação automática: buscando novos IDs...
+[2025-08-26T14:25:58.217Z] [INFO] [HYBRID] Extraindo dados do motorista: 17079326
+[2025-08-26T14:25:58.219Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17079326
+[2025-08-26T14:25:58.219Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:25:58.219Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:25:58.220Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17079326
+[2025-08-26T14:26:02.477Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17101714
+[2025-08-26T14:26:02.477Z] [DEBUG] [HYBRID] Dados salvos para motorista 17101714
+[2025-08-26T14:26:06.228Z] [INFO] [HYBRID] Extraindo dados do motorista: 16629776
+[2025-08-26T14:26:06.229Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 16629776
+[2025-08-26T14:26:06.230Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:26:06.230Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:26:06.230Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 16629776
+[2025-08-26T14:26:10.538Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17089446
+[2025-08-26T14:26:10.539Z] [DEBUG] [HYBRID] Dados salvos para motorista 17089446
+[2025-08-26T14:26:14.243Z] [INFO] [HYBRID] Extraindo dados do motorista: 16359250
+[2025-08-26T14:26:14.244Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 16359250
+[2025-08-26T14:26:14.244Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:26:14.244Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:26:14.245Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 16359250
+[2025-08-26T14:26:18.552Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17079326
+[2025-08-26T14:26:18.552Z] [DEBUG] [HYBRID] Dados salvos para motorista 17079326
+[2025-08-26T14:26:22.253Z] [INFO] [HYBRID] Extraindo dados do motorista: 16263441
+[2025-08-26T14:26:22.254Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 16263441
+[2025-08-26T14:26:22.255Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:26:22.255Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:26:22.255Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 16263441
+[2025-08-26T14:26:26.563Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 16629776
+[2025-08-26T14:26:26.563Z] [DEBUG] [HYBRID] Dados salvos para motorista 16629776
+[2025-08-26T14:26:30.268Z] [INFO] [HYBRID] Extraindo dados do motorista: 12146346
+[2025-08-26T14:26:30.269Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 12146346
+[2025-08-26T14:26:30.270Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:26:30.270Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:26:30.270Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 12146346
+[2025-08-26T14:26:34.771Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 16359250
+[2025-08-26T14:26:34.771Z] [DEBUG] [HYBRID] Dados salvos para motorista 16359250
+[2025-08-26T14:26:38.274Z] [WARN] [HYBRID] Fila de extração vazia, tentando buscar novos IDs...
+[2025-08-26T14:26:38.275Z] [DEBUG] [HYBRID] Carregando IDs iniciais das dashboards...
+[2025-08-26T14:26:38.275Z] [DEBUG] [HYBRID] Tentando extrair IDs reais da página Active Drivers...
+[2025-08-26T14:26:38.275Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:26:38.276Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:26:38.276Z] [DEBUG] [HYBRID] 🔍 Chamando extractAllDriverIds...
+[2025-08-26T14:26:42.764Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 16263441
+[2025-08-26T14:26:42.764Z] [DEBUG] [HYBRID] Dados salvos para motorista 16263441
+[2025-08-26T14:26:44.610Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 12146346
+[2025-08-26T14:26:44.610Z] [DEBUG] [HYBRID] Dados salvos para motorista 12146346
+[2025-08-26T14:26:46.284Z] [WARN] [HYBRID] Fila de extração vazia, tentando buscar novos IDs...
+[2025-08-26T14:26:46.285Z] [DEBUG] [HYBRID] Carregamento de IDs já em andamento, pulando...
+[2025-08-26T14:26:47.493Z] [DEBUG] [HYBRID] 🔍 extractAllDriverIds retornou: 19 IDs
+[2025-08-26T14:26:47.494Z] [SUCCESS] [HYBRID] 19 IDs reais extraídos da dashboard Active Drivers
+[2025-08-26T14:26:47.494Z] [INFO] [HYBRID] 🎯 Preparando dashboard para processamento em lote...
+[2025-08-26T14:26:48.515Z] [SUCCESS] [HYBRID] ✅ Dashboard preparado - pronto para processar fila de IDs
+[2025-08-26T14:26:48.516Z] [INFO] [HYBRID] IDs da dashboard carregados: 19 IDs reais (alta prioridade)
+[2025-08-26T14:26:54.291Z] [INFO] [HYBRID] Mudando para modo EXTRAÇÃO
+[2025-08-26T14:26:54.292Z] [INFO] [HYBRID] Extraindo dados do motorista: 18181466
+[2025-08-26T14:26:54.300Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 18181466
+[2025-08-26T14:26:54.302Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:26:54.302Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:26:54.302Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 18181466
+[2025-08-26T14:26:58.134Z] [DEBUG] [HYBRID] Alimentação automática: buscando novos IDs...
+[2025-08-26T14:27:02.292Z] [INFO] [HYBRID] Extraindo dados do motorista: 17650720
+[2025-08-26T14:27:02.293Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17650720
+[2025-08-26T14:27:02.294Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:27:02.294Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:27:02.294Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17650720
+[2025-08-26T14:27:10.299Z] [INFO] [HYBRID] Extraindo dados do motorista: 17528787
+[2025-08-26T14:27:10.300Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17528787
+[2025-08-26T14:27:10.301Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:27:10.301Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:27:10.302Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17528787
+[2025-08-26T14:27:15.723Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 18181466
+[2025-08-26T14:27:15.723Z] [DEBUG] [HYBRID] Dados salvos para motorista 18181466
+[2025-08-26T14:27:18.309Z] [INFO] [HYBRID] Extraindo dados do motorista: 17291892
+[2025-08-26T14:27:18.311Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17291892
+[2025-08-26T14:27:18.311Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:27:18.311Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:27:18.312Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17291892
+[2025-08-26T14:27:22.540Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17650720
+[2025-08-26T14:27:22.541Z] [DEBUG] [HYBRID] Dados salvos para motorista 17650720
+[2025-08-26T14:27:26.319Z] [INFO] [HYBRID] Extraindo dados do motorista: 17207660
+[2025-08-26T14:27:26.320Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17207660
+[2025-08-26T14:27:26.321Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:27:26.321Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:27:26.321Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17207660
+[2025-08-26T14:27:32.557Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17528787
+[2025-08-26T14:27:32.558Z] [DEBUG] [HYBRID] Dados salvos para motorista 17528787
+[2025-08-26T14:27:34.323Z] [INFO] [HYBRID] Extraindo dados do motorista: 17177142
+[2025-08-26T14:27:34.324Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17177142
+[2025-08-26T14:27:34.325Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:27:34.325Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:27:34.325Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17177142
+[2025-08-26T14:27:38.547Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17291892
+[2025-08-26T14:27:38.548Z] [DEBUG] [HYBRID] Dados salvos para motorista 17291892
+[2025-08-26T14:27:42.326Z] [INFO] [HYBRID] Extraindo dados do motorista: 17174024
+[2025-08-26T14:27:42.327Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17174024
+[2025-08-26T14:27:42.328Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:27:42.328Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:27:42.328Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17174024
+[2025-08-26T14:27:46.754Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17207660
+[2025-08-26T14:27:46.755Z] [DEBUG] [HYBRID] Dados salvos para motorista 17207660
+[2025-08-26T14:27:50.330Z] [INFO] [HYBRID] Extraindo dados do motorista: 17168907
+[2025-08-26T14:27:50.331Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17168907
+[2025-08-26T14:27:50.331Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:27:50.331Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:27:50.332Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17168907
+[2025-08-26T14:27:54.669Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17177142
+[2025-08-26T14:27:54.669Z] [DEBUG] [HYBRID] Dados salvos para motorista 17177142
+[2025-08-26T14:27:58.146Z] [DEBUG] [HYBRID] Alimentação automática: buscando novos IDs...
+[2025-08-26T14:27:58.330Z] [INFO] [HYBRID] Extraindo dados do motorista: 17166153
+[2025-08-26T14:27:58.332Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17166153
+[2025-08-26T14:27:58.332Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:27:58.332Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:27:58.333Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17166153
+[2025-08-26T14:28:02.781Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17174024
+[2025-08-26T14:28:02.782Z] [DEBUG] [HYBRID] Dados salvos para motorista 17174024
+[2025-08-26T14:28:06.334Z] [INFO] [HYBRID] Extraindo dados do motorista: 17147322
+[2025-08-26T14:28:06.336Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17147322
+[2025-08-26T14:28:06.336Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:28:06.336Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:28:06.337Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17147322
+[2025-08-26T14:28:10.629Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17168907
+[2025-08-26T14:28:10.630Z] [DEBUG] [HYBRID] Dados salvos para motorista 17168907
+[2025-08-26T14:28:14.342Z] [INFO] [HYBRID] Extraindo dados do motorista: 17116809
+[2025-08-26T14:28:14.344Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17116809
+[2025-08-26T14:28:14.344Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:28:14.345Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:28:14.345Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17116809
+[2025-08-26T14:28:18.690Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17166153
+[2025-08-26T14:28:18.691Z] [DEBUG] [HYBRID] Dados salvos para motorista 17166153
+[2025-08-26T14:28:22.347Z] [INFO] [HYBRID] Extraindo dados do motorista: 17109343
+[2025-08-26T14:28:22.348Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17109343
+[2025-08-26T14:28:22.348Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:28:22.349Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:28:22.349Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17109343
+[2025-08-26T14:28:26.695Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17147322
+[2025-08-26T14:28:26.696Z] [DEBUG] [HYBRID] Dados salvos para motorista 17147322
+[2025-08-26T14:28:30.354Z] [INFO] [HYBRID] Extraindo dados do motorista: 17101714
+[2025-08-26T14:28:30.356Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17101714
+[2025-08-26T14:28:30.356Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:28:30.356Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:28:30.357Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17101714
+[2025-08-26T14:28:34.858Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17116809
+[2025-08-26T14:28:34.859Z] [DEBUG] [HYBRID] Dados salvos para motorista 17116809
+[2025-08-26T14:28:38.358Z] [INFO] [HYBRID] Extraindo dados do motorista: 17089446
+[2025-08-26T14:28:38.359Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17089446
+[2025-08-26T14:28:38.360Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:28:38.360Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:28:38.360Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17089446
+[2025-08-26T14:28:42.873Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17109343
+[2025-08-26T14:28:42.873Z] [DEBUG] [HYBRID] Dados salvos para motorista 17109343
+[2025-08-26T14:28:46.359Z] [INFO] [HYBRID] Extraindo dados do motorista: 17079326
+[2025-08-26T14:28:46.360Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17079326
+[2025-08-26T14:28:46.361Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:28:46.361Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:28:46.361Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17079326
+[2025-08-26T14:28:50.709Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17101714
+[2025-08-26T14:28:50.709Z] [DEBUG] [HYBRID] Dados salvos para motorista 17101714
+[2025-08-26T14:28:54.363Z] [INFO] [HYBRID] Extraindo dados do motorista: 16629776
+[2025-08-26T14:28:54.365Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 16629776
+[2025-08-26T14:28:54.365Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:28:54.366Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:28:54.366Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 16629776
+[2025-08-26T14:28:58.159Z] [DEBUG] [HYBRID] Alimentação automática: buscando novos IDs...
+[2025-08-26T14:28:58.727Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17089446
+[2025-08-26T14:28:58.728Z] [DEBUG] [HYBRID] Dados salvos para motorista 17089446
+[2025-08-26T14:29:02.366Z] [INFO] [HYBRID] Extraindo dados do motorista: 16359250
+[2025-08-26T14:29:02.367Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 16359250
+[2025-08-26T14:29:02.368Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:29:02.368Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:29:02.369Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 16359250
+[2025-08-26T14:29:06.782Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17079326
+[2025-08-26T14:29:06.782Z] [DEBUG] [HYBRID] Dados salvos para motorista 17079326
+[2025-08-26T14:29:10.370Z] [INFO] [HYBRID] Extraindo dados do motorista: 16263441
+[2025-08-26T14:29:10.371Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 16263441
+[2025-08-26T14:29:10.372Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:29:10.372Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:29:10.373Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 16263441
+[2025-08-26T14:29:14.780Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 16629776
+[2025-08-26T14:29:14.781Z] [DEBUG] [HYBRID] Dados salvos para motorista 16629776
+[2025-08-26T14:29:18.377Z] [INFO] [HYBRID] Extraindo dados do motorista: 12146346
+[2025-08-26T14:29:18.378Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 12146346
+[2025-08-26T14:29:18.378Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:29:18.379Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:29:18.379Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 12146346
+[2025-08-26T14:29:22.969Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 16359250
+[2025-08-26T14:29:22.969Z] [DEBUG] [HYBRID] Dados salvos para motorista 16359250
+[2025-08-26T14:29:26.388Z] [WARN] [HYBRID] Fila de extração vazia, tentando buscar novos IDs...
+[2025-08-26T14:29:26.389Z] [DEBUG] [HYBRID] Carregando IDs iniciais das dashboards...
+[2025-08-26T14:29:26.389Z] [DEBUG] [HYBRID] Tentando extrair IDs reais da página Active Drivers...
+[2025-08-26T14:29:26.389Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:29:26.390Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:29:26.390Z] [DEBUG] [HYBRID] 🔍 Chamando extractAllDriverIds...
+[2025-08-26T14:29:30.818Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 16263441
+[2025-08-26T14:29:30.819Z] [DEBUG] [HYBRID] Dados salvos para motorista 16263441
+[2025-08-26T14:29:32.804Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 12146346
+[2025-08-26T14:29:32.804Z] [DEBUG] [HYBRID] Dados salvos para motorista 12146346
+[2025-08-26T14:29:34.400Z] [WARN] [HYBRID] Fila de extração vazia, tentando buscar novos IDs...
+[2025-08-26T14:29:34.401Z] [DEBUG] [HYBRID] Carregamento de IDs já em andamento, pulando...
+[2025-08-26T14:29:35.770Z] [DEBUG] [HYBRID] 🔍 extractAllDriverIds retornou: 19 IDs
+[2025-08-26T14:29:35.770Z] [SUCCESS] [HYBRID] 19 IDs reais extraídos da dashboard Active Drivers
+[2025-08-26T14:29:35.771Z] [INFO] [HYBRID] 🎯 Preparando dashboard para processamento em lote...
+[2025-08-26T14:29:36.780Z] [SUCCESS] [HYBRID] ✅ Dashboard preparado - pronto para processar fila de IDs
+[2025-08-26T14:29:36.781Z] [INFO] [HYBRID] IDs da dashboard carregados: 19 IDs reais (alta prioridade)
+[2025-08-26T14:29:42.415Z] [INFO] [HYBRID] Mudando para modo EXTRAÇÃO
+[2025-08-26T14:29:42.416Z] [INFO] [HYBRID] Extraindo dados do motorista: 18181466
+[2025-08-26T14:29:42.424Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 18181466
+[2025-08-26T14:29:42.425Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:29:42.426Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:29:42.427Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 18181466
+[2025-08-26T14:29:50.415Z] [INFO] [HYBRID] Extraindo dados do motorista: 17650720
+[2025-08-26T14:29:50.416Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17650720
+[2025-08-26T14:29:50.417Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:29:50.417Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:29:50.417Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17650720
+[2025-08-26T14:29:58.160Z] [DEBUG] [HYBRID] Alimentação automática: buscando novos IDs...
+[2025-08-26T14:29:58.422Z] [INFO] [HYBRID] Extraindo dados do motorista: 17528787
+[2025-08-26T14:29:58.423Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17528787
+[2025-08-26T14:29:58.424Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:29:58.424Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:29:58.424Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17528787
+[2025-08-26T14:30:03.827Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 18181466
+[2025-08-26T14:30:03.828Z] [DEBUG] [HYBRID] Dados salvos para motorista 18181466
+[2025-08-26T14:30:06.433Z] [INFO] [HYBRID] Extraindo dados do motorista: 17291892
+[2025-08-26T14:30:06.435Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17291892
+[2025-08-26T14:30:06.435Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:30:06.435Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:30:06.436Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17291892
+[2025-08-26T14:30:11.761Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17650720
+[2025-08-26T14:30:11.761Z] [DEBUG] [HYBRID] Dados salvos para motorista 17650720
+[2025-08-26T14:30:14.433Z] [INFO] [HYBRID] Extraindo dados do motorista: 17207660
+[2025-08-26T14:30:14.434Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17207660
+[2025-08-26T14:30:14.435Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:30:14.435Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:30:14.435Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17207660
+[2025-08-26T14:30:21.667Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17528787
+[2025-08-26T14:30:21.667Z] [DEBUG] [HYBRID] Dados salvos para motorista 17528787
+[2025-08-26T14:30:22.440Z] [INFO] [HYBRID] Extraindo dados do motorista: 17177142
+[2025-08-26T14:30:22.441Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17177142
+[2025-08-26T14:30:22.441Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:30:22.442Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:30:22.442Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17177142
+[2025-08-26T14:30:26.671Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17291892
+[2025-08-26T14:30:26.672Z] [DEBUG] [HYBRID] Dados salvos para motorista 17291892
+[2025-08-26T14:30:30.449Z] [INFO] [HYBRID] Extraindo dados do motorista: 17174024
+[2025-08-26T14:30:30.450Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17174024
+[2025-08-26T14:30:30.450Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:30:30.451Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:30:30.451Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17174024
+[2025-08-26T14:30:34.848Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17207660
+[2025-08-26T14:30:34.849Z] [DEBUG] [HYBRID] Dados salvos para motorista 17207660
+[2025-08-26T14:30:38.454Z] [INFO] [HYBRID] Extraindo dados do motorista: 17168907
+[2025-08-26T14:30:38.455Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17168907
+[2025-08-26T14:30:38.456Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:30:38.456Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:30:38.456Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17168907
+[2025-08-26T14:30:42.830Z] [SUCCESS] [HYBRID] Dados extraídos com sucesso para motorista 17177142
+[2025-08-26T14:30:42.830Z] [DEBUG] [HYBRID] Dados salvos para motorista 17177142
+[2025-08-26T14:30:46.468Z] [INFO] [HYBRID] Extraindo dados do motorista: 17166153
+[2025-08-26T14:30:46.470Z] [DEBUG] [HYBRID] Iniciando extração de dados para motorista: 17166153
+[2025-08-26T14:30:46.471Z] [DEBUG] [HYBRID] Status atual: logado=true, URL=https://rides.ec2dashboard.com/#/app/dashboard/
+[2025-08-26T14:30:46.471Z] [DEBUG] [HYBRID] ✅ Dashboard já confirmado como logado, prosseguindo...
+[2025-08-26T14:30:46.472Z] [DEBUG] [HYBRID] Extraindo dados do motorista: 17166153
+[2025-08-26T14:30:58.206Z] [INFO] [HYBRID] Iniciando Sistema Híbrido...
+[2025-08-26T14:30:58.207Z] [INFO] [HYBRID] Iniciando sistema de operação híbrida...
+[2025-08-26T14:30:58.207Z] [INFO] [HYBRID] Inicializando navegador do sistema híbrido...
+[2025-08-26T14:31:16.437Z] [INFO] [HYBRID] Iniciando Sistema Híbrido...
+[2025-08-26T14:31:16.438Z] [INFO] [HYBRID] Iniciando sistema de operação híbrida...
+[2025-08-26T14:31:16.438Z] [INFO] [HYBRID] Inicializando navegador do sistema híbrido...

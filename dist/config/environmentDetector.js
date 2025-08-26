@@ -162,7 +162,9 @@ class EnvironmentDetector {
             baseConfig.args.push('--force-device-scale-factor=1', '--disable-features=VizDisplayCompositor', '--disable-gpu-sandbox', '--start-maximized');
         }
         if (config.isDocker) {
-            baseConfig.args.push('--disable-gpu', '--disable-software-rasterizer', '--no-first-run');
+            baseConfig.args.push('--disable-gpu', '--disable-software-rasterizer', '--no-first-run', 
+            // CORREÇÃO ESPECÍFICA PARA DOCKER - Manutenção de sessão
+            '--disable-background-networking', '--disable-default-apps', '--disable-domain-reliability', '--disable-sync', '--enable-automation', '--password-store=basic', '--use-mock-keychain', '--disable-web-security', '--disable-features=TranslateUI,BlinkGenPropertyTrees');
         }
         return baseConfig;
     }
