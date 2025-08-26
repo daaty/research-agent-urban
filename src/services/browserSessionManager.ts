@@ -957,24 +957,25 @@ export class BrowserSessionManager {
       
       console.log('📍 Navegando para página de login...');
       await this.page!.goto(this.loginUrl, { 
-        waitUntil: 'domcontentloaded',
-        timeout: 30000 
+        waitUntil: 'networkidle',  // 🔧 VNC: aguardar rede estabilizar
+        timeout: 90000  // 🔧 VNC: timeout aumentado para 90s
       });
 
-      await this.page!.waitForTimeout(3000);
+      console.log('⏳ Aguardando página estabilizar no ambiente VNC...');
+      await this.page!.waitForTimeout(8000);  // 🔧 VNC: mais tempo inicial
 
       // � AGUARDAR ANGULARJS CARREGAR ANTES DE PREENCHER
       console.log('⏳ Aguardando página AngularJS carregar completamente...');
       try {
-        // Aguardar campos de login aparecerem
-        await this.page!.waitForSelector('#exampleInputEmail1', { timeout: 15000 });
+        // Aguardar campos de login aparecerem com timeout maior para VNC
+        await this.page!.waitForSelector('#exampleInputEmail1', { timeout: 30000 });
         console.log('✅ Campos de login detectados');
       } catch {
         console.log('⚠️ Timeout aguardando campos de login');
       }
       
-      // Aguardar um pouco mais
-      await this.page!.waitForTimeout(2000);
+      // Aguardar um pouco mais (VNC precisa de mais tempo)
+      await this.page!.waitForTimeout(5000);  // 🔧 VNC: 5s ao invés de 2s
 
       // �🔑 SEMPRE PREENCHER CREDENCIAIS PRIMEIRO (mesmo com captcha)
       console.log('📝 Preenchendo credenciais automaticamente...');
