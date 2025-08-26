@@ -631,27 +631,8 @@ class RidesDashboardHybridScraper {
                 const newUrl = this.page.url();
                 console.log(`📍 URL atual: ${newUrl}`);
                 if (newUrl.includes('/page/login') || newUrl.includes('#/page/login')) {
-                    console.log('⚠️ REDIRECIONADO PARA LOGIN após navegação! Tentando recuperar...');
-                    this.isLoggedIn = false;
-                    // Tentar recuperar sessão automaticamente para Docker/VPS
-                    try {
-                        console.log('🔄 Tentando login automático após redirecionamento...');
-                        const username = process.env.RIDES_USERNAME;
-                        const password = process.env.RIDES_PASSWORD;
-                        if (username && password) {
-                            yield this.performLogin(newUrl, username, password);
-                            console.log('✅ Sessão recuperada após redirecionamento');
-                            // Navegar novamente para dashboard após recuperação
-                            yield this.page.goto(this.DASHBOARD_URL, { waitUntil: 'networkidle', timeout: 15000 });
-                        }
-                        else {
-                            throw new Error('Credenciais não disponíveis para recuperação');
-                        }
-                    }
-                    catch (recoveryError) {
-                        console.log('❌ Falha na recuperação após redirecionamento:', recoveryError);
-                        throw new Error('Sessão expirou - redirecionado para login');
-                    }
+                    console.log('❌ SESSÃO PERDIDA - Voltou para página de login!');
+                    throw new Error('Sessão perdida - necessário fazer login novamente');
                 }
                 // 🎯 VERIFICAÇÃO ROBUSTA DO CAMPO driverId
                 console.log('🔍 Procurando campo #driverId...');
