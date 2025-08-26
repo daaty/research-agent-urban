@@ -585,8 +585,22 @@ export class BrowserSessionManager {
     try {
       console.log('🔍 Verificando presença de captcha na página...');
       
-      // Aguardar um pouco para garantir que a página carregou completamente
-      await this.page!.waitForTimeout(2000);
+      // 🔄 AGUARDAR MAIS TEMPO para AngularJS renderizar completamente
+      console.log('⏳ Aguardando AngularJS carregar completamente...');
+      await this.page!.waitForTimeout(5000);
+      
+      // Verificar se a página finalizou o carregamento do AngularJS
+      try {
+        await this.page!.waitForFunction(() => {
+          return (window as any).angular && (window as any).angular.element(document).injector();
+        }, { timeout: 10000 });
+        console.log('✅ AngularJS carregado');
+      } catch {
+        console.log('⚠️ AngularJS não detectado ou timeout - continuando verificação');
+      }
+      
+      // Aguardar mais um pouco após AngularJS carregar
+      await this.page!.waitForTimeout(3000);
       
       // Verificar elementos comuns de captcha
       const captchaSelectors = [
@@ -949,7 +963,20 @@ export class BrowserSessionManager {
 
       await this.page!.waitForTimeout(3000);
 
-      // 🔑 SEMPRE PREENCHER CREDENCIAIS PRIMEIRO (mesmo com captcha)
+      // � AGUARDAR ANGULARJS CARREGAR ANTES DE PREENCHER
+      console.log('⏳ Aguardando página AngularJS carregar completamente...');
+      try {
+        // Aguardar campos de login aparecerem
+        await this.page!.waitForSelector('#exampleInputEmail1', { timeout: 15000 });
+        console.log('✅ Campos de login detectados');
+      } catch {
+        console.log('⚠️ Timeout aguardando campos de login');
+      }
+      
+      // Aguardar um pouco mais
+      await this.page!.waitForTimeout(2000);
+
+      // �🔑 SEMPRE PREENCHER CREDENCIAIS PRIMEIRO (mesmo com captcha)
       console.log('📝 Preenchendo credenciais automaticamente...');
       try {
         await this.page!.fill('#exampleInputEmail1', this.email);
