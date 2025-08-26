@@ -44,6 +44,7 @@ export class HybridOperationService {
   private operationInterval: NodeJS.Timeout | null = null;
   private autoFeedInterval: NodeJS.Timeout | null = null;
   private isLoadingIds: boolean = false; // Flag para evitar conflitos
+  private isProcessing: boolean = false; // 🔒 LOCK para evitar múltiplos processamentos
   private rechargeResults: Map<string, any> = new Map(); // Armazenar resultados das recargas
 
   private constructor(config: HybridOperationConfig) {
@@ -239,9 +240,9 @@ export class HybridOperationService {
     this.autoFeedInterval = setInterval(async () => {
       if (!this.isRunning) return;
       
-      // Não executar se já estiver carregando IDs
-      if (this.isLoadingIds) {
-        logger.debug('HYBRID', 'Auto-feed: aguardando carregamento principal terminar...');
+      // 🔒 LOCK - Não executar se o processamento principal estiver rodando
+      if (this.isProcessing || this.isLoadingIds) {
+        logger.debug('HYBRID', 'Auto-feed: aguardando processamento terminar...');
         return;
       }
       
@@ -340,14 +341,23 @@ export class HybridOperationService {
   private startOperationLoop(): void {
     this.operationInterval = setInterval(async () => {
       if (!this.isRunning) return;
+      
+      // 🔒 LOCK - Evitar múltiplas execuções simultâneas
+      if (this.isProcessing) {
+        logger.debug('HYBRID', 'Ciclo já em processamento, aguardando...');
+        return;
+      }
 
       try {
+        this.isProcessing = true;
         await this.processOperationCycle();
       } catch (error) {
         logger.error('HYBRID', 'Erro no ciclo de operação', error);
         this.stats.errorCount++;
         const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
         this.stateManager.setLastError(errorMessage);
+      } finally {
+        this.isProcessing = false; // 🔓 SEMPRE liberar lock
       }
     }, this.config.stateCheckInterval);
   }
