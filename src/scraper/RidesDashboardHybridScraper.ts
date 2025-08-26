@@ -41,8 +41,8 @@ export class RidesDashboardHybridScraper {
   };
 
   // URLs hardcoded conforme solicitado
-  private readonly DASHBOARD_URL = 'https://rides.ec2dashboard.com/#/app/dashboard';
-  private readonly ACTIVE_DRIVERS_URL = 'https://rides.ec2dashboard.com/#/app/active-drivers';
+  private readonly DASHBOARD_URL = 'https://rides.ec2dashboard.com/#/app/dashboard/'; // CORRIGIDO: Adicionada barra final
+  private readonly ACTIVE_DRIVERS_URL = 'https://rides.ec2dashboard.com/#/app/active-drivers//';
 
   constructor(instanceName: string = 'rides_scraper') {
     this.browserManager = BrowserSessionManager.getInstance(instanceName);
@@ -1460,8 +1460,8 @@ export class RidesDashboardHybridScraper {
 
       // 1. Navegar para dashboard principal (forçar URL correta)
       console.log('🌐 Navegando para Dashboard para recarga...');
-      console.log('🌐 [hybrid_scraper] Navegando para: https://rides.ec2dashboard.com/#/app/dashboard...');
-      await this.page.goto('https://rides.ec2dashboard.com/#/app/dashboard', { waitUntil: 'networkidle' });
+      console.log(`🌐 [hybrid_scraper] Navegando para: ${this.DASHBOARD_URL}...`);
+      await this.page.goto(this.DASHBOARD_URL, { waitUntil: 'networkidle' });
       console.log('✅ [hybrid_scraper] Navegação concluída com sucesso');
       await this.page.waitForTimeout(3000);
 
