@@ -287,7 +287,7 @@ class MonitoringService {
     }
   }
 
-  private async performScraping(): Promise<void> {
+  private async performScraping(skipLogin: boolean = false): Promise<void> {
     if (this.isRunning) {
       console.log('⚠️ Scraping já em execução, pulando...');
       return;
@@ -305,7 +305,7 @@ class MonitoringService {
 
       // 1. EXECUTAR SCRAPING DE RIDES
       console.log('🚗 Executando scraping de rides...');
-      const scrapingResult = await scrapeAllRidesDataPersistent();
+      const scrapingResult = await scrapeAllRidesDataPersistent(skipLogin);
       
       if (!scrapingResult.success || !scrapingResult.data || scrapingResult.data.length === 0) {
         console.log('⚠️ Nenhum dado de rides extraído:', scrapingResult.message);
@@ -505,17 +505,17 @@ class MonitoringService {
     console.log(`🌐 Webhook n8n: ${process.env.N8N_WEBHOOK_URL}`);
     console.log(`👀 Modo headless: ${process.env.HEADLESS_MODE}`);
 
-    // Executar uma vez imediatamente
+    // Executar uma vez imediatamente (COM login na primeira vez)
     setTimeout(() => {
-      this.performScraping();
+      this.performScraping(false); // Primeira execução: fazer login
     }, 5000); // 5 segundos de delay inicial
 
-    // Agendar execução usando variável SCRAPE_INTERVAL
+    // Agendar execução usando variável SCRAPE_INTERVAL (SEM login no loop)
     const cronExpression = `*/${scrapeIntervalCron} * * * *`;
     console.log(`⏰ Cron configurado: ${cronExpression} (a cada ${scrapeIntervalCron} minutos)`);
     
     const task1 = cron.schedule(cronExpression, () => {
-      this.performScraping();
+      this.performScraping(true); // Loop: pular login
     });
 
     this.cronTasks = [task1];
@@ -534,7 +534,7 @@ class MonitoringService {
 
   public async runOnce(): Promise<void> {
     console.log('🔄 Executando scraping único...');
-    await this.performScraping();
+    await this.performScraping(false); // Execução única sempre faz login
   }
 }
 
