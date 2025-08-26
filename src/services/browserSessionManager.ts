@@ -13,12 +13,12 @@ export interface SessionData {
 
 export class BrowserSessionManager {
   private static instances: Map<string, BrowserSessionManager> = new Map();
-  private static loginCoordination: { isLoginInProgress: boolean, activeInstance: string | null } = { 
-    isLoginInProgress: false, 
-    activeInstance: null 
-  }; // 🔄 COORDENAÇÃO DE LOGIN
+  private static loginMutex: { isLocked: boolean, waitingList: Array<() => void> } = { 
+    isLocked: false, 
+    waitingList: [] 
+  }; // � MUTEX PARA LOGIN
   
-  // ✅ SIMPLIFICADO: Sem locks desnecessários para processo único
+  // ✅ LOCK PARA EVITAR MÚLTIPLOS LOGINS SIMULTÂNEOS
   
   private browser: Browser | null = null;
   private context: BrowserContext | null = null;
@@ -90,29 +90,36 @@ export class BrowserSessionManager {
   }
 
   /**
-   * 🔄 COORDENAÇÃO DE LOGIN - Verificar se outro está fazendo login
+   * � MUTEX - Verificar se há lock ativo
    */
-  private static isAnotherInstanceLoggingIn(currentInstance: string): boolean {
-    return BrowserSessionManager.loginCoordination.isLoginInProgress && 
-           BrowserSessionManager.loginCoordination.activeInstance !== currentInstance;
+  private static isLocked(): boolean {
+    return BrowserSessionManager.loginMutex.isLocked;
   }
 
   /**
-   * 🔄 COORDENAÇÃO DE LOGIN - Marcar início de login
+   * � MUTEX - Adquirir lock para login
    */
-  private static startLoginProcess(instanceName: string): void {
-    console.log(`🔒 [${instanceName}] Iniciando processo de login (bloqueando outras instâncias)`);
-    BrowserSessionManager.loginCoordination.isLoginInProgress = true;
-    BrowserSessionManager.loginCoordination.activeInstance = instanceName;
+  private static async acquireLock(): Promise<void> {
+    return new Promise((resolve) => {
+      if (!BrowserSessionManager.loginMutex.isLocked) {
+        BrowserSessionManager.loginMutex.isLocked = true;
+        resolve();
+      } else {
+        BrowserSessionManager.loginMutex.waitingList.push(resolve);
+      }
+    });
   }
 
   /**
-   * 🔄 COORDENAÇÃO DE LOGIN - Marcar fim de login
+   * � MUTEX - Liberar lock
    */
-  private static endLoginProcess(instanceName: string): void {
-    console.log(`🔓 [${instanceName}] Finalizando processo de login (liberando outras instâncias)`);
-    BrowserSessionManager.loginCoordination.isLoginInProgress = false;
-    BrowserSessionManager.loginCoordination.activeInstance = null;
+  private static releaseLock(): void {
+    BrowserSessionManager.loginMutex.isLocked = false;
+    const nextResolver = BrowserSessionManager.loginMutex.waitingList.shift();
+    if (nextResolver) {
+      BrowserSessionManager.loginMutex.isLocked = true;
+      nextResolver();
+    }
   }
 
   /**
@@ -420,63 +427,65 @@ export class BrowserSessionManager {
       await this.initializeBrowser();
     }
 
-    // 🔄 VERIFICAR SE OUTRA INSTÂNCIA ESTÁ FAZENDO LOGIN
-    if (BrowserSessionManager.isAnotherInstanceLoggingIn(this.instanceName)) {
-      console.log(`⏳ [${this.instanceName}] Aguardando outra instância terminar login...`);
-      
-      // Aguardar até a outra instância terminar
-      while (BrowserSessionManager.isAnotherInstanceLoggingIn(this.instanceName)) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        console.log(`⏳ [${this.instanceName}] Ainda aguardando login de ${BrowserSessionManager.loginCoordination.activeInstance}...`);
-      }
-      
-      console.log(`✅ [${this.instanceName}] Outra instância terminou login, verificando status...`);
-      
-      // Verificar se agora está logado (pode ter sido resolvido pela outra instância)
-      const isLoggedAfterWait = await this.isCurrentlyLoggedIn();
-      if (isLoggedAfterWait) {
-        console.log(`✅ [${this.instanceName}] Login foi resolvido pela outra instância!`);
-        return true;
-      }
+    // � AGUARDAR MUTEX PARA LOGIN
+    if (BrowserSessionManager.isLocked()) {
+      console.log(`⏳ [${this.instanceName}] Aguardando lock para login...`);
+      await BrowserSessionManager.acquireLock();
+      console.log(`🔓 [${this.instanceName}] Lock adquirido!`);
+    } else {
+      await BrowserSessionManager.acquireLock();
     }
 
-    console.log(`🔐 [${this.instanceName}] Verificando status de login...`);
+    try {
+      // Verificar se já está logado após adquirir lock
+      const isLoggedAfterLock = await this.isCurrentlyLoggedIn();
+      if (isLoggedAfterLock) {
+        console.log(`✅ [${this.instanceName}] Já logado após adquirir lock!`);
+        BrowserSessionManager.releaseLock();
+        return true;
+      }
 
-    // Primeiro, verificar se há sessão válida em cache
-    if (this.isSessionValid()) {
-      console.log('✅ Sessão válida encontrada no cache');
-      
-      // Mesmo com sessão válida, verificar se realmente está logado
+      console.log(`🔐 [${this.instanceName}] Verificando status de login...`);
+
+      // Primeiro, verificar se há sessão válida em cache
+      if (this.isSessionValid()) {
+        console.log('✅ Sessão válida encontrada no cache');
+        
+        // Mesmo com sessão válida, verificar se realmente está logado
+        const isCurrentlyLoggedIn = await this.isCurrentlyLoggedIn();
+        if (isCurrentlyLoggedIn) {
+          console.log('✅ Sessão válida e usuário logado confirmado');
+          BrowserSessionManager.releaseLock();
+          return true;
+        } else {
+          console.log('⚠️ Sessão em cache, mas usuário não está logado. Limpando cache...');
+          this.clearSession();
+        }
+      }
+
+      // Verificar se já está logado no navegador (login manual ou sessão persistente)
       const isCurrentlyLoggedIn = await this.isCurrentlyLoggedIn();
+      
       if (isCurrentlyLoggedIn) {
-        console.log('✅ Sessão válida e usuário logado confirmado');
+        console.log('✅ Login válido detectado no navegador');
+        BrowserSessionManager.releaseLock();
         return true;
-      } else {
-        console.log('⚠️ Sessão em cache, mas usuário não está logado. Limpando cache...');
-        this.clearSession();
       }
-    }
 
-    // Verificar se já está logado no navegador (login manual ou sessão persistente)
-    const isCurrentlyLoggedIn = await this.isCurrentlyLoggedIn();
-    
-    if (isCurrentlyLoggedIn) {
-      console.log('✅ Login válido detectado no navegador');
+      // Realizar login
+      const loginResult = await this.performLogin();
+      BrowserSessionManager.releaseLock();
+      return loginResult;
       
-      // Atualizar dados da sessão para refletir o login atual
-      const now = Date.now();
-      this.sessionData = {
-        isLoggedIn: true,
-        loginTimestamp: now,
-        sessionExpiry: now + (2 * 60 * 60 * 1000), // 2 horas de validade
-        userData: { email: this.email, detectedLogin: true }
-      };
-      this.saveSessionData();
-      
-      return true;
+    } catch (error) {
+      console.error(`❌ [${this.instanceName}] Erro durante login:`, error);
+      BrowserSessionManager.releaseLock();
+      return false;
     }
+  }
 
-    // Tentar navegar para dashboard primeiro para verificar se está logado
+  /**
+   * Realizar login na dashboard
     try {
       console.log('🔍 Tentando acessar dashboard para verificar login...');
       const baseUrl = this.loginUrl.split('#')[0]; // Extrair domínio base
@@ -519,8 +528,8 @@ export class BrowserSessionManager {
    * Executa o processo de login
    */
   private async performLogin(): Promise<boolean> {
-    // 🔒 COORDENAÇÃO: Marcar início do processo de login
-    BrowserSessionManager.startLoginProcess(this.instanceName);
+    // 🔒 LOGIN - Já temos o mutex adquirido aqui
+    console.log(`🔐 [${this.instanceName}] Iniciando processo de login...`);
     
     try {
       console.log('📍 Navegando para página de login...');
@@ -579,8 +588,8 @@ export class BrowserSessionManager {
       console.error('❌ Erro durante login:', error);
       return false;
     } finally {
-      // 🔓 COORDENAÇÃO: SEMPRE liberar processo de login
-      BrowserSessionManager.endLoginProcess(this.instanceName);
+      // 🔓 MUTEX - Já liberado no método que chama
+      console.log(`✅ [${this.instanceName}] Processo de login finalizado.`);
     }
   }
 

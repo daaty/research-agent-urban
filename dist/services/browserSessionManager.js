@@ -50,7 +50,7 @@ const environmentDetector_1 = require("../config/environmentDetector");
 const logger_1 = require("../utils/logger");
 class BrowserSessionManager {
     constructor(instanceName = 'default') {
-        // ✅ SIMPLIFICADO: Sem locks desnecessários para processo único
+        // ✅ LOCK PARA EVITAR MÚLTIPLOS LOGINS SIMULTÂNEOS
         this.browser = null;
         this.context = null;
         this.page = null;
@@ -102,27 +102,37 @@ class BrowserSessionManager {
         return BrowserSessionManager.instances.get(instanceName);
     }
     /**
-     * 🔄 COORDENAÇÃO DE LOGIN - Verificar se outro está fazendo login
+     * � MUTEX - Verificar se há lock ativo
      */
-    static isAnotherInstanceLoggingIn(currentInstance) {
-        return BrowserSessionManager.loginCoordination.isLoginInProgress &&
-            BrowserSessionManager.loginCoordination.activeInstance !== currentInstance;
+    static isLocked() {
+        return BrowserSessionManager.loginMutex.isLocked;
     }
     /**
-     * 🔄 COORDENAÇÃO DE LOGIN - Marcar início de login
+     * � MUTEX - Adquirir lock para login
      */
-    static startLoginProcess(instanceName) {
-        console.log(`🔒 [${instanceName}] Iniciando processo de login (bloqueando outras instâncias)`);
-        BrowserSessionManager.loginCoordination.isLoginInProgress = true;
-        BrowserSessionManager.loginCoordination.activeInstance = instanceName;
+    static acquireLock() {
+        return __awaiter(this, void 0, void 0, function* () {
+            return new Promise((resolve) => {
+                if (!BrowserSessionManager.loginMutex.isLocked) {
+                    BrowserSessionManager.loginMutex.isLocked = true;
+                    resolve();
+                }
+                else {
+                    BrowserSessionManager.loginMutex.waitingList.push(resolve);
+                }
+            });
+        });
     }
     /**
-     * 🔄 COORDENAÇÃO DE LOGIN - Marcar fim de login
+     * � MUTEX - Liberar lock
      */
-    static endLoginProcess(instanceName) {
-        console.log(`🔓 [${instanceName}] Finalizando processo de login (liberando outras instâncias)`);
-        BrowserSessionManager.loginCoordination.isLoginInProgress = false;
-        BrowserSessionManager.loginCoordination.activeInstance = null;
+    static releaseLock() {
+        BrowserSessionManager.loginMutex.isLocked = false;
+        const nextResolver = BrowserSessionManager.loginMutex.waitingList.shift();
+        if (nextResolver) {
+            BrowserSessionManager.loginMutex.isLocked = true;
+            nextResolver();
+        }
     }
     /**
      * 🆕 Lista todas as instâncias ativas
@@ -399,93 +409,105 @@ class BrowserSessionManager {
             if (!this.context || !this.page) {
                 yield this.initializeBrowser();
             }
-            // 🔄 VERIFICAR SE OUTRA INSTÂNCIA ESTÁ FAZENDO LOGIN
-            if (BrowserSessionManager.isAnotherInstanceLoggingIn(this.instanceName)) {
-                console.log(`⏳ [${this.instanceName}] Aguardando outra instância terminar login...`);
-                // Aguardar até a outra instância terminar
-                while (BrowserSessionManager.isAnotherInstanceLoggingIn(this.instanceName)) {
-                    yield new Promise(resolve => setTimeout(resolve, 2000));
-                    console.log(`⏳ [${this.instanceName}] Ainda aguardando login de ${BrowserSessionManager.loginCoordination.activeInstance}...`);
-                }
-                console.log(`✅ [${this.instanceName}] Outra instância terminou login, verificando status...`);
-                // Verificar se agora está logado (pode ter sido resolvido pela outra instância)
-                const isLoggedAfterWait = yield this.isCurrentlyLoggedIn();
-                if (isLoggedAfterWait) {
-                    console.log(`✅ [${this.instanceName}] Login foi resolvido pela outra instância!`);
+            // � AGUARDAR MUTEX PARA LOGIN
+            if (BrowserSessionManager.isLocked()) {
+                console.log(`⏳ [${this.instanceName}] Aguardando lock para login...`);
+                yield BrowserSessionManager.acquireLock();
+                console.log(`🔓 [${this.instanceName}] Lock adquirido!`);
+            }
+            else {
+                yield BrowserSessionManager.acquireLock();
+            }
+            try {
+                // Verificar se já está logado após adquirir lock
+                const isLoggedAfterLock = yield this.isCurrentlyLoggedIn();
+                if (isLoggedAfterLock) {
+                    console.log(`✅ [${this.instanceName}] Já logado após adquirir lock!`);
+                    BrowserSessionManager.releaseLock();
                     return true;
                 }
-            }
-            console.log(`🔐 [${this.instanceName}] Verificando status de login...`);
-            // Primeiro, verificar se há sessão válida em cache
-            if (this.isSessionValid()) {
-                console.log('✅ Sessão válida encontrada no cache');
-                // Mesmo com sessão válida, verificar se realmente está logado
+                console.log(`🔐 [${this.instanceName}] Verificando status de login...`);
+                // Primeiro, verificar se há sessão válida em cache
+                if (this.isSessionValid()) {
+                    console.log('✅ Sessão válida encontrada no cache');
+                    // Mesmo com sessão válida, verificar se realmente está logado
+                    const isCurrentlyLoggedIn = yield this.isCurrentlyLoggedIn();
+                    if (isCurrentlyLoggedIn) {
+                        console.log('✅ Sessão válida e usuário logado confirmado');
+                        BrowserSessionManager.releaseLock();
+                        return true;
+                    }
+                    else {
+                        console.log('⚠️ Sessão em cache, mas usuário não está logado. Limpando cache...');
+                        this.clearSession();
+                    }
+                }
+                // Verificar se já está logado no navegador (login manual ou sessão persistente)
                 const isCurrentlyLoggedIn = yield this.isCurrentlyLoggedIn();
                 if (isCurrentlyLoggedIn) {
-                    console.log('✅ Sessão válida e usuário logado confirmado');
+                    console.log('✅ Login válido detectado no navegador');
+                    BrowserSessionManager.releaseLock();
                     return true;
                 }
-                else {
-                    console.log('⚠️ Sessão em cache, mas usuário não está logado. Limpando cache...');
-                    this.clearSession();
-                }
-            }
-            // Verificar se já está logado no navegador (login manual ou sessão persistente)
-            const isCurrentlyLoggedIn = yield this.isCurrentlyLoggedIn();
-            if (isCurrentlyLoggedIn) {
-                console.log('✅ Login válido detectado no navegador');
-                // Atualizar dados da sessão para refletir o login atual
-                const now = Date.now();
-                this.sessionData = {
-                    isLoggedIn: true,
-                    loginTimestamp: now,
-                    sessionExpiry: now + (2 * 60 * 60 * 1000), // 2 horas de validade
-                    userData: { email: this.email, detectedLogin: true }
-                };
-                this.saveSessionData();
-                return true;
-            }
-            // Tentar navegar para dashboard primeiro para verificar se está logado
-            try {
-                console.log('🔍 Tentando acessar dashboard para verificar login...');
-                const baseUrl = this.loginUrl.split('#')[0]; // Extrair domínio base
-                yield this.page.goto(`${baseUrl}#/app/dashboard/`, {
-                    waitUntil: 'domcontentloaded',
-                    timeout: 15000
-                });
-                yield this.page.waitForTimeout(5000); // Aguardar mais tempo para carregamento
-                // Verificar novamente após navegar para dashboard
-                const isLoggedAfterDashboard = yield this.isCurrentlyLoggedIn();
-                if (isLoggedAfterDashboard) {
-                    console.log('✅ Login confirmado após navegação para dashboard');
-                    // Atualizar dados da sessão
-                    const now = Date.now();
-                    this.sessionData = {
-                        isLoggedIn: true,
-                        loginTimestamp: now,
-                        sessionExpiry: now + (2 * 60 * 60 * 1000),
-                        userData: { email: this.email, dashboardAccess: true }
-                    };
-                    this.saveSessionData();
-                    return true;
-                }
+                // Realizar login
+                const loginResult = yield this.performLogin();
+                BrowserSessionManager.releaseLock();
+                return loginResult;
             }
             catch (error) {
-                console.log('⚠️ Erro ao verificar dashboard:', error);
+                console.error(`❌ [${this.instanceName}] Erro durante login:`, error);
+                BrowserSessionManager.releaseLock();
+                return false;
             }
-            // Se chegou aqui, precisa fazer login automático
-            console.log('🔑 Necessário fazer login...');
-            console.log('⚠️ ATENÇÃO: Se há captcha, faça login manualmente e tente novamente');
-            return yield this.performLogin();
         });
     }
+    /**
+     * Realizar login na dashboard
+      try {
+        console.log('🔍 Tentando acessar dashboard para verificar login...');
+        const baseUrl = this.loginUrl.split('#')[0]; // Extrair domínio base
+        await this.page!.goto(`${baseUrl}#/app/dashboard/`, {
+          waitUntil: 'domcontentloaded',
+          timeout: 15000
+        });
+        
+        await this.page!.waitForTimeout(5000); // Aguardar mais tempo para carregamento
+        
+        // Verificar novamente após navegar para dashboard
+        const isLoggedAfterDashboard = await this.isCurrentlyLoggedIn();
+        if (isLoggedAfterDashboard) {
+          console.log('✅ Login confirmado após navegação para dashboard');
+          
+          // Atualizar dados da sessão
+          const now = Date.now();
+          this.sessionData = {
+            isLoggedIn: true,
+            loginTimestamp: now,
+            sessionExpiry: now + (2 * 60 * 60 * 1000),
+            userData: { email: this.email, dashboardAccess: true }
+          };
+          this.saveSessionData();
+          
+          return true;
+        }
+      } catch (error) {
+        console.log('⚠️ Erro ao verificar dashboard:', error);
+      }
+  
+      // Se chegou aqui, precisa fazer login automático
+      console.log('🔑 Necessário fazer login...');
+      console.log('⚠️ ATENÇÃO: Se há captcha, faça login manualmente e tente novamente');
+      
+      return await this.performLogin();
+    }
+  
     /**
      * Executa o processo de login
      */
     performLogin() {
         return __awaiter(this, void 0, void 0, function* () {
-            // 🔒 COORDENAÇÃO: Marcar início do processo de login
-            BrowserSessionManager.startLoginProcess(this.instanceName);
+            // 🔒 LOGIN - Já temos o mutex adquirido aqui
+            console.log(`🔐 [${this.instanceName}] Iniciando processo de login...`);
             try {
                 console.log('📍 Navegando para página de login...');
                 yield this.page.goto(this.loginUrl, {
@@ -536,8 +558,8 @@ class BrowserSessionManager {
                 return false;
             }
             finally {
-                // 🔓 COORDENAÇÃO: SEMPRE liberar processo de login
-                BrowserSessionManager.endLoginProcess(this.instanceName);
+                // 🔓 MUTEX - Já liberado no método que chama
+                console.log(`✅ [${this.instanceName}] Processo de login finalizado.`);
             }
         });
     }
@@ -1055,7 +1077,7 @@ class BrowserSessionManager {
 }
 exports.BrowserSessionManager = BrowserSessionManager;
 BrowserSessionManager.instances = new Map();
-BrowserSessionManager.loginCoordination = {
-    isLoginInProgress: false,
-    activeInstance: null
-}; // 🔄 COORDENAÇÃO DE LOGIN
+BrowserSessionManager.loginMutex = {
+    isLocked: false,
+    waitingList: []
+}; // � MUTEX PARA LOGIN
