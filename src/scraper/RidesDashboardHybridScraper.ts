@@ -661,6 +661,9 @@ export class RidesDashboardHybridScraper {
       // �🔍 VERIFICAR SE AINDA ESTÁ LOGADO ANTES DE CONTINUAR - SEM FORÇAR LOGOUT
       const currentUrl = this.page.url();
       if (currentUrl.includes('/page/login') || currentUrl.includes('#/page/login')) {
+        console.log(`🔍 [DEBUG-SESSAO] URL atual: ${currentUrl}`);
+        console.log(`🔍 [DEBUG-SESSAO] Contém '/page/login': ${currentUrl.includes('/page/login')}`);
+        console.log(`🔍 [DEBUG-SESSAO] Contém '#/page/login': ${currentUrl.includes('#/page/login')}`);
         console.log('⚠️ SESSÃO PERDIDA DETECTADA! Tentando recuperar automaticamente...');
         
         // EM VEZ DE RESETAR isLoggedIn, MANTER E TENTAR RECUPERAR
