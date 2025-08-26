@@ -18,27 +18,7 @@ export class BrowserSessionManager {
     activeInstance: null 
   }; // 🔄 COORDENAÇÃO DE LOGIN
   
-  // 🔒 MUTEX PARA NAVEGAÇÃO CRÍTICA
-  private static navigationLock: { 
-    isLocked: boolean, 
-    lockedBy: string | null,
-    lockTimestamp: number 
-  } = { 
-    isLocked: false, 
-    lockedBy: null,
-    lockTimestamp: 0
-  };
-
-  // 🔒 PROTEÇÃO CONTRA MÚLTIPLAS INICIALIZAÇÕES
-  private static browserInitLock: { 
-    isInitializing: boolean, 
-    initializingInstance: string | null,
-    initTimestamp: number 
-  } = { 
-    isInitializing: false, 
-    initializingInstance: null,
-    initTimestamp: 0
-  };
+  // ✅ SIMPLIFICADO: Sem locks desnecessários para processo único
   
   private browser: Browser | null = null;
   private context: BrowserContext | null = null;
@@ -57,8 +37,6 @@ export class BrowserSessionManager {
   
   // 🔄 Cache inteligente - invalida em certas condições
   private lastUrl: string = '';
-  private urlChangeDetected: boolean = false;
-  
   // URLs de configuração (usando variáveis de ambiente)
   private loginUrl: string = process.env.RIDES_LOGIN_URL || 'https://rides.ec2dashboard.com/#/page/login';
   private email: string = process.env.RIDES_USERNAME || '';
@@ -138,101 +116,6 @@ export class BrowserSessionManager {
   }
 
   /**
-   * 🔒 MUTEX: Adquirir lock de navegação (com proteção contra auto-deadlock)
-   */
-  private async acquireNavigationLock(timeout: number = 30000): Promise<void> {
-    // 🧹 Limpar locks órfãos antes de tentar adquirir
-    BrowserSessionManager.cleanupOrphanedLocks();
-    
-    // 🛡️ PROTEÇÃO: Se já temos o lock, não aguardar
-    if (BrowserSessionManager.navigationLock.lockedBy === this.instanceName) {
-      console.log(`🔄 [${this.instanceName}] Já possui lock de navegação, continuando...`);
-      return;
-    }
-    
-    const startTime = Date.now();
-    
-    while (BrowserSessionManager.navigationLock.isLocked) {
-      if (Date.now() - startTime > timeout) {
-        throw new Error(`Timeout aguardando lock de navegação (locked by: ${BrowserSessionManager.navigationLock.lockedBy})`);
-      }
-      
-      // Verificar se lock está preso há muito tempo (mais de 2 minutos)
-      if (Date.now() - BrowserSessionManager.navigationLock.lockTimestamp > 120000) {
-        console.log(`⚠️ Lock de navegação preso há muito tempo, forçando liberação...`);
-        this.releaseNavigationLock();
-        break;
-      }
-      
-      console.log(`⏳ [${this.instanceName}] Aguardando lock de navegação (locked by: ${BrowserSessionManager.navigationLock.lockedBy})`);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    }
-    
-    BrowserSessionManager.navigationLock.isLocked = true;
-    BrowserSessionManager.navigationLock.lockedBy = this.instanceName;
-    BrowserSessionManager.navigationLock.lockTimestamp = Date.now();
-    console.log(`🔒 [${this.instanceName}] Lock de navegação adquirido`);
-  }
-
-  /**
-   * 🔓 MUTEX: Liberar lock de navegação (com limpeza robusta)
-   */
-  private releaseNavigationLock(): void {
-    if (BrowserSessionManager.navigationLock.lockedBy === this.instanceName || 
-        BrowserSessionManager.navigationLock.lockedBy === null) {
-      BrowserSessionManager.navigationLock.isLocked = false;
-      BrowserSessionManager.navigationLock.lockedBy = null;
-      BrowserSessionManager.navigationLock.lockTimestamp = 0;
-      console.log(`🔓 [${this.instanceName}] Lock de navegação liberado`);
-    } else {
-      console.log(`⚠️ [${this.instanceName}] Tentativa de liberar lock de outro proprietário: ${BrowserSessionManager.navigationLock.lockedBy}`);
-    }
-  }
-
-  /**
-   * 🧹 LIMPEZA: Verificar e limpar locks órfãos periodicamente
-   */
-  private static cleanupOrphanedLocks(): void {
-    if (BrowserSessionManager.navigationLock.isLocked && 
-        Date.now() - BrowserSessionManager.navigationLock.lockTimestamp > 60000) { // 1 minuto
-      console.log(`🧹 Limpando lock órfão de navegação (${BrowserSessionManager.navigationLock.lockedBy})`);
-      BrowserSessionManager.navigationLock.isLocked = false;
-      BrowserSessionManager.navigationLock.lockedBy = null;
-      BrowserSessionManager.navigationLock.lockTimestamp = 0;
-    }
-  }
-
-  /**
-   * 🔒 SINGLETON: Verificar se outro está inicializando browser
-   */
-  private static isAnotherInstanceInitializing(currentInstance: string): boolean {
-    return BrowserSessionManager.browserInitLock.isInitializing && 
-           BrowserSessionManager.browserInitLock.initializingInstance !== currentInstance;
-  }
-
-  /**
-   * 🔒 SINGLETON: Marcar início de inicialização
-   */
-  private static startBrowserInit(instanceName: string): void {
-    console.log(`🔒 [${instanceName}] Iniciando inicialização do browser (bloqueando outras)`);
-    BrowserSessionManager.browserInitLock.isInitializing = true;
-    BrowserSessionManager.browserInitLock.initializingInstance = instanceName;
-    BrowserSessionManager.browserInitLock.initTimestamp = Date.now();
-  }
-
-  /**
-   * 🔓 SINGLETON: Finalizar inicialização
-   */
-  private static endBrowserInit(instanceName: string): void {
-    if (BrowserSessionManager.browserInitLock.initializingInstance === instanceName) {
-      console.log(`🔓 [${instanceName}] Finalizando inicialização do browser`);
-      BrowserSessionManager.browserInitLock.isInitializing = false;
-      BrowserSessionManager.browserInitLock.initializingInstance = null;
-      BrowserSessionManager.browserInitLock.initTimestamp = 0;
-    }
-  }
-
-  /**
    * 🆕 Lista todas as instâncias ativas
    */
   public static getActiveInstances(): string[] {
@@ -247,25 +130,16 @@ export class BrowserSessionManager {
   }
 
   /**
-   * 🔒 NAVEGAÇÃO SEGURA: Navegar com mutex para evitar conflitos
+   * 🌐 NAVEGAÇÃO SIMPLES: Navegar diretamente (sem locks desnecessários)
    */
   public async navigateWithLock(url: string, options?: any): Promise<void> {
     if (!this.page) {
       throw new Error('Página não disponível para navegação');
     }
     
-    await this.acquireNavigationLock();
-    
-    try {
-      console.log(`🌐 [${this.instanceName}] Navegando com lock para: ${url.substring(0, 50)}...`);
-      await this.page.goto(url, options || { waitUntil: 'domcontentloaded', timeout: 30000 });
-      console.log(`✅ [${this.instanceName}] Navegação concluída com sucesso`);
-      
-      // 🔄 Invalidar cache se mudou para página de login
-      this.checkUrlChangeAndInvalidateCache(url);
-    } finally {
-      this.releaseNavigationLock();
-    }
+    console.log(`🌐 [${this.instanceName}] Navegando para: ${url.substring(0, 50)}...`);
+    await this.page.goto(url, options || { waitUntil: 'domcontentloaded', timeout: 30000 });
+    console.log(`✅ [${this.instanceName}] Navegação concluída com sucesso`);
   }
 
   /**
@@ -278,17 +152,13 @@ export class BrowserSessionManager {
   }
 
   /**
-   * 🔄 CACHE INTELIGENTE: Verificar mudança de URL e invalidar se necessário
+   * 🔄 CACHE SIMPLES: Verificar apenas se foi para login inesperadamente
    */
   private checkUrlChangeAndInvalidateCache(currentUrl: string): void {
-    if (this.lastUrl !== currentUrl) {
-      this.lastUrl = currentUrl;
-      this.urlChangeDetected = true;
-      
-      // Invalidar cache se detectar mudança para página de login
-      if (currentUrl.includes('login') || currentUrl.includes('#/page/login')) {
-        this.invalidateLoginCache();
-      }
+    // ✅ SIMPLIFICADO: Apenas invalidar se realmente for para login
+    if (currentUrl.includes('#/page/login')) {
+      console.log(`🔄 [${this.instanceName}] Cache de login invalidado`);
+      this.invalidateLoginCache();
     }
   }
 
@@ -347,13 +217,9 @@ export class BrowserSessionManager {
     // 🔄 Usar cache durante scraping para evitar verificações excessivas
     const now = Date.now();
     if (!verbose && 
-        !this.urlChangeDetected && 
         (now - this.lastLoginCheck) < this.loginCheckCacheDuration) {
       return this.lastLoginStatus;
     }
-    
-    // Reset flag de mudança de URL
-    this.urlChangeDetected = false;
     
     try {
       if (verbose) {
@@ -466,35 +332,6 @@ export class BrowserSessionManager {
    * Inicializa o navegador com dados persistentes
    */
   public async initializeBrowser(): Promise<void> {
-    // 🔒 VERIFICAR SE OUTRA INSTÂNCIA ESTÁ INICIALIZANDO
-    if (BrowserSessionManager.isAnotherInstanceInitializing(this.instanceName)) {
-      console.log(`⏳ [${this.instanceName}] Aguardando outra instância terminar inicialização...`);
-      
-      // Aguardar até a outra instância terminar
-      while (BrowserSessionManager.isAnotherInstanceInitializing(this.instanceName)) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        console.log(`⏳ [${this.instanceName}] Ainda aguardando inicialização de ${BrowserSessionManager.browserInitLock.initializingInstance}...`);
-        
-        // Verificar se não está preso há muito tempo (mais de 2 minutos)
-        if (Date.now() - BrowserSessionManager.browserInitLock.initTimestamp > 120000) {
-          console.log(`⚠️ [${this.instanceName}] Inicialização presa há muito tempo, forçando liberação...`);
-          BrowserSessionManager.endBrowserInit(BrowserSessionManager.browserInitLock.initializingInstance || '');
-          break;
-        }
-      }
-      
-      // Verificar se agora temos context ativo (foi criado pela outra instância)
-      if (this.context && this.page) {
-        try {
-          await this.page.title();
-          console.log(`✅ [${this.instanceName}] Browser foi inicializado pela outra instância!`);
-          return;
-        } catch (error) {
-          console.log(`⚠️ [${this.instanceName}] Context da outra instância não é válido, continuando...`);
-        }
-      }
-    }
-
     if (this.context && this.page) {
       // Verificar se o context ainda está ativo
       try {
@@ -506,9 +343,6 @@ export class BrowserSessionManager {
         console.log('⚠️ Sessão anterior inválida, reinicializando...');
       }
     }
-
-    // 🔒 MARCAR INÍCIO DA INICIALIZAÇÃO
-    BrowserSessionManager.startBrowserInit(this.instanceName);
 
     this.logger.info('BROWSER', 'Inicializando browser com persistência...');
     
@@ -576,9 +410,6 @@ export class BrowserSessionManager {
     } catch (error) {
       console.error('❌ Erro ao inicializar browser:', error);
       throw error;
-    } finally {
-      // 🔓 SEMPRE liberar inicialização
-      BrowserSessionManager.endBrowserInit(this.instanceName);
     }
   }
   /**
@@ -749,105 +580,6 @@ export class BrowserSessionManager {
       return false;
     } finally {
       // 🔓 COORDENAÇÃO: SEMPRE liberar processo de login
-      BrowserSessionManager.endLoginProcess(this.instanceName);
-    }
-  }
-
-  /**
-   * Aguarda login manual quando há captcha - versão melhorada para reinicialização
-   * Monitora mudança de URL para detectar quando usuário completa login via VNC
-   */
-  public async waitForManualLogin(timeoutMs: number = 300000): Promise<boolean> {
-    // 🔒 MARCAR INÍCIO DE LOGIN PARA COORDENAÇÃO
-    BrowserSessionManager.startLoginProcess(this.instanceName);
-    
-    try {
-      // 🔒 VERIFICAÇÃO CRÍTICA: Garantir que page não é null
-      if (!this.page) {
-        console.log(`❌ [${this.instanceName}] Página não disponível para aguardar login manual`);
-        return false;
-      }
-
-      console.log(`⏳ [${this.instanceName}] Aguardando login manual via VNC...`);
-      console.log('💡 Acesse o VNC em http://localhost:6080 para resolver o captcha');
-      console.log('🔄 O sistema detectará automaticamente quando você fizer login...');
-      
-      const maxWaitTime = 5 * 60 * 1000; // 5 minutos
-      const checkInterval = 3000; // 3 segundos (mais rápido)
-      const startTime = Date.now();
-      
-      while ((Date.now() - startTime) < maxWaitTime) {
-        try {
-          // 🔒 VERIFICAÇÃO CRÍTICA: Verificar se page ainda é válida
-          if (!this.page) {
-            console.log(`❌ [${this.instanceName}] Página tornou-se null durante aguardo`);
-            break;
-          }
-
-          const currentUrl = this.page.url();
-          console.log(`🔍 [${this.instanceName}] Verificando URL: ${currentUrl.substring(0, 50)}...`);
-        
-        // Verificar se saiu da página de login OU se está logado
-        const notInLogin = !currentUrl.includes('login');
-        const isLoggedIn = await this.isCurrentlyLoggedIn(true);
-        
-        if (notInLogin || isLoggedIn) {
-          console.log('🔍 Mudança detectada, verificando login completo...');
-          
-          // 🔒 VERIFICAÇÃO CRÍTICA: Verificar se page ainda é válida antes de waitForTimeout
-          if (this.page) {
-            await this.page.waitForTimeout(3000); // Aguardar carregamento completo
-          } else {
-            console.log(`⚠️ [${this.instanceName}] Página não disponível para timeout`);
-            await new Promise(resolve => setTimeout(resolve, 3000)); // Fallback com setTimeout
-          }
-          
-          // Verificação dupla mais robusta
-          const finalLoginCheck = await this.isCurrentlyLoggedIn(true);
-          if (finalLoginCheck) {
-            console.log('🎉 Login manual detectado com sucesso!');
-            
-            // Atualizar dados da sessão
-            const now = Date.now();
-            this.sessionData = {
-              isLoggedIn: true,
-              loginTimestamp: now,
-              sessionExpiry: now + (2 * 60 * 60 * 1000),
-              userData: { 
-                email: this.email, 
-                manualLogin: true, 
-                captchaSolved: true,
-                detectedAt: new Date().toISOString()
-              }
-            };
-            this.saveSessionData();
-            
-            // Limpar cache de login para próximas verificações
-            this.lastLoginCheck = 0;
-            this.lastLoginStatus = true;
-            
-            console.log(`✅ [${this.instanceName}] Sessão atualizada após login manual`);
-            return true;
-          } else {
-            console.log('⚠️ URL mudou mas login não confirmado, continuando...');
-          }
-        }
-        
-        // Aguardar antes da próxima verificação
-        console.log(`⏳ Aguardando... (${Math.round((Date.now() - startTime) / 1000)}s/${Math.round(maxWaitTime / 1000)}s)`);
-        await this.page!.waitForTimeout(checkInterval);
-        
-      } catch (error) {
-        console.log('⚠️ Erro durante polling de login manual:', error);
-        await this.page!.waitForTimeout(checkInterval);
-      }
-    }
-    
-    console.log(`⏰ [${this.instanceName}] Timeout aguardando login manual`);
-    return false;
-    
-    } finally {
-      // 🔓 FINALIZAR PROCESSO DE LOGIN PARA COORDENAÇÃO
       BrowserSessionManager.endLoginProcess(this.instanceName);
     }
   }
@@ -1236,8 +968,60 @@ export class BrowserSessionManager {
   }
 
   /**
-   * Aguarda que o usuário faça login manual (útil quando há captcha)
+   * Aguarda que o usuário faça login manual (útil quando há captcha) - VERSÃO OTIMIZADA
    */
+  public async waitForManualLogin(timeout: number = 300000): Promise<boolean> {
+    console.log('⏳ Aguardando login manual via VNC...');
+    console.log('💡 Acesse o VNC em http://localhost:6080 para resolver o captcha');
+    console.log('🔄 O sistema detectará automaticamente quando você fizer login...');
+    
+    const startTime = Date.now();
+    let checkCount = 0;
+    
+    while (Date.now() - startTime < timeout) {
+      checkCount++;
+      
+      // ⚠️ CORREÇÃO: Verificar se página ainda existe
+      if (!this.page) {
+        console.log('❌ Página não disponível');
+        return false;
+      }
+      
+      const currentUrl = this.page.url();
+      
+      // Log menos frequente para reduzir spam
+      if (checkCount % 10 === 0) {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        const total = Math.floor(timeout / 1000);
+        console.log(`🔍 Verificando URL: ${currentUrl}...`);
+        console.log(`⏳ Aguardando... (${elapsed}s/${total}s)`);
+      }
+      
+      // ⚠️ CORREÇÃO: Usar verificação silenciosa
+      const isLoggedIn = await this.isCurrentlyLoggedIn(false);
+      if (isLoggedIn) {
+        console.log('✅ Login manual detectado com sucesso!');
+        
+        // Atualizar dados da sessão
+        const now = Date.now();
+        this.sessionData = {
+          isLoggedIn: true,
+          loginTimestamp: now,
+          sessionExpiry: now + (2 * 60 * 60 * 1000),
+          userData: { email: this.email, manualLogin: true }
+        };
+        this.saveSessionData();
+        
+        return true;
+      }
+      
+      // ⚠️ CORREÇÃO: Aguardar 5 segundos entre verificações
+      await new Promise(resolve => setTimeout(resolve, 5000));
+    }
+    
+    console.log('❌ Timeout aguardando login manual');
+    return false;
+  }
   /**
    * Método híbrido que usa a mesma lógica do início - funciona para reinicialização
    */

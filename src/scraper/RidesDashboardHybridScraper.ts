@@ -115,7 +115,9 @@ export class RidesDashboardHybridScraper {
   private async performLogin(loginUrl: string, username: string, password: string): Promise<void> {
     if (!this.page) throw new Error('Página não disponível');
 
-    await this.browserManager.navigateWithLock(loginUrl, { waitUntil: 'networkidle' });
+    console.log('🌐 [hybrid_scraper] Navegando para: ' + loginUrl + '...');
+    await this.page.goto(loginUrl, { waitUntil: 'networkidle' });
+    console.log('✅ [hybrid_scraper] Navegação concluída com sucesso');
 
     // 🔍 Verificar se já está logado primeiro
     const currentUrl = this.page.url();
@@ -403,6 +405,38 @@ export class RidesDashboardHybridScraper {
   }
 
   /**
+   * 🎯 SIMPLIFICADO: Apenas navega para dashboard sem verificações idiotas de login
+   * O login JÁ FOI CONFIRMADO quando extraiu os IDs!
+   */
+  async prepareDashboardForBatch(): Promise<void> {
+    if (!this.page) throw new Error('Página não disponível');
+
+    console.log('🎯 [SCRAPER] Preparando dashboard para processamento em lote de IDs...');
+
+    try {
+      const currentUrl = this.page.url();
+      console.log(`🔍 [SCRAPER] URL atual antes de navegar: ${currentUrl}`);
+
+      // Simplesmente navegar para o dashboard - PONTO!
+      console.log('🌐 [SCRAPER] Navegando para Dashboard...');
+      await this.page.goto(this.DASHBOARD_URL, { waitUntil: 'domcontentloaded', timeout: 15000 });
+      console.log('✅ [SCRAPER] Navegação para dashboard concluída');
+      
+      const newUrl = this.page.url();
+      console.log(`📍 [SCRAPER] URL após navegação: ${newUrl}`);
+
+      // Aguardar um pouco para estabilizar
+      await this.page.waitForTimeout(1000);
+
+      console.log('🎯 [SCRAPER] Dashboard pronto para processamento em lote');
+
+    } catch (error: any) {
+      console.error('❌ [SCRAPER] Erro ao preparar dashboard:', error.message);
+      throw error;
+    }
+  }
+
+  /**
    * Extrai todos os IDs dos motoristas da página Active Drivers
    */
   async extractAllDriverIds(): Promise<string[]> {
@@ -601,9 +635,15 @@ export class RidesDashboardHybridScraper {
         throw new Error('Sessão perdida - necessário login manual');
       }
 
-    // Garantir que estamos na página Dashboard (onde está o campo #driverId)
-    console.log('🌐 Navegando para Dashboard para extração de dados...');
-    await this.browserManager.navigateWithLock(this.DASHBOARD_URL, { waitUntil: 'networkidle', timeout: 15000 });      // Verificar se foi redirecionado para login após navegação
+    // 🎯 OTIMIZADO: Verificar se já está no dashboard, só navegar se necessário
+    if (!currentUrl.includes('/app/dashboard')) {
+      console.log('🌐 Navegando para Dashboard para extração de dados...');
+      console.log(`🌐 [hybrid_scraper] Navegando para: ${this.DASHBOARD_URL}...`);
+      await this.page.goto(this.DASHBOARD_URL, { waitUntil: 'networkidle', timeout: 15000 });
+      console.log('✅ [hybrid_scraper] Navegação concluída com sucesso');
+    } else {
+      console.log('✅ [hybrid_scraper] Já está no dashboard, prosseguindo...');
+    }      // Verificar se foi redirecionado para login após navegação
       const newUrl = this.page.url();
       console.log(`📍 URL atual: ${newUrl}`);
       
@@ -1328,7 +1368,9 @@ export class RidesDashboardHybridScraper {
 
       // 1. Navegar para dashboard principal (forçar URL correta)
       console.log('🌐 Navegando para Dashboard para recarga...');
-      await this.browserManager.navigateWithLock('https://rides.ec2dashboard.com/#/app/dashboard', { waitUntil: 'networkidle' });
+      console.log('🌐 [hybrid_scraper] Navegando para: https://rides.ec2dashboard.com/#/app/dashboard...');
+      await this.page.goto('https://rides.ec2dashboard.com/#/app/dashboard', { waitUntil: 'networkidle' });
+      console.log('✅ [hybrid_scraper] Navegação concluída com sucesso');
       await this.page.waitForTimeout(3000);
 
       // 2. Verificar URL atual
@@ -1437,25 +1479,45 @@ export class RidesDashboardHybridScraper {
   }
 
   /**
-   * Obtém informações do estado atual
-   * CORRIGIDO: Verifica o status real de login baseado na URL atual
+   * 🔧 CORRIGIDO: Força atualização do status de login
+   */
+  setLoggedIn(status: boolean): void {
+    this.isLoggedIn = status;
+  }
+
+  /**
+   * 🔧 CORRIGIDO: Mantém status de login uma vez confirmado, não verifica URL constantemente
    */
   getStatus() {
-    // 🔧 CORREÇÃO: Verificar status real de login baseado na URL atual
-    let actualLoginStatus = this.isLoggedIn;
+    // � CORREÇÃO: Se já foi confirmado logado uma vez, MANTER até dar erro real
+    if (this.isLoggedIn) {
+      console.log(`✅ [getStatus] Já confirmado como LOGADO - mantendo status`);
+      return {
+        isLoggedIn: true,
+        currentCity: this.currentCity,
+        pageUrl: this.page?.url() || 'N/A',
+        timestamp: new Date().toISOString()
+      };
+    }
     
+    // Só verificar URL se ainda não foi confirmado como logado
     if (this.page && !this.page.isClosed()) {
       try {
         const currentUrl = this.page.url();
+        console.log(`🔍 [getStatus] URL atual: ${currentUrl}`);
+        console.log(`🔍 [getStatus] isLoggedIn inicial: ${this.isLoggedIn}`);
+        
         // Se está numa página do app, está logado
         if (currentUrl.includes('/app/dashboard') || 
             currentUrl.includes('/app/active-drivers') ||
             currentUrl.includes('#/app/')) {
-          actualLoginStatus = true;
-          this.isLoggedIn = true; // Atualizar estado interno
+          this.isLoggedIn = true; // Confirmar como logado
+          console.log(`✅ [getStatus] Detectado como LOGADO (URL contém app)`);
         } else if (currentUrl.includes('/page/login') || currentUrl.includes('#/page/login')) {
-          actualLoginStatus = false;
           this.isLoggedIn = false;
+          console.log(`❌ [getStatus] Detectado como NÃO LOGADO (URL contém login)`);
+        } else {
+          console.log(`⚠️ [getStatus] URL indeterminada, mantendo status: ${this.isLoggedIn}`);
         }
       } catch (error) {
         console.log('⚠️ Erro ao verificar URL atual no getStatus:', error);
@@ -1463,7 +1525,7 @@ export class RidesDashboardHybridScraper {
     }
     
     return {
-      isLoggedIn: actualLoginStatus,
+      isLoggedIn: this.isLoggedIn,
       currentCity: this.currentCity,
       pageUrl: this.page?.url() || 'N/A',
       timestamp: new Date().toISOString()
