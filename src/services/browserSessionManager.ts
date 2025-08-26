@@ -212,8 +212,52 @@ export class BrowserSessionManager {
         }
       }
       
-      // Se não está nem em login nem em dashboard, algo está errado
-      console.log('⚠️ URL não reconhecida, assumindo não logado');
+      // 🔄 NOVA LÓGICA: Se não está nem em login nem em dashboard, tentar force refresh
+      if (verbose) {
+        if (currentUrl === 'about:blank' || !currentUrl.includes('rides.ec2dashboard.com')) {
+          console.log('🔄 URL não reconhecida ou about:blank - tentando navegar para dashboard...');
+          
+          try {
+            // Tentar ir para o dashboard primeiro
+            const baseUrl = this.loginUrl.split('#')[0];
+            const dashboardUrl = `${baseUrl}#/app/dashboard/`;
+            
+            console.log('📍 Navegando para dashboard:', dashboardUrl);
+            await this.page.goto(dashboardUrl, { 
+              waitUntil: 'domcontentloaded',
+              timeout: 15000 
+            });
+            
+            await this.page.waitForTimeout(3000);
+            
+            // Verificar novamente após navegação
+            const newUrl = this.page.url();
+            console.log('🔍 Nova URL após navegação:', newUrl);
+            
+            if (newUrl.includes('dashboard') || newUrl.includes('app/')) {
+              console.log('✅ Navegação bem-sucedida para dashboard - rechecando login...');
+              // Recheckear recursivamente, mas sem verbose para evitar loop
+              return await this.isCurrentlyLoggedIn(false);
+            } else if (newUrl.includes('login')) {
+              console.log('📍 Redirecionado para login - navegando para página de login correta...');
+              await this.page.goto(this.loginUrl, { 
+                waitUntil: 'domcontentloaded',
+                timeout: 15000 
+              });
+              await this.page.waitForTimeout(2000);
+              console.log('🔍 Na página de login após redirecionamento');
+              this.lastLoginCheck = now;
+              this.lastLoginStatus = false;
+              return false;
+            }
+          } catch (navError) {
+            console.log('⚠️ Erro durante navegação force refresh:', navError);
+          }
+        }
+      }
+      
+      // Se ainda não conseguiu identificar, assumir não logado
+      console.log('⚠️ URL não reconhecida após tentativa de refresh, assumindo não logado');
       this.lastLoginCheck = now;
       this.lastLoginStatus = false;
       return false;
