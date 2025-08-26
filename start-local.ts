@@ -68,10 +68,10 @@ async function startLocalDevelopment() {
       console.log('⚠️ Continuando sem banco (apenas para debug)...');
     }
 
-    // 5. Inicializar serviço de monitoramento
+    // 5. Inicializar serviço de monitoramento usando Singleton
     console.log('');
     console.log('🔄 Inicializando serviço de monitoramento...');
-    const monitoring = new MonitoringService();
+    const monitoring = MonitoringService.getInstance();
     
     // 6. Executar teste inicial
     console.log('');

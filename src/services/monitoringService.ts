@@ -37,6 +37,7 @@ interface MonitoringResult {
 }
 
 class MonitoringService {
+  private static instance: MonitoringService | null = null;
   private previousData: RideData[] = [];
   private dataFilePath: string;
   private isRunning: boolean = false;
@@ -45,12 +46,22 @@ class MonitoringService {
   private databaseManager: DatabaseManager; // ⭐ INTEGRAR SALVAMENTO NO BANCO
   private lastRawData: any[] = []; // ⭐ ARMAZENAR ÚLTIMOS DADOS PARA WEBHOOK
 
-  constructor() {
+  private constructor() {
     this.dataFilePath = path.join(__dirname, '../../data/previous-rides-data.json');
     this.cacheManager = DataCacheManager.getInstance(); // ⭐ INICIALIZAR CACHE MANAGER
     this.databaseManager = DatabaseManager.getInstance(); // ⭐ INICIALIZAR DATABASE MANAGER
     this.loadPreviousData();
     this.initializeDatabase(); // ⭐ INICIALIZAR CONEXÃO COM BANCO
+  }
+
+  public static getInstance(): MonitoringService {
+    if (!MonitoringService.instance) {
+      console.log('🏗️ Criando nova instância do MonitoringService...');
+      MonitoringService.instance = new MonitoringService();
+    } else {
+      console.log('♻️ Reutilizando instância existente do MonitoringService');
+    }
+    return MonitoringService.instance;
   }
 
   private async initializeDatabase(): Promise<void> {
@@ -495,6 +506,12 @@ class MonitoringService {
   }
 
   public startMonitoring(): void {
+    // ⚠️ Evitar múltiplas inicializações
+    if (this.cronTasks.length > 0) {
+      console.log('⚠️ Monitoramento já iniciado - ignorando nova tentativa de inicialização');
+      return;
+    }
+
     // Obter intervalo da variável de ambiente (padrão 5 minutos - intervalo seguro testado)
     const scrapeIntervalMinutes = parseFloat(process.env.SCRAPE_INTERVAL || '5');
     const scrapeIntervalCron = Math.round(scrapeIntervalMinutes); // Arredondar para cron

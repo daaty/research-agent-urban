@@ -24,9 +24,9 @@ async function startMonitoring() {
       process.exit(1);
     }
     
-    // Inicializar MonitoringService
+    // Inicializar MonitoringService usando Singleton
     console.log('📡 Inicializando MonitoringService...');
-    const monitoring = new MonitoringService();
+    const monitoring = MonitoringService.getInstance();
     
     // Aguardar inicialização do banco
     console.log('⏳ Aguardando inicialização do banco de dados...');

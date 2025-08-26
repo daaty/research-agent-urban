@@ -23,8 +23,8 @@ const scraper = getPersistentScraper();
 const databaseManager = DatabaseManager.getInstance();
 const dataTransformer = DataTransformer.getInstance();
 
-// 📊 Instância do MonitoringService (Rides + Drivers integrado)
-const monitoringService = new MonitoringService();
+// 📊 Instância do MonitoringService (Rides + Drivers integrado) - SINGLETON
+const monitoringService = MonitoringService.getInstance();
 
 // 🤖 Instância do AI Agent Controller
 const aiController = new AIAgentController();
