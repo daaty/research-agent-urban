@@ -905,25 +905,32 @@ export class BrowserSessionManager {
 
       await this.page!.waitForTimeout(3000);
 
-      // 🔑 MESMA LÓGICA DO INÍCIO: Verificar captcha ANTES de preencher
+      // 🔑 SEMPRE PREENCHER CREDENCIAIS PRIMEIRO (mesmo com captcha)
+      console.log('📝 Preenchendo credenciais automaticamente...');
+      try {
+        await this.page!.fill('#exampleInputEmail1', this.email);
+        await this.page!.fill('#exampleInputPassword1', this.password);
+        console.log('✅ Credenciais preenchidas automaticamente');
+      } catch (err) {
+        console.log('❌ Falha ao preencher campos de login:', err);
+      }
+
+      // Agora verificar se há captcha
       const hasCaptcha = await this.checkForCaptcha();
       
       if (hasCaptcha) {
         console.log('🤖 CAPTCHA detectado na página!');
         console.log('⚠️ Login automático não é possível com captcha');
-        console.log('📝 Por favor, faça login manualmente no navegador VNC');
+        console.log('📝 Credenciais já foram preenchidas - apenas resolva o captcha e pressione Enter');
         console.log('🔄 O sistema irá detectar automaticamente quando você completar o login...');
         
-        // 🔄 MESMA LÓGICA: Aguardar login manual
+        // 🔄 Aguardar login manual (credenciais já preenchidas)
         return await this.waitForManualLogin();
       }
 
-      // Se não há captcha, tentar login automático
-      console.log('📝 Preenchendo credenciais...');
-      await this.page!.fill('#exampleInputEmail1', this.email);
-      await this.page!.fill('#exampleInputPassword1', this.password);
+      // Se não há captcha, fazer login automático (credenciais já preenchidas)
 
-      console.log('🚪 Fazendo login...');
+      console.log('🚪 Fazendo login automático...');
       await this.page!.press('#exampleInputPassword1', 'Enter');
       await this.page!.waitForTimeout(8000);
 
