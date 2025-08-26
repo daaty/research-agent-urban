@@ -627,8 +627,8 @@ export class RidesDashboardHybridScraper {
    * Extrai dados pessoais de um motorista específico
    */
   async extractDriverData(driverId: string): Promise<any> {
-    if (!this.page || !this.isLoggedIn) {
-      throw new Error('Scraper não inicializado ou não logado');
+    if (!this.page) {
+      throw new Error('Scraper não inicializado');
     }
 
     console.log(`📊 Extraindo dados do motorista: ${driverId}`);
@@ -637,28 +637,65 @@ export class RidesDashboardHybridScraper {
       // 🔍 VERIFICAR SE AINDA ESTÁ LOGADO ANTES DE CONTINUAR
       const currentUrl = this.page.url();
       if (currentUrl.includes('/page/login') || currentUrl.includes('#/page/login')) {
-        console.log('❌ SESSÃO PERDIDA! Retornando à página de login...');
+        console.log('⚠️ SESSÃO PERDIDA DETECTADA! Tentando recuperar automaticamente...');
         this.isLoggedIn = false;
-        throw new Error('Sessão perdida - necessário login manual');
+        
+        // Tentar recuperar sessão automaticamente para Docker/VPS
+        try {
+          console.log('🔄 Tentando login automático para recuperar sessão...');
+          const username = process.env.RIDES_USERNAME;
+          const password = process.env.RIDES_PASSWORD;
+          
+          if (username && password) {
+            await this.performLogin(currentUrl, username, password);
+            console.log('✅ Sessão recuperada automaticamente');
+          } else {
+            throw new Error('Credenciais não disponíveis para recuperação automática');
+          }
+        } catch (recoveryError) {
+          console.log('❌ Falha na recuperação automática:', recoveryError);
+          throw new Error('Sessão perdida - necessário login manual');
+        }
       }
 
     // 🎯 OTIMIZADO: Verificar se já está no dashboard, só navegar se necessário
-    if (!currentUrl.includes('/app/dashboard')) {
+    const currentUrlCheck = this.page.url();
+    if (!currentUrlCheck.includes('/app/dashboard')) {
       console.log('🌐 Navegando para Dashboard para extração de dados...');
       console.log(`🌐 [hybrid_scraper] Navegando para: ${this.DASHBOARD_URL}...`);
       await this.page.goto(this.DASHBOARD_URL, { waitUntil: 'networkidle', timeout: 15000 });
       console.log('✅ [hybrid_scraper] Navegação concluída com sucesso');
     } else {
       console.log('✅ [hybrid_scraper] Já está no dashboard, prosseguindo...');
-    }      // Verificar se foi redirecionado para login após navegação
-      const newUrl = this.page.url();
-      console.log(`📍 URL atual: ${newUrl}`);
+    }
+    
+    // Verificar se foi redirecionado para login após navegação
+    const newUrl = this.page.url();
+    console.log(`📍 URL atual: ${newUrl}`);
+    
+    if (newUrl.includes('/page/login') || newUrl.includes('#/page/login')) {
+      console.log('⚠️ REDIRECIONADO PARA LOGIN após navegação! Tentando recuperar...');
+      this.isLoggedIn = false;
       
-      if (newUrl.includes('/page/login') || newUrl.includes('#/page/login')) {
-        console.log('❌ REDIRECIONADO PARA LOGIN! Sessão expirou...');
-        this.isLoggedIn = false;
+      // Tentar recuperar sessão automaticamente para Docker/VPS
+      try {
+        console.log('🔄 Tentando login automático após redirecionamento...');
+        const username = process.env.RIDES_USERNAME;
+        const password = process.env.RIDES_PASSWORD;
+        
+        if (username && password) {
+          await this.performLogin(newUrl, username, password);
+          console.log('✅ Sessão recuperada após redirecionamento');
+          // Navegar novamente para dashboard após recuperação
+          await this.page.goto(this.DASHBOARD_URL, { waitUntil: 'networkidle', timeout: 15000 });
+        } else {
+          throw new Error('Credenciais não disponíveis para recuperação');
+        }
+      } catch (recoveryError) {
+        console.log('❌ Falha na recuperação após redirecionamento:', recoveryError);
         throw new Error('Sessão expirou - redirecionado para login');
       }
+    }
 
       // 🎯 VERIFICAÇÃO ROBUSTA DO CAMPO driverId
       console.log('🔍 Procurando campo #driverId...');
