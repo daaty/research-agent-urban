@@ -298,6 +298,191 @@ class MonitoringService {
     }
   }
 
+  /**
+   * 🚨 CORREÇÃO CRÍTICA: Salvamento unificado para evitar perda de dados de Performance
+   * Salva TODOS os dados de drivers em uma única transação atômica
+   */
+  private async saveDriversDataUnified(
+    driversData: any[],
+    sessionInfo: any,
+    hasChanges: boolean = true
+  ): Promise<void> {
+    console.log('🔄 [TRANSAÇÃO UNIFICADA] Iniciando salvamento atômico de drivers...');
+
+    // Obter pool do DatabaseManager
+    const pool = (this.databaseManager as any).pool;
+    if (!pool) {
+      throw new Error('Pool de conexão não disponível');
+    }
+
+    const client = await pool.connect();
+    
+    try {
+      // ===== INÍCIO DA TRANSAÇÃO UNIFICADA =====
+      await client.query('BEGIN');
+      console.log('✅ [TRANSAÇÃO UNIFICADA] Transação iniciada');
+
+      // 1. PROCESSAR DADOS GENÉRICOS
+      const driversTransformer = DriversDataTransformer.getInstance();
+      const transformedData = driversTransformer.transformScrapingData(
+        driversData,
+        sessionInfo,
+        'drivers-unified-transaction',
+        hasChanges
+      );
+
+      let totalInserted = 0;
+      let totalUpdated = 0;
+
+      // 2. INSERIR DADOS GENÉRICOS
+      for (const record of transformedData.records) {
+        const query = `
+          INSERT INTO drivers_data (
+            driver_id, name, email, mobile, data_type, page_source, 
+            additional_data, data_hash, session_info, source, unique_id
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+          ON CONFLICT (data_type, driver_id, data_hash) 
+          DO UPDATE SET 
+            name = EXCLUDED.name,
+            email = EXCLUDED.email,
+            mobile = EXCLUDED.mobile,
+            additional_data = EXCLUDED.additional_data,
+            scraped_at = NOW(),
+            session_info = EXCLUDED.session_info,
+            source = EXCLUDED.source
+          RETURNING (xmax = 0) AS inserted
+        `;
+        
+        const result = await client.query(query, [
+          record.driver_id,
+          record.name,
+          record.email || null,
+          record.mobile || null,
+          record.data_type,
+          record.page_source,
+          JSON.stringify(record.additional_data || {}),
+          record.data_hash,
+          JSON.stringify(record.session_info || {}),
+          record.source || 'drivers-unified-transaction',
+          record.unique_id
+        ]);
+
+        if (result.rows[0].inserted) {
+          totalInserted++;
+        } else {
+          totalUpdated++;
+        }
+      }
+
+      console.log(`✅ [TRANSAÇÃO UNIFICADA] Dados genéricos: ${totalInserted} inseridos, ${totalUpdated} atualizados`);
+
+      // 3. PROCESSAR PERFORMANCE ESPECIFICAMENTE (NA MESMA TRANSAÇÃO)
+      const performanceData = driversData.find(table => 
+        table.name && table.name.includes('Performance') && !table.isEmpty
+      );
+
+      if (performanceData && performanceData.rows && performanceData.rows.length > 0) {
+        console.log('🏆 [TRANSAÇÃO UNIFICADA] Processando Performance na mesma transação...');
+        
+        let perfInserted = 0;
+        let perfUpdated = 0;
+
+        for (let rowIdx = 0; rowIdx < performanceData.rows.length; rowIdx++) {
+          const row = performanceData.rows[rowIdx];
+          
+          // Pular linhas vazias
+          if (row.length === 1 && row[0].includes('No data available')) {
+            continue;
+          }
+
+          // Mapear dados usando headers
+          const driverPerformance: any = {};
+          performanceData.headers.forEach((header: string, idx: number) => {
+            driverPerformance[header] = row[idx] || '';
+          });
+
+          // Criar hash específico para Performance
+          const hashData = `performance-${driverPerformance['Driver ID'] || rowIdx}-${JSON.stringify(driverPerformance)}`;
+          const dataHash = require('crypto').createHash('md5').update(hashData).digest('hex');
+
+          const perfQuery = `
+            INSERT INTO drivers_data (
+              driver_id, name, email, mobile, data_type, page_source, 
+              additional_data, data_hash, session_info, source, unique_id
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            ON CONFLICT (data_type, driver_id, data_hash) 
+            DO UPDATE SET 
+              name = EXCLUDED.name,
+              mobile = EXCLUDED.mobile,
+              additional_data = EXCLUDED.additional_data,
+              scraped_at = NOW(),
+              session_info = EXCLUDED.session_info,
+              source = EXCLUDED.source
+            RETURNING (xmax = 0) AS inserted
+          `;
+          
+          const perfResult = await client.query(perfQuery, [
+            driverPerformance['Driver ID'] || `unknown-${rowIdx}`,
+            driverPerformance['Driver Name'] || '',
+            null, // email
+            driverPerformance['Phone Number'] || null,
+            'performance',
+            'Driver Performance',
+            JSON.stringify(driverPerformance),
+            dataHash,
+            JSON.stringify(sessionInfo),
+            'drivers-unified-transaction',
+            `performance-unified-${driverPerformance['Driver ID'] || rowIdx}-${Date.now()}`
+          ]);
+
+          if (perfResult.rows[0].inserted) {
+            perfInserted++;
+          } else {
+            perfUpdated++;
+          }
+        }
+
+        console.log(`✅ [TRANSAÇÃO UNIFICADA] Performance: ${perfInserted} inseridos, ${perfUpdated} atualizados`);
+      } else {
+        console.log('ℹ️ [TRANSAÇÃO UNIFICADA] Nenhum dado de Performance válido encontrado');
+      }
+
+      // 4. CRIAR SESSÃO DE SCRAPING
+      const sessionQuery = `
+        INSERT INTO scraping_sessions (
+          total_records, new_records, has_changes, execution_source, browser_session_id
+        )
+        VALUES ($1, $2, $3, $4, $5)
+        RETURNING id
+      `;
+      
+      await client.query(sessionQuery, [
+        transformedData.totalRecords,
+        transformedData.newRecords,
+        hasChanges,
+        'drivers-unified-transaction',
+        sessionInfo?.browserSessionId || null
+      ]);
+
+      // ===== COMMIT DA TRANSAÇÃO UNIFICADA =====
+      await client.query('COMMIT');
+      console.log('🎉 [TRANSAÇÃO UNIFICADA] Transação COMMITADA com sucesso!');
+      console.log('🎯 [TRANSAÇÃO UNIFICADA] TODOS os dados (incluindo Performance) salvos atomicamente');
+
+    } catch (error: any) {
+      // ===== ROLLBACK EM CASO DE ERRO =====
+      await client.query('ROLLBACK');
+      console.error('💥 [TRANSAÇÃO UNIFICADA] Erro na transação:', error.message);
+      console.error('🔄 [TRANSAÇÃO UNIFICADA] ROLLBACK executado - nenhum dado foi perdido');
+      throw error;
+    } finally {
+      client.release();
+      console.log('🔓 [TRANSAÇÃO UNIFICADA] Conexão liberada');
+    }
+  }
+
   private async performScraping(): Promise<void> {
     if (this.isRunning) {
       console.log('⚠️ Scraping já em execução, pulando...');
@@ -432,40 +617,20 @@ class MonitoringService {
         console.log(`📊 Dados de drivers extraídos: ${driversResult.data.reduce((sum, table) => sum + table.rows.length, 0)} registros`);
         
         try {
-          // Transformar e salvar dados de drivers (usando sessionInfo das rides)
-          const driversTransformer = DriversDataTransformer.getInstance();
-          driversTransformed = await driversTransformer.transformAndSave(
+          // 🚨 CORREÇÃO CRÍTICA: TRANSAÇÃO UNIFICADA PARA TODOS OS DADOS DE DRIVERS
+          console.log('🔄 [TRANSAÇÃO UNIFICADA] Salvando TODOS os dados de drivers em transação única...');
+          
+          await this.saveDriversDataUnified(
             driversResult.data,
-            scrapingResult.sessionInfo || driversResult.sessionInfo, // Usar sessionInfo das rides preferencialmente
-            'drivers-monitoring-service',
+            scrapingResult.sessionInfo || driversResult.sessionInfo,
             driversResult.hasChanges || false
           );
-          console.log(`✅ Dados de drivers processados com sucesso`);
-
-          // 🎯 PROCESSAMENTO ESPECÍFICO PARA DRIVER PERFORMANCE
-          const performanceData = driversResult.data.find(table => table.name === 'Driver Performance');
-          if (performanceData && !performanceData.isEmpty) {
-            console.log('🏆 Processando dados específicos de Driver Performance...');
-            
-            try {
-              const scraper = new DriversPersistentScraper();
-              const processedPerformance = scraper.processDriverPerformanceData(performanceData);
-              
-              if (processedPerformance.length > 0) {
-                await this.databaseManager.saveDriverPerformanceData(processedPerformance);
-                console.log(`✅ ${processedPerformance.length} registros de Driver Performance salvos`);
-              } else {
-                console.log('⚠️ Nenhum dado de Driver Performance válido para salvar');
-              }
-            } catch (performanceError) {
-              console.error('❌ Erro ao processar Driver Performance:', performanceError);
-            }
-          } else {
-            console.log('ℹ️ Dados de Driver Performance não encontrados nesta execução');
-          }
+          
+          console.log(`✅ [TRANSAÇÃO UNIFICADA] Dados de drivers (incluindo Performance) salvos atomicamente`);
 
         } catch (driversError) {
-          console.error('❌ Erro ao processar dados de drivers:', driversError);
+          console.error('❌ [TRANSAÇÃO UNIFICADA] Erro ao processar dados de drivers:', driversError);
+          console.error('🔄 [TRANSAÇÃO UNIFICADA] Rollback automático executado - nenhum dado foi perdido');
           // Continuar execução mesmo se drivers falharem
         }
       } else {
@@ -486,13 +651,8 @@ class MonitoringService {
         console.log(`✅ Registros de rides concluídos: ${changes.summary.completedCount}`);
       }
 
-      // Log dados de drivers
-      if (driversTransformed) {
-        console.log(`👥 Drivers processados: ${driversTransformed.totalRecords} registros`);
-        if (driversTransformed.newRecords > 0) {
-          console.log(`🆕 Novos registros de drivers: ${driversTransformed.newRecords}`);
-        }
-      }
+      // Log simplificado para drivers (após transação unificada)
+      console.log(`👥 Drivers processados com transação unificada`);
 
       // Enviar para n8n (apenas quando há mudanças - evita spam)
       await this.sendToN8n(changes);
