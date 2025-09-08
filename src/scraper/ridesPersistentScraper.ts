@@ -13,6 +13,7 @@ export interface PersistentScrapeResult {
   success: boolean;
   data: RideTableData[];
   message: string;
+  loginSuccess?: boolean; // 📊 INDICA SE LOGIN FOI BEM-SUCEDIDO NESTA EXECUÇÃO
   sessionInfo?: {
     isNewLogin: boolean;
     browserStatus: string;
@@ -108,6 +109,19 @@ export class RidesPersistentScraper {
               sessionValid: false
             }
           };
+        } else {
+          // 🎯 LOGIN BEM-SUCEDIDO - NOTIFICAR DASHBOARD IMEDIATAMENTE!
+          console.log('🎉 [RIDES] LOGIN BEM-SUCEDIDO - Notificando dashboard AGORA!');
+          
+          // 🔥 NOTIFICAR DASHBOARD IMEDIATAMENTE
+          if (global.monitoringService) {
+            const scraperId = `scraper-${Buffer.from(process.env.RIDES_USERNAME || 'default').toString('base64').substring(0, 8)}`;
+            console.log(`🎯 [RIDES] Notificando dashboard para scraper: ${scraperId}`);
+            
+            // Simular resultado bem-sucedido para notificar dashboard
+            global.monitoringService.notifyDashboardActivity(scraperId, 'LOGIN_SUCCESS');
+            console.log('✅ [RIDES] Dashboard notificado sobre login bem-sucedido!');
+          }
         }
       }
 
@@ -162,15 +176,21 @@ export class RidesPersistentScraper {
       console.log(resultMessage);
       
       // 🔥 MARCAR LOGIN COMO BEM-SUCEDIDO
+      let loginJustSucceeded = false;
       if (!RidesPersistentScraper.hasLoggedInSuccessfully) {
         RidesPersistentScraper.hasLoggedInSuccessfully = true;
+        loginJustSucceeded = true;
         console.log('🔥 [RIDES-CONTROL] ✅ MARCANDO LOGIN COMO BEM-SUCEDIDO - Próximas execuções pularão login');
       }
+      
+      // 🎯 SEMPRE INFORMAR ATIVIDADE PARA DASHBOARD (não só no primeiro login)
+      const shouldNotifyActivity = true; // Sempre notificar quando scraping foi bem-sucedido
       
       return {
         success: true,
         data: allData,
         message: resultMessage,
+        loginSuccess: shouldNotifyActivity, // 📊 SEMPRE INFORMAR DASHBOARD SOBRE ATIVIDADE
         sessionInfo: {
           isNewLogin: !browserWasActive,
           browserStatus: 'active',

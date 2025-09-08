@@ -8,6 +8,10 @@ import { scrapeAllDriversDataPersistent, DriversPersistentScraper } from '../scr
 import { DriversDataTransformer } from './driversDataTransformer';
 import { DataCacheManager } from './dataCacheManager'; // ⭐ INTEGRAR SISTEMA DE CACHE SOFISTICADO
 import { DatabaseManager } from './databaseManager'; // ⭐ INTEGRAR SALVAMENTO NO BANCO
+import { WebhookValidator } from './webhookValidator'; // 🔍 VALIDATOR PARA WEBHOOKS
+import { RetryManager } from './retryManager'; // 🔄 RETRY MANAGER PARA WEBHOOKS
+import { RateLimiter } from './rateLimiter'; // 🎛️ RATE LIMITER PARA CONTROLE DE TAXA
+import { AlertSystem } from './alertSystem'; // 🚨 SISTEMA DE ALERTAS
 
 interface RideData {
   id: string;
@@ -45,13 +49,75 @@ class MonitoringService {
   private cacheManager: DataCacheManager; // ⭐ USAR SISTEMA DE CACHE SOFISTICADO
   private databaseManager: DatabaseManager; // ⭐ INTEGRAR SALVAMENTO NO BANCO
   private lastRawData: any[] = []; // ⭐ ARMAZENAR ÚLTIMOS DADOS PARA WEBHOOK
+  private webhookValidator: WebhookValidator; // 🔍 VALIDATOR PARA WEBHOOKS
+  private retryManager: RetryManager<MonitoringResult>; // 🔄 RETRY MANAGER PARA WEBHOOKS
+  private rateLimiter: RateLimiter; // 🎛️ RATE LIMITER PARA CONTROLE DE TAXA
+  private alertSystem: AlertSystem; // 🚨 SISTEMA DE ALERTAS
+  private dashboardStatusService: any = null; // 📊 INTEGRAÇÃO COM DASHBOARD
 
   private constructor() {
     this.dataFilePath = path.join(__dirname, '../../data/previous-rides-data.json');
     this.cacheManager = DataCacheManager.getInstance(); // ⭐ INICIALIZAR CACHE MANAGER
     this.databaseManager = DatabaseManager.getInstance(); // ⭐ INICIALIZAR DATABASE MANAGER
+    
+    // 🔍 Inicializar WebhookValidator com configuração apropriada
+    this.webhookValidator = new WebhookValidator({
+      strictMode: true,
+      sanitizeData: true,
+      maxPayloadSize: 1024 * 100, // 100KB
+      allowEmptyArrays: false,
+      validateDataTypes: true,
+      checkForDuplicates: true,
+      requireMetadata: true
+    });
+
+    // 🔄 Inicializar RetryManager para webhooks robustos
+    this.retryManager = new RetryManager<MonitoringResult>({
+      maxRetries: 3,
+      baseDelay: 2000, // 2 segundos inicial
+      maxDelay: 60000, // 1 minuto máximo
+      backoffMultiplier: 2.5,
+      jitterEnabled: true,
+      circuitBreakerEnabled: true,
+      circuitBreakerThreshold: 5,
+      circuitBreakerTimeout: 120000, // 2 minutos
+      deadLetterQueueEnabled: true,
+      deadLetterQueueMaxSize: 50
+    });
+
+    // 🎛️ Inicializar RateLimiter para controle inteligente de taxa
+    this.rateLimiter = new RateLimiter({
+      tokensPerSecond: 0.1, // 1 webhook a cada 10 segundos (conservative)
+      burstCapacity: 3,     // Burst de até 3 webhooks
+      windowSizeMs: 60000,  // Janela de 1 minuto
+      enableBurstProtection: true,
+      enablePerEndpointLimiting: true,
+      defaultEndpointLimit: 6, // 6 webhooks por minuto por endpoint
+      endpointLimits: new Map([
+        ['webhook-n8n-delivery', 4], // N8N: 4 por minuto (conservativo)
+        ['webhook-slack', 20],        // Slack: 20 por minuto
+        ['webhook-discord', 30]       // Discord: 30 por minuto
+      ])
+    });
+
+    // 🚨 Inicializar AlertSystem para monitoramento crítico
+    this.alertSystem = new AlertSystem({
+      enabled: true,
+      webhookUrl: process.env.N8N_WEBHOOK_URL || '',
+      alertTypes: ['SCRAPER_DOWN', 'LOGIN_FAILED', 'SCRAPER_STARTED', 'SCRAPER_STOPPED', 'HIGH_ERROR_RATE'],
+      cooldownMs: 300000, // 5 minutos entre alertas do mesmo tipo
+      maxRetries: 3,
+      enableHeartbeat: true,
+      heartbeatIntervalMs: 600000, // 10 minutos de heartbeat
+      scraperIdentifier: process.env.RIDES_USERNAME || 'unknown-scraper'
+    });
+    
     this.loadPreviousData();
     this.initializeDatabase(); // ⭐ INICIALIZAR CONEXÃO COM BANCO
+    console.log('🔍 [MonitoringService] WebhookValidator inicializado');
+    console.log('🔄 [MonitoringService] RetryManager inicializado para webhooks robustos');
+    console.log('🎛️ [MonitoringService] RateLimiter inicializado para controle de taxa');
+    console.log('🚨 [MonitoringService] AlertSystem inicializado para:', process.env.RIDES_USERNAME);
   }
 
   public static getInstance(): MonitoringService {
@@ -62,6 +128,47 @@ class MonitoringService {
       console.log('♻️ Reutilizando instância existente do MonitoringService');
     }
     return MonitoringService.instance;
+  }
+
+  /**
+   * 📊 Integrar com ScraperStatusService do dashboard
+   */
+  public setDashboardStatusService(statusService: any): void {
+    this.dashboardStatusService = statusService;
+    console.log('📊 [MonitoringService] Integrado com Dashboard StatusService');
+  }
+
+  /**
+   * 📊 Notificar dashboard sobre atividade de scraping
+   */
+  private notifyDashboardActivity(scraperId: string, activity: 'SCRAPING_START' | 'SCRAPING_SUCCESS' | 'LOGIN_SUCCESS' | 'SCRAPING_ERROR'): void {
+    if (this.dashboardStatusService) {
+      const timestamp = Date.now();
+      switch (activity) {
+        case 'SCRAPING_START':
+          this.dashboardStatusService.updateHeartbeat(scraperId, timestamp);
+          break;
+        case 'SCRAPING_SUCCESS':
+          this.dashboardStatusService.updateActivity(scraperId, timestamp);
+          this.dashboardStatusService.updateHeartbeat(scraperId, timestamp);
+          break;
+        case 'LOGIN_SUCCESS':
+          this.dashboardStatusService.updateActivity(scraperId, timestamp);
+          this.dashboardStatusService.updateHeartbeat(scraperId, timestamp);
+          break;
+        case 'SCRAPING_ERROR':
+          this.dashboardStatusService.updateHeartbeat(scraperId, timestamp);
+          break;
+      }
+    }
+  }
+
+  /**
+   * 🆔 Obter ID do scraper atual (compatível com dashboard)
+   */
+  private getCurrentScraperId(): string {
+    const username = process.env.RIDES_USERNAME || 'default';
+    return `scraper-${Buffer.from(username).toString('base64').slice(0, 8)}`;
   }
 
   private async initializeDatabase(): Promise<void> {
@@ -253,8 +360,37 @@ class MonitoringService {
         return;
       }
 
+      // 🔍 VALIDAR PAYLOAD ANTES DO ENVIO
+      console.log('🔍 [MonitoringService] Validando payload do webhook...');
+      const validationResult = await this.webhookValidator.validate(result);
+      
+      // Exibir resultados da validação
+      if (validationResult.errors.length > 0) {
+        console.log(`❌ [WebhookValidator] ${validationResult.errors.length} erros encontrados:`);
+        validationResult.errors.forEach((error, i) => {
+          console.log(`  ${i + 1}. [${error.severity}] ${error.field}: ${error.message}`);
+        });
+      }
+
+      if (validationResult.warnings.length > 0) {
+        console.log(`⚠️ [WebhookValidator] ${validationResult.warnings.length} avisos:`);
+        validationResult.warnings.forEach((warning, i) => {
+          console.log(`  ${i + 1}. ${warning.field}: ${warning.message}`);
+        });
+      }
+
+      // Bloquear envio se há erros críticos
+      const criticalErrors = validationResult.errors.filter(e => e.severity === 'critical');
+      if (criticalErrors.length > 0) {
+        console.log('🚫 [MonitoringService] Bloqueando envio devido a erros críticos no payload');
+        return;
+      }
+
+      // Usar payload sanitizado se disponível
+      const finalPayload = validationResult.sanitizedPayload || result;
+      
       const payload = {
-        ...result,
+        ...finalPayload,
         hasChanges: result.summary.newCount > 0 || 
                    result.summary.updatedCount > 0 || 
                    result.summary.cancelledCount > 0 || 
@@ -263,7 +399,11 @@ class MonitoringService {
           scraperVersion: '3.0.0', // ⭐ ATUALIZAR VERSÃO
           source: 'rides-dashboard-monitoring-v3',
           environment: process.env.NODE_ENV || 'development',
-          cacheSystemEnabled: true // ⭐ INDICAR QUE USA SISTEMA DE CACHE
+          cacheSystemEnabled: true, // ⭐ INDICAR QUE USA SISTEMA DE CACHE
+          webhookValidated: true, // 🔍 INDICAR QUE FOI VALIDADO
+          validationTime: validationResult.metadata.validationTime,
+          payloadSize: validationResult.metadata.payloadSize,
+          sanitizationApplied: validationResult.metadata.sanitizationApplied
         }
       };
 
@@ -280,21 +420,75 @@ class MonitoringService {
       }
 
       console.log(`🚀 Enviando para n8n: ${JSON.stringify(result.summary)}`);
+      console.log(`🔍 Payload validado: ${validationResult.errors.length} erros, ${validationResult.warnings.length} avisos`);
       
-      const response = await axios.post(webhookUrl, payload, {
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'Rides-Scraper-Bot/3.0.0'
-        },
-        timeout: 30000
-      });
-
-      console.log(`✅ Dados enviados para n8n: ${response.status}`);    } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.status === 404) {
-        console.log('⚠️ n8n webhook não encontrado (404) - Verifique se o workflow está ativo');
+      // 🎛️ VERIFICAR RATE LIMIT ANTES DO ENVIO
+      console.log('🎛️ [MonitoringService] Verificando rate limit...');
+      const rateLimitResult = await this.rateLimiter.checkLimit('webhook-n8n-delivery');
+      
+      if (!rateLimitResult.allowed) {
+        console.log(`🚫 [RateLimiter] Webhook bloqueado: ${rateLimitResult.reason}`);
+        console.log(`⏰ [RateLimiter] Retry após: ${rateLimitResult.retryAfter}ms`);
+        
+        // Aguardar até que seja seguro enviar
+        console.log('⏳ [RateLimiter] Aguardando token disponível...');
+        const waitResult = await this.rateLimiter.waitForToken('webhook-n8n-delivery');
+        
+        if (!waitResult.allowed) {
+          console.error('❌ [RateLimiter] Timeout aguardando token - abortando envio');
+          return;
+        }
+        
+        console.log(`✅ [RateLimiter] Token obtido após espera (${waitResult.tokensRemaining} restantes)`);
       } else {
-        console.error('❌ Erro ao enviar para n8n:', error instanceof Error ? error.message : error);
+        console.log(`✅ [RateLimiter] Rate limit OK (${rateLimitResult.tokensRemaining} tokens restantes)`);
       }
+      
+      // 🔄 USAR RETRYMANAGER PARA ENVIO ROBUSTO
+      const retryResult = await this.retryManager.executeWithRetry(
+        async () => {
+          const response = await axios.post(webhookUrl, payload, {
+            headers: {
+              'Content-Type': 'application/json',
+              'User-Agent': 'Rides-Scraper-Bot/3.0.0'
+            },
+            timeout: 30000
+          });
+          return response;
+        },
+        'webhook-n8n-delivery',
+        result
+      );
+
+      if (retryResult.success) {
+        console.log(`✅ Webhook enviado com sucesso após ${retryResult.attempts} tentativa(s) em ${retryResult.totalTime}ms`);
+        if (retryResult.result) {
+          console.log(`📊 Status HTTP: ${retryResult.result.status}`);
+        }
+      } else {
+        console.error(`❌ Falha ao enviar webhook após ${retryResult.attempts} tentativa(s):`);
+        console.error(`   Erro: ${retryResult.error?.message}`);
+        console.error(`   Tempo total: ${retryResult.totalTime}ms`);
+        
+        if (retryResult.circuitBreakerTriggered) {
+          console.error('🚫 Circuit breaker ativado - endpoint pode estar instável');
+        }
+        
+        if (retryResult.sentToDeadLetterQueue) {
+          console.error('💀 Payload enviado para Dead Letter Queue para reprocessamento');
+        }
+
+        // Mostrar métricas do RetryManager
+        const metrics = this.retryManager.getMetrics();
+        console.log('📊 [RetryManager] Métricas:', {
+          successRate: `${metrics.successRate}%`,
+          circuitBreaker: metrics.circuitBreakerState,
+          dlqSize: metrics.deadLetterQueueSize
+        });
+      }
+
+    } catch (error) {
+      console.error('❌ Erro crítico no sendToN8n:', error instanceof Error ? error.message : error);
     }
   }
 
@@ -483,6 +677,28 @@ class MonitoringService {
     }
   }
 
+  /**
+   * 🔍 Detecta se o erro é relacionado a falha de login
+   */
+  private isLoginFailure(errorMessage: string): boolean {
+    const loginIndicators = [
+      'login failed',
+      'authentication failed',
+      'credenciais inválidas',
+      'não foi possível fazer login',
+      'access denied',
+      'unauthorized',
+      'invalid credentials',
+      'session expired',
+      'please login',
+      'captcha',
+      'blocked'
+    ];
+    
+    const message = errorMessage.toLowerCase();
+    return loginIndicators.some(indicator => message.includes(indicator));
+  }
+
   private async performScraping(): Promise<void> {
     if (this.isRunning) {
       console.log('⚠️ Scraping já em execução, pulando...');
@@ -492,7 +708,14 @@ class MonitoringService {
     this.isRunning = true;
     console.log(`🕐 [${new Date().toLocaleString()}] Iniciando scraping (rides + drivers)...`);
     
+    // 📊 Notificar dashboard que scraping iniciou
+    const scraperId = this.getCurrentScraperId();
+    this.notifyDashboardActivity(scraperId, 'SCRAPING_START');
+    
     try {
+      // 🚨 Atualizar atividade no sistema de alertas
+      this.alertSystem.updateActivity();
+
       // ⭐ VERIFICAR SE O BANCO ESTÁ CONECTADO
       if (!this.databaseManager.isConnectedToDatabase()) {
         console.log('⚠️ Banco de dados não conectado, tentando reconectar...');
@@ -501,11 +724,49 @@ class MonitoringService {
 
       // 1. EXECUTAR SCRAPING DE RIDES
       console.log('🚗 Executando scraping de rides...');
+      console.log('🔍 [DEBUG] Chamando scrapeAllRidesDataPersistent()...');
       const scrapingResult = await scrapeAllRidesDataPersistent();
+      console.log('🔍 [DEBUG] Resultado do scraping recebido:', {
+        success: scrapingResult.success,
+        loginSuccess: scrapingResult.loginSuccess,
+        dataLength: scrapingResult.data?.length || 0,
+        message: scrapingResult.message?.substring(0, 100) || 'N/A'
+      });
       
-      if (!scrapingResult.success || !scrapingResult.data || scrapingResult.data.length === 0) {
-        console.log('⚠️ Nenhum dado de rides extraído:', scrapingResult.message);
+      // 🚨 VERIFICAR FALHAS DE LOGIN/SCRAPING
+      if (!scrapingResult.success) {
+        console.error('❌ Falha no scraping de rides:', scrapingResult.message);
+        
+        // 📊 Notificar dashboard sobre erro
+        this.notifyDashboardActivity(scraperId, 'SCRAPING_ERROR');
+        
+        // Detectar se é falha de login
+        if (this.isLoginFailure(scrapingResult.message || '')) {
+          await this.alertSystem.alertLoginFailed(scrapingResult.message || 'Unknown login error');
+          console.log('🚨 [AlertSystem] Alerta de falha de login enviado');
+        } else {
+          await this.alertSystem.alertScraperDown(scrapingResult.message || 'Scraping failed');
+          console.log('🚨 [AlertSystem] Alerta de scraper down enviado');
+        }
         return;
+      }
+      
+      // ✅ SCRAPING BEM-SUCEDIDO - SEMPRE NOTIFICAR ATIVIDADE
+      if (scrapingResult.loginSuccess) {
+        console.log('🎉 ATIVIDADE DE SCRAPING DETECTADA - Notificando dashboard!');
+        this.notifyDashboardActivity(scraperId, 'LOGIN_SUCCESS');
+      } else {
+        console.log('✅ Scraping bem-sucedido - Atualizando heartbeat');
+        this.notifyDashboardActivity(scraperId, 'SCRAPING_SUCCESS');
+      }
+      
+      if (!scrapingResult.data || scrapingResult.data.length === 0) {
+        console.log('⚠️ Nenhum dado de rides extraído:', scrapingResult.message);
+        console.log('📊 Mas login foi bem-sucedido - dashboard notificado!');
+        
+        // Login bem-sucedido mesmo sem dados - não é erro crítico
+        // await this.alertSystem.alertScraperDown('No data extracted from rides scraping');
+        // return;  // ❌ REMOVIDO: não retornar aqui, continuar processamento
       }
 
       // 🔧 ADAPTAÇÃO PARA ESTRUTURA ATUAL DO BANCO
@@ -658,8 +919,26 @@ class MonitoringService {
       await this.sendToN8n(changes);
 
       console.log(`✅ [${new Date().toLocaleString()}] Scraping concluído (rides + drivers)`);
+      
+      // 📊 Notificar dashboard que scraping foi bem-sucedido
+      this.notifyDashboardActivity(scraperId, 'SCRAPING_SUCCESS');
+      
     } catch (error) {
       console.error('❌ Erro durante scraping:', error);
+      
+      // � Notificar dashboard sobre erro
+      this.notifyDashboardActivity(scraperId, 'SCRAPING_ERROR');
+      
+      // �🚨 NOTIFICAR ERRO CRÍTICO DO SCRAPER
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      
+      if (this.isLoginFailure(errorMessage)) {
+        await this.alertSystem.alertLoginFailed(errorMessage);
+        console.log('🚨 [AlertSystem] Alerta de falha de login enviado (catch)');
+      } else {
+        await this.alertSystem.alertScraperDown(`Critical error: ${errorMessage}`);
+        console.log('🚨 [AlertSystem] Alerta de erro crítico enviado (catch)');
+      }
     } finally {
       this.isRunning = false;
     }
@@ -697,6 +976,10 @@ class MonitoringService {
 
     this.cronTasks = [task1];
 
+    // 🚨 INICIAR SISTEMA DE HEARTBEAT
+    console.log('💓 Iniciando sistema de heartbeat (monitoramento de atividade)...');
+    this.alertSystem.startHeartbeat();
+
     console.log('✅ Monitoramento iniciado!');
   }
   public stopMonitoring(): void {
@@ -707,11 +990,201 @@ class MonitoringService {
       }
     });
     this.cronTasks = [];
+    
+    // 🚨 PARAR SISTEMA DE HEARTBEAT
+    this.alertSystem.stopHeartbeat();
   }
 
   public async runOnce(): Promise<void> {
     console.log('🔄 Executando scraping único...');
     await this.performScraping();
+  }
+
+  // 🔄 MÉTODOS DE GESTÃO DO RETRYMANAGER
+  
+  /**
+   * 📊 Obter métricas do RetryManager
+   */
+  public getRetryMetrics() {
+    return this.retryManager.getMetrics();
+  }
+
+  /**
+   * 💀 Obter items da Dead Letter Queue
+   */
+  public getDeadLetterQueue() {
+    return this.retryManager.getDeadLetterQueue();
+  }
+
+  /**
+   * 🔄 Processar items da Dead Letter Queue
+   */
+  public async processDLQ(): Promise<void> {
+    console.log('🔄 [MonitoringService] Processando Dead Letter Queue...');
+    await this.retryManager.processDLQ();
+  }
+
+  /**
+   * 🧹 Limpar Dead Letter Queue
+   */
+  public clearDeadLetterQueue(): number {
+    return this.retryManager.clearDeadLetterQueue();
+  }
+
+  /**
+   * 🔄 Reset do Circuit Breaker
+   */
+  public resetCircuitBreaker(): void {
+    this.retryManager.resetCircuitBreaker();
+    console.log('🔄 [MonitoringService] Circuit breaker resetado');
+  }
+
+  /**
+   * ⚙️ Atualizar configuração do RetryManager
+   */
+  public updateRetryConfig(config: any): void {
+    this.retryManager.updateConfig(config);
+    console.log('⚙️ [MonitoringService] Configuração do RetryManager atualizada');
+  }
+
+  /**
+   * 📈 Obter status completo do sistema de webhooks
+   */
+  public getWebhookSystemStatus() {
+    const retryMetrics = this.retryManager.getMetrics();
+    const dlqItems = this.retryManager.getDeadLetterQueue();
+    const rateLimitMetrics = this.rateLimiter.getMetrics();
+    const rateLimitHealth = this.rateLimiter.getHealthStatus();
+    
+    return {
+      retryManager: {
+        metrics: retryMetrics,
+        healthStatus: retryMetrics.successRate > 85 ? 'healthy' : 
+                     retryMetrics.successRate > 60 ? 'degraded' : 'unhealthy',
+        circuitBreakerStatus: retryMetrics.circuitBreakerState,
+        deadLetterQueueSize: retryMetrics.deadLetterQueueSize,
+        recentFailures: dlqItems.slice(-5).map(item => ({
+          id: item.id,
+          error: item.originalError.message,
+          timestamp: new Date(item.timestamp).toISOString(),
+          attempts: item.attempts.length
+        }))
+      },
+      rateLimiter: {
+        metrics: rateLimitMetrics,
+        healthStatus: rateLimitHealth.status,
+        details: rateLimitHealth.details,
+        tokensAvailable: rateLimitHealth.tokensAvailable,
+        blockedPercentage: rateLimitHealth.blockedPercentage,
+        recommendations: rateLimitHealth.recommendations
+      },
+      webhookValidator: {
+        enabled: true,
+        strictMode: true,
+        sanitizationEnabled: true
+      },
+      recommendations: this.generateWebhookRecommendations(retryMetrics, rateLimitMetrics)
+    };
+  }
+
+  // 🎛️ MÉTODOS DE GESTÃO DO RATELIMITER
+  
+  /**
+   * 📊 Obter métricas do RateLimiter
+   */
+  public getRateLimitMetrics() {
+    return this.rateLimiter.getMetrics();
+  }
+
+  /**
+   * 🏥 Obter status de saúde do RateLimiter
+   */
+  public getRateLimitHealth() {
+    return this.rateLimiter.getHealthStatus();
+  }
+
+  /**
+   * 📈 Obter estatísticas detalhadas do RateLimiter
+   */
+  public getRateLimitStats() {
+    return this.rateLimiter.getDetailedStats();
+  }
+
+  /**
+   * ⚙️ Atualizar configuração do RateLimiter
+   */
+  public updateRateLimitConfig(config: any): void {
+    this.rateLimiter.updateConfig(config);
+    console.log('⚙️ [MonitoringService] Configuração do RateLimiter atualizada');
+  }
+
+  /**
+   * 🔄 Reset do RateLimiter
+   */
+  public resetRateLimiter(): void {
+    this.rateLimiter.reset();
+    console.log('🔄 [MonitoringService] RateLimiter resetado');
+  }
+
+  /**
+   * 🎯 Testar rate limit para endpoint específico
+   */
+  public async testRateLimit(endpoint: string = 'webhook-n8n-delivery'): Promise<any> {
+    console.log(`🧪 [MonitoringService] Testando rate limit para: ${endpoint}`);
+    const result = await this.rateLimiter.checkLimit(endpoint);
+    console.log(`📊 Resultado: ${result.allowed ? 'PERMITIDO' : 'BLOQUEADO'}`);
+    return result;
+  }
+
+  /**
+   * ⏳ Aguardar token disponível
+   */
+  public async waitForRateLimit(endpoint: string = 'webhook-n8n-delivery'): Promise<any> {
+    console.log(`⏳ [MonitoringService] Aguardando token para: ${endpoint}`);
+    return await this.rateLimiter.waitForToken(endpoint);
+  }
+
+  /**
+   * 💡 Gerar recomendações baseadas nas métricas (atualizado com RateLimiter)
+   */
+  private generateWebhookRecommendations(retryMetrics: any, rateLimitMetrics: any): string[] {
+    const recommendations: string[] = [];
+
+    // Recomendações do RetryManager
+    if (retryMetrics.successRate < 60) {
+      recommendations.push('⚠️ Taxa de sucesso baixa - verificar conectividade com n8n');
+    }
+
+    if (retryMetrics.circuitBreakerTrips > 5) {
+      recommendations.push('🚫 Muitas ativações do circuit breaker - verificar estabilidade do endpoint');
+    }
+
+    if (retryMetrics.deadLetterQueueSize > 10) {
+      recommendations.push('💀 Dead Letter Queue crescendo - processar items pendentes');
+    }
+
+    if (retryMetrics.circuitBreakerState === 'OPEN') {
+      recommendations.push('🔴 Circuit breaker OPEN - sistema em modo de proteção');
+    }
+
+    // Recomendações do RateLimiter
+    if (rateLimitMetrics.blockedPercentage > 20) {
+      recommendations.push('🎛️ Alta taxa de bloqueios no rate limiter - revisar configuração');
+    }
+
+    if (rateLimitMetrics.currentTokens < 1) {
+      recommendations.push('⏳ Rate limiter sem tokens - aguardando reposição');
+    }
+
+    if (rateLimitMetrics.averageWaitTime > 5000) {
+      recommendations.push('⏰ Tempo de espera alto no rate limiter - considerar aumentar capacidade');
+    }
+
+    if (recommendations.length === 0) {
+      recommendations.push('✅ Sistema de webhooks funcionando corretamente');
+    }
+
+    return recommendations;
   }
 }
 
