@@ -473,18 +473,24 @@ class HybridOperationService {
                 try {
                     logger_1.logger.info('HYBRID', `Extraindo dados do motorista: ${driverItem.id}`);
                     this.stateManager.setCurrentDriverId(driverItem.id);
-                    // Aqui você implementaria a lógica real de extração
-                    const personalData = yield this.extractDriverPersonalData(driverItem.id);
+                    // 🔧 CORREÇÃO: Adicionar timeout por operação individual
+                    const extractionPromise = this.extractDriverPersonalData(driverItem.id);
+                    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error(`Timeout na extração do motorista ${driverItem.id} após 60 segundos`)), 60000));
+                    // Corrida entre extração e timeout
+                    const personalData = yield Promise.race([extractionPromise, timeoutPromise]);
                     // Simular salvamento no banco
                     yield this.savePersonalData(driverItem.id, personalData);
                     this.driverQueue.markAsCompleted(driverItem.id);
                     this.stats.totalExtracted++;
                     this.stateManager.incrementProcessed();
                     processed++;
-                    // Delay entre extrações para evitar sobrecarregar o sistema
+                    // 🔧 CORREÇÃO: Delay variável baseado no sucesso
+                    const baseDelay = 3000;
+                    const randomDelay = Math.random() * 2000; // 0-2s adicional aleatório
+                    const totalDelay = baseDelay + randomDelay;
                     if (processed < this.config.extractionBatchSize) {
-                        logger_1.logger.debug('HYBRID', 'Aguardando 3 segundos antes da próxima extração...');
-                        yield new Promise(resolve => setTimeout(resolve, 3000));
+                        logger_1.logger.debug('HYBRID', `Aguardando ${Math.round(totalDelay / 1000)}s antes da próxima extração...`);
+                        yield new Promise(resolve => setTimeout(resolve, totalDelay));
                     }
                 }
                 catch (error) {

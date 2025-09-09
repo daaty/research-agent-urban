@@ -538,8 +538,14 @@ export class HybridOperationService {
         logger.info('HYBRID', `Extraindo dados do motorista: ${driverItem.id}`);
         this.stateManager.setCurrentDriverId(driverItem.id);
         
-        // Aqui você implementaria a lógica real de extração
-        const personalData = await this.extractDriverPersonalData(driverItem.id);
+        // 🔧 CORREÇÃO: Adicionar timeout por operação individual
+        const extractionPromise = this.extractDriverPersonalData(driverItem.id);
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error(`Timeout na extração do motorista ${driverItem.id} após 60 segundos`)), 60000)
+        );
+        
+        // Corrida entre extração e timeout
+        const personalData = await Promise.race([extractionPromise, timeoutPromise]);
         
         // Simular salvamento no banco
         await this.savePersonalData(driverItem.id, personalData);
@@ -549,10 +555,14 @@ export class HybridOperationService {
         this.stateManager.incrementProcessed();
         processed++;
         
-        // Delay entre extrações para evitar sobrecarregar o sistema
+        // 🔧 CORREÇÃO: Delay variável baseado no sucesso
+        const baseDelay = 3000;
+        const randomDelay = Math.random() * 2000; // 0-2s adicional aleatório
+        const totalDelay = baseDelay + randomDelay;
+        
         if (processed < this.config.extractionBatchSize) {
-          logger.debug('HYBRID', 'Aguardando 3 segundos antes da próxima extração...');
-          await new Promise(resolve => setTimeout(resolve, 3000));
+          logger.debug('HYBRID', `Aguardando ${Math.round(totalDelay/1000)}s antes da próxima extração...`);
+          await new Promise(resolve => setTimeout(resolve, totalDelay));
         }
         
       } catch (error) {

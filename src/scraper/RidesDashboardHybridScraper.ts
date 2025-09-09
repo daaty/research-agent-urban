@@ -669,9 +669,14 @@ export class RidesDashboardHybridScraper {
         // EM VEZ DE RESETAR isLoggedIn, MANTER E TENTAR RECUPERAR
         console.log('🔄 [DOCKER-FIX] Mantendo isLoggedIn=true e tentando navegação direta para dashboard...');
         
+      // REMOVIDO: Verificação problemática que forçava retorno para login
+      /*
         try {
           // TENTAR NAVEGAR DIRETAMENTE PARA DASHBOARD PRIMEIRO
           console.log('🎯 [DOCKER-FIX] Tentando navegar diretamente para dashboard sem perder sessão...');
+          if (!this.page) {
+            throw new Error('Página não disponível');
+          }
           await this.page.goto(this.DASHBOARD_URL, { waitUntil: 'networkidle', timeout: 15000 });
           
           const afterNavUrl = this.page.url();
@@ -689,13 +694,14 @@ export class RidesDashboardHybridScraper {
           const username = process.env.RIDES_USERNAME;
           const password = process.env.RIDES_PASSWORD;
           
-          if (username && password) {
+          if (username && password && currentUrl) {
             await this.performLogin(currentUrl, username, password);
             console.log('✅ Sessão recuperada automaticamente');
           } else {
             throw new Error('Credenciais não disponíveis para recuperação automática');
           }
         }
+      */
       }
 
     // 🎯 OTIMIZADO: Verificar se já está no dashboard, só navegar se necessário
@@ -742,7 +748,7 @@ export class RidesDashboardHybridScraper {
         console.log('⚠️ [DEBUG] Erro ao imprimir HTML:', debugError);
       }
       
-      // Tentar múltiplos seletores para o campo driverId
+      // Tentar múltiplos seletores para o campo driverId COM TIMEOUT OTIMIZADO
       const possibleSelectors = [
         '#driverId',
         'input[placeholder*="driver"]',
@@ -755,15 +761,17 @@ export class RidesDashboardHybridScraper {
       let driverIdField = null;
       let usedSelector = '';
       
+      // 🔧 CORREÇÃO: Timeout mais baixo por seletor para evitar travamento
       for (const selector of possibleSelectors) {
         try {
-          await this.page.waitForSelector(selector, { timeout: 10000 }); // AUMENTADO DE 3s PARA 10s
+          await this.page.waitForSelector(selector, { timeout: 3000 }); // REDUZIDO de 10s para 3s
           driverIdField = selector;
           usedSelector = selector;
           console.log(`✅ Campo encontrado com seletor: ${selector}`);
           break;
         } catch {
-          // Log simplificado - só se não encontrar nenhum
+          // Continue para próximo seletor
+          console.log(`⚠️ Seletor ${selector} não encontrado, tentando próximo...`);
         }
       }
       
@@ -797,20 +805,95 @@ export class RidesDashboardHybridScraper {
         throw new Error('Campo driverId não encontrado em nenhum seletor');
       }
 
-      // Limpa e preenche o campo
+      // Limpa e preenche o campo COM TIMING SEGURO
+      console.log(`🔄 Limpando campo antes de preencher...`);
       await this.page.fill(usedSelector, '');
-      await this.page.fill(usedSelector, driverId);
+      await this.page.waitForTimeout(500); // Aguardar limpeza
+      
+      console.log(`⌨️ Digitando ID: ${driverId}...`);
+      await this.page.type(usedSelector, driverId, { delay: 100 }); // Simular digitação humana
+      await this.page.waitForTimeout(300); // Aguardar digitação
+      
+      // Verificar se foi realmente preenchido
+      const filledValue = await this.page.inputValue(usedSelector);
+      if (filledValue !== driverId) {
+        console.log(`⚠️ Campo não foi preenchido corretamente. Esperado: ${driverId}, Atual: ${filledValue}`);
+        // Tentar novamente
+        await this.page.fill(usedSelector, driverId);
+        await this.page.waitForTimeout(300);
+      }
 
-      console.log(`⌨️ Preenchido ID: ${driverId} usando seletor: ${usedSelector}`);
+      console.log(`✅ Campo preenchido com: ${filledValue} usando seletor: ${usedSelector}`);
 
-      // Aguarda e clica no botão "Details Driver"
-      await this.page.waitForSelector('button[ng-click="getDriverInfo(enteredDriverValue)"]', { timeout: 5000 });
-      await this.page.click('button[ng-click="getDriverInfo(enteredDriverValue)"]');
+      // Aguarda e clica no botão "Details Driver" COM VERIFICAÇÕES ROBUSTAS
+      console.log(`🔍 Procurando botão "Details Driver"...`);
+      const buttonSelector = 'button[ng-click="getDriverInfo(enteredDriverValue)"]';
+      
+      try {
+        // Aguardar botão aparecer
+        await this.page.waitForSelector(buttonSelector, { timeout: 15000 });
+        
+        // Verificar se está habilitado e clicável
+        const isEnabled = await this.page.isEnabled(buttonSelector);
+        const isVisible = await this.page.isVisible(buttonSelector);
+        
+        if (!isEnabled || !isVisible) {
+          console.log(`⚠️ Botão não está clicável. Enabled: ${isEnabled}, Visible: ${isVisible}`);
+          await this.page.waitForTimeout(2000); // Aguardar mais um pouco
+        }
+        
+        // Aguardar AngularJS processar o valor
+        await this.page.waitForTimeout(1000);
+        
+        console.log(`🖱️ Clicando no botão "Details Driver"...`);
+        await this.page.click(buttonSelector);
+        
+        console.log('✅ Botão "Details Driver" clicado com sucesso');
+        
+      } catch (buttonError) {
+        console.log(`❌ Erro ao localizar/clicar botão: ${buttonError}`);
+        throw new Error(`Botão "Details Driver" não encontrado ou não clicável: ${buttonError}`);
+      }
 
-      console.log('🔍 Botão "Details Driver" clicado');
-
-      // Aguarda os dados carregarem (pode demorar)
-      await this.page.waitForTimeout(3000);
+      // Aguarda os dados carregarem com VERIFICAÇÃO INTELIGENTE
+      console.log(`⏳ Aguardando dados do motorista ${driverId} carregarem...`);
+      
+      let retries = 0;
+      const maxRetries = 10; // 10 tentativas = até 30 segundos
+      let dataLoaded = false;
+      
+      while (!dataLoaded && retries < maxRetries) {
+        await this.page.waitForTimeout(3000); // Aguardar 3s por tentativa
+        
+        // Verificar se apareceu algum conteúdo específico
+        try {
+          const bodyText = await this.page.textContent('body');
+          
+          // Verificar indicadores de que os dados carregaram
+          if (bodyText && (
+            bodyText.includes('Driver ID') || 
+            bodyText.includes('Name') ||
+            bodyText.includes('Phone') ||
+            bodyText.includes('City') ||
+            bodyText.includes(driverId)
+          )) {
+            dataLoaded = true;
+            console.log(`✅ Dados carregados após ${(retries + 1) * 3} segundos`);
+          } else {
+            retries++;
+            console.log(`⏳ Tentativa ${retries}/${maxRetries} - dados ainda carregando...`);
+          }
+          
+        } catch (checkError) {
+          console.log(`⚠️ Erro ao verificar carregamento: ${checkError}`);
+          retries++;
+        }
+      }
+      
+      if (!dataLoaded) {
+        console.log(`❌ Timeout: dados não carregaram após ${maxRetries * 3} segundos`);
+        throw new Error(`Timeout aguardando dados do motorista ${driverId}`);
+      }
 
       // Extrai dados da página (adaptar conforme estrutura real)
       const driverData = await this.extractDriverDetails();

@@ -13,7 +13,6 @@ import { config } from './config';
 import axios from 'axios';
 import { DatabaseManager } from './services/databaseManager';
 import { DataTransformer } from './services/dataTransformer';
-import { DriversDataTransformer } from './services/driversDataTransformer';
 import { AIAgentController } from './api/aiAgentController';
 import apiRoutes from './api';
 
