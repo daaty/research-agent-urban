@@ -48,8 +48,8 @@ export class DashboardController {
    */
   public async getDashboardStatus(req: Request, res: Response): Promise<void> {
     try {
-      const scrapers = this.statusService.getAllScrapers();
-      const overallStats = this.statusService.getOverallStats();
+      const scrapers = await this.statusService.getAllScrapers();
+      const overallStats = await this.statusService.getOverallStats();
       const webhookStatus = this.monitoring.getWebhookSystemStatus();
 
       res.json({
@@ -83,7 +83,7 @@ export class DashboardController {
    */
   public async getScrapers(req: Request, res: Response): Promise<void> {
     try {
-      const scrapers = this.statusService.getAllScrapers();
+      const scrapers = await this.statusService.getAllScrapers();
       
       res.json({
         success: true,
@@ -392,6 +392,53 @@ export class DashboardController {
       }
     } catch (error) {
       console.error('❌ [DashboardController] Error reporting activity:', error);
+    }
+  }
+
+  /**
+   * 🔄 POST /api/debug/reset-singleton - Resetar singleton para aplicar correções
+   */
+  public async resetSingleton(req: Request, res: Response): Promise<void> {
+    try {
+      console.log('🔄 [DEBUG] Resetando ScraperStatusService singleton...');
+      
+      // Reset do singleton
+      ScraperStatusService.resetInstance();
+      
+      // Nova instância
+      this.statusService = ScraperStatusService.getInstance();
+      
+      // Re-registrar scraper atual
+      const currentScraperId = this.getCurrentScraperId();
+      const scraperName = process.env.RIDES_USERNAME || 'default-scraper';
+      this.statusService.registerScraper(currentScraperId, scraperName);
+      
+      // Testar nova instância
+      const scrapers = await this.statusService.getAllScrapers();
+      
+      res.json({
+        success: true,
+        message: 'Singleton resetado com sucesso',
+        timestamp: new Date().toISOString(),
+        scrapersFound: scrapers.length,
+        scrapers: scrapers.map(s => ({
+          id: s.id,
+          name: s.name,
+          status: s.status,
+          rides: s.metrics.ridesScraped,
+          drivers: s.metrics.driversScraped
+        }))
+      });
+      
+      console.log(`✅ [DEBUG] Singleton resetado! Encontrados ${scrapers.length} scrapers.`);
+      
+    } catch (error: any) {
+      console.error('❌ [DEBUG] Erro ao resetar singleton:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
     }
   }
 }

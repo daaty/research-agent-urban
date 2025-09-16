@@ -56,17 +56,74 @@ const driversPersistentScraper_1 = require("../scraper/driversPersistentScraper"
 const driversDataTransformer_1 = require("./driversDataTransformer");
 const dataCacheManager_1 = require("./dataCacheManager"); // ⭐ INTEGRAR SISTEMA DE CACHE SOFISTICADO
 const databaseManager_1 = require("./databaseManager"); // ⭐ INTEGRAR SALVAMENTO NO BANCO
+const webhookValidator_1 = require("./webhookValidator"); // 🔍 VALIDATOR PARA WEBHOOKS
+const retryManager_1 = require("./retryManager"); // 🔄 RETRY MANAGER PARA WEBHOOKS
+const rateLimiter_1 = require("./rateLimiter"); // 🎛️ RATE LIMITER PARA CONTROLE DE TAXA
+const alertSystem_1 = require("./alertSystem"); // 🚨 SISTEMA DE ALERTAS
 class MonitoringService {
     constructor() {
         this.previousData = [];
         this.isRunning = false;
         this.cronTasks = [];
         this.lastRawData = []; // ⭐ ARMAZENAR ÚLTIMOS DADOS PARA WEBHOOK
+        this.dashboardStatusService = null; // 📊 INTEGRAÇÃO COM DASHBOARD
         this.dataFilePath = path_1.default.join(__dirname, '../../data/previous-rides-data.json');
         this.cacheManager = dataCacheManager_1.DataCacheManager.getInstance(); // ⭐ INICIALIZAR CACHE MANAGER
         this.databaseManager = databaseManager_1.DatabaseManager.getInstance(); // ⭐ INICIALIZAR DATABASE MANAGER
+        // 🔍 Inicializar WebhookValidator com configuração apropriada
+        this.webhookValidator = new webhookValidator_1.WebhookValidator({
+            strictMode: true,
+            sanitizeData: true,
+            maxPayloadSize: 1024 * 100, // 100KB
+            allowEmptyArrays: false,
+            validateDataTypes: true,
+            checkForDuplicates: true,
+            requireMetadata: true
+        });
+        // 🔄 Inicializar RetryManager para webhooks robustos
+        this.retryManager = new retryManager_1.RetryManager({
+            maxRetries: 3,
+            baseDelay: 2000, // 2 segundos inicial
+            maxDelay: 60000, // 1 minuto máximo
+            backoffMultiplier: 2.5,
+            jitterEnabled: true,
+            circuitBreakerEnabled: true,
+            circuitBreakerThreshold: 5,
+            circuitBreakerTimeout: 120000, // 2 minutos
+            deadLetterQueueEnabled: true,
+            deadLetterQueueMaxSize: 50
+        });
+        // 🎛️ Inicializar RateLimiter para controle inteligente de taxa
+        this.rateLimiter = new rateLimiter_1.RateLimiter({
+            tokensPerSecond: 0.1, // 1 webhook a cada 10 segundos (conservative)
+            burstCapacity: 3, // Burst de até 3 webhooks
+            windowSizeMs: 60000, // Janela de 1 minuto
+            enableBurstProtection: true,
+            enablePerEndpointLimiting: true,
+            defaultEndpointLimit: 6, // 6 webhooks por minuto por endpoint
+            endpointLimits: new Map([
+                ['webhook-n8n-delivery', 4], // N8N: 4 por minuto (conservativo)
+                ['webhook-slack', 20], // Slack: 20 por minuto
+                ['webhook-discord', 30] // Discord: 30 por minuto
+            ])
+        });
+        // 🚨 Inicializar AlertSystem para monitoramento crítico
+        this.alertSystem = new alertSystem_1.AlertSystem({
+            enabled: true,
+            webhookUrl: process.env.N8N_WEBHOOK_URL || '',
+            alertTypes: ['SCRAPER_DOWN', 'LOGIN_FAILED', 'SCRAPER_STARTED', 'SCRAPER_STOPPED', 'HIGH_ERROR_RATE'],
+            cooldownMs: 300000, // 5 minutos entre alertas do mesmo tipo
+            maxRetries: 3,
+            enableHeartbeat: true,
+            heartbeatIntervalMs: 600000, // 10 minutos de heartbeat
+            scraperIdentifier: process.env.RIDES_USERNAME || 'unknown-scraper'
+        });
         this.loadPreviousData();
         this.initializeDatabase(); // ⭐ INICIALIZAR CONEXÃO COM BANCO
+        console.log('🔍 [MonitoringService] WebhookValidator inicializado');
+        console.log('🔄 [MonitoringService] RetryManager inicializado para webhooks robustos');
+        console.log('🎛️ [MonitoringService] RateLimiter inicializado para controle de taxa');
+        console.log('🚨 [MonitoringService] AlertSystem inicializado para:', process.env.RIDES_USERNAME);
     }
     static getInstance() {
         if (!MonitoringService.instance) {
@@ -77,6 +134,119 @@ class MonitoringService {
             console.log('♻️ Reutilizando instância existente do MonitoringService');
         }
         return MonitoringService.instance;
+    }
+    /**
+     * 📊 Integrar com ScraperStatusService do dashboard
+     */
+    setDashboardStatusService(statusService) {
+        this.dashboardStatusService = statusService;
+        console.log('📊 [MonitoringService] Integrado com Dashboard StatusService');
+    }
+    /**
+     * 📊 Notificar dashboard sobre atividade de scraping
+     * Salva tanto na memória local (se dashboard habilitado) quanto no banco (sempre)
+     */
+    notifyDashboardActivity(scraperId, activity, metrics) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const timestamp = Date.now();
+            // 💾 SEMPRE salvar no banco PostgreSQL (workers e master)
+            yield this.saveScraperStatusToDatabase(scraperId, activity, timestamp, metrics);
+            // 🖥️ Se dashboard habilitado, também atualizar memória local
+            if (this.dashboardStatusService) {
+                switch (activity) {
+                    case 'SCRAPING_START':
+                        this.dashboardStatusService.updateHeartbeat(scraperId, timestamp);
+                        break;
+                    case 'SCRAPING_SUCCESS':
+                        this.dashboardStatusService.updateActivity(scraperId, timestamp, metrics);
+                        this.dashboardStatusService.updateHeartbeat(scraperId, timestamp);
+                        break;
+                    case 'LOGIN_SUCCESS':
+                        this.dashboardStatusService.updateActivity(scraperId, timestamp);
+                        this.dashboardStatusService.updateHeartbeat(scraperId, timestamp);
+                        break;
+                    case 'SCRAPING_ERROR':
+                        this.dashboardStatusService.updateHeartbeat(scraperId, timestamp);
+                        if (metrics === null || metrics === void 0 ? void 0 : metrics.errorsCount) {
+                            this.dashboardStatusService.updateActivity(scraperId, timestamp, { errorsCount: metrics.errorsCount });
+                        }
+                        break;
+                }
+            }
+        });
+    }
+    /**
+     * 💾 Salvar status do scraper no banco PostgreSQL
+     */
+    saveScraperStatusToDatabase(scraperId, activity, timestamp, metrics) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const username = process.env.RIDES_USERNAME || 'unknown';
+                if (!this.databaseManager.isConnectedToDatabase()) {
+                    console.log('⚠️ [ScraperStatus] Banco não disponível - pulando salvamento');
+                    return;
+                }
+                // Preparar métricas para o banco
+                const performanceMetrics = {
+                    ridesScraped: (metrics === null || metrics === void 0 ? void 0 : metrics.ridesScraped) || 0,
+                    driversScraped: (metrics === null || metrics === void 0 ? void 0 : metrics.driversScraped) || 0,
+                    errorsCount: (metrics === null || metrics === void 0 ? void 0 : metrics.errorsCount) || 0,
+                    successRate: (metrics === null || metrics === void 0 ? void 0 : metrics.successRate) || 0,
+                    lastUpdate: new Date().toISOString()
+                };
+                // Inserir ou atualizar status
+                const query = `
+        INSERT INTO scraper_status (
+          scraper_id, scraper_name, status, last_heartbeat, last_activity, 
+          performance_metrics, created_at, updated_at
+        ) 
+        VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+        ON CONFLICT (scraper_id) 
+        DO UPDATE SET 
+          status = EXCLUDED.status,
+          last_heartbeat = EXCLUDED.last_heartbeat,
+          last_activity = CASE 
+            WHEN EXCLUDED.last_activity IS NOT NULL THEN EXCLUDED.last_activity
+            ELSE scraper_status.last_activity
+          END,
+          performance_metrics = EXCLUDED.performance_metrics,
+          updated_at = NOW()
+      `;
+                const status = this.mapActivityToStatus(activity);
+                const lastActivity = (activity === 'LOGIN_SUCCESS' || activity === 'SCRAPING_SUCCESS') ? new Date(timestamp) : null;
+                yield this.databaseManager.query(query, [
+                    scraperId,
+                    username,
+                    status,
+                    new Date(timestamp), // ✅ Converter milissegundos para Date
+                    lastActivity,
+                    JSON.stringify(performanceMetrics) // Salvando métricas como JSON
+                ]);
+                console.log(`💾 [ScraperStatus] Salvou: ${scraperId} → ${status}`);
+            }
+            catch (error) {
+                console.error('❌ [ScraperStatus] Erro ao salvar no banco:', error);
+            }
+        });
+    }
+    /**
+     * 🔄 Mapear atividade para status do banco
+     */
+    mapActivityToStatus(activity) {
+        switch (activity) {
+            case 'SCRAPING_START': return 'STARTING';
+            case 'LOGIN_SUCCESS': return 'ONLINE_ACTIVE';
+            case 'SCRAPING_SUCCESS': return 'ONLINE_ACTIVE';
+            case 'SCRAPING_ERROR': return 'ERROR';
+            default: return 'OFFLINE';
+        }
+    }
+    /**
+     * 🆔 Obter ID do scraper atual (compatível com dashboard)
+     */
+    getCurrentScraperId() {
+        const username = process.env.RIDES_USERNAME || 'default';
+        return `scraper-${Buffer.from(username).toString('base64').slice(0, 8)}`;
     }
     initializeDatabase() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -238,42 +408,106 @@ class MonitoringService {
                     console.log('⚠️ N8N_WEBHOOK_URL não configurado no .env');
                     return;
                 }
-                const payload = Object.assign(Object.assign({}, result), { hasChanges: result.summary.newCount > 0 ||
+                // 🔍 VALIDAR PAYLOAD ANTES DO ENVIO
+                console.log('🔍 [MonitoringService] Validando payload do webhook...');
+                const validationResult = yield this.webhookValidator.validate(result);
+                // Exibir resultados da validação
+                if (validationResult.errors.length > 0) {
+                    console.log(`❌ [WebhookValidator] ${validationResult.errors.length} erros encontrados:`);
+                    validationResult.errors.forEach((error, i) => {
+                        console.log(`  ${i + 1}. [${error.severity}] ${error.field}: ${error.message}`);
+                    });
+                }
+                if (validationResult.warnings.length > 0) {
+                    console.log(`⚠️ [WebhookValidator] ${validationResult.warnings.length} avisos:`);
+                    validationResult.warnings.forEach((warning, i) => {
+                        console.log(`  ${i + 1}. ${warning.field}: ${warning.message}`);
+                    });
+                }
+                // Bloquear envio se há erros críticos
+                const criticalErrors = validationResult.errors.filter(e => e.severity === 'critical');
+                if (criticalErrors.length > 0) {
+                    console.log('🚫 [MonitoringService] Bloqueando envio devido a erros críticos no payload');
+                    return;
+                }
+                // Usar payload sanitizado se disponível
+                const finalPayload = validationResult.sanitizedPayload || result;
+                const payload = Object.assign(Object.assign({}, finalPayload), { hasChanges: result.summary.newCount > 0 ||
                         result.summary.updatedCount > 0 ||
                         result.summary.cancelledCount > 0 ||
                         result.summary.completedCount > 0, metadata: {
                         scraperVersion: '3.0.0', // ⭐ ATUALIZAR VERSÃO
                         source: 'rides-dashboard-monitoring-v3',
                         environment: process.env.NODE_ENV || 'development',
-                        cacheSystemEnabled: true // ⭐ INDICAR QUE USA SISTEMA DE CACHE
+                        cacheSystemEnabled: true, // ⭐ INDICAR QUE USA SISTEMA DE CACHE
+                        webhookValidated: true, // 🔍 INDICAR QUE FOI VALIDADO
+                        validationTime: validationResult.metadata.validationTime,
+                        payloadSize: validationResult.metadata.payloadSize,
+                        sanitizationApplied: validationResult.metadata.sanitizationApplied
                     } });
-                // ⭐ LÓGICA CORRETA: Enviar sempre se há dados, ou se há mudanças detectadas
-                if (!payload.hasChanges && this.lastRawData.length === 0) {
+                // ⭐ LÓGICA CORRETA: Enviar APENAS se há mudanças reais detectadas pelo cache
+                if (!payload.hasChanges) {
                     console.log('⏭️ Pulando envio para n8n (sem mudanças detectadas pelo sistema de cache)');
                     return;
                 }
-                // ⭐ FORÇAR ENVIO se há dados mas cache não detectou mudanças (primeira execução)
-                if (!payload.hasChanges && this.lastRawData.length > 0) {
-                    console.log('🔄 Forçando envio para n8n (primeira execução com dados)');
-                    payload.hasChanges = true;
-                }
                 console.log(`🚀 Enviando para n8n: ${JSON.stringify(result.summary)}`);
-                const response = yield axios_1.default.post(webhookUrl, payload, {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'User-Agent': 'Rides-Scraper-Bot/3.0.0'
-                    },
-                    timeout: 30000
-                });
-                console.log(`✅ Dados enviados para n8n: ${response.status}`);
-            }
-            catch (error) {
-                if (axios_1.default.isAxiosError(error) && ((_a = error.response) === null || _a === void 0 ? void 0 : _a.status) === 404) {
-                    console.log('⚠️ n8n webhook não encontrado (404) - Verifique se o workflow está ativo');
+                console.log(`🔍 Payload validado: ${validationResult.errors.length} erros, ${validationResult.warnings.length} avisos`);
+                // 🎛️ VERIFICAR RATE LIMIT ANTES DO ENVIO
+                console.log('🎛️ [MonitoringService] Verificando rate limit...');
+                const rateLimitResult = yield this.rateLimiter.checkLimit('webhook-n8n-delivery');
+                if (!rateLimitResult.allowed) {
+                    console.log(`🚫 [RateLimiter] Webhook bloqueado: ${rateLimitResult.reason}`);
+                    console.log(`⏰ [RateLimiter] Retry após: ${rateLimitResult.retryAfter}ms`);
+                    // Aguardar até que seja seguro enviar
+                    console.log('⏳ [RateLimiter] Aguardando token disponível...');
+                    const waitResult = yield this.rateLimiter.waitForToken('webhook-n8n-delivery');
+                    if (!waitResult.allowed) {
+                        console.error('❌ [RateLimiter] Timeout aguardando token - abortando envio');
+                        return;
+                    }
+                    console.log(`✅ [RateLimiter] Token obtido após espera (${waitResult.tokensRemaining} restantes)`);
                 }
                 else {
-                    console.error('❌ Erro ao enviar para n8n:', error instanceof Error ? error.message : error);
+                    console.log(`✅ [RateLimiter] Rate limit OK (${rateLimitResult.tokensRemaining} tokens restantes)`);
                 }
+                // 🔄 USAR RETRYMANAGER PARA ENVIO ROBUSTO
+                const retryResult = yield this.retryManager.executeWithRetry(() => __awaiter(this, void 0, void 0, function* () {
+                    const response = yield axios_1.default.post(webhookUrl, payload, {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'User-Agent': 'Rides-Scraper-Bot/3.0.0'
+                        },
+                        timeout: 30000
+                    });
+                    return response;
+                }), 'webhook-n8n-delivery', result);
+                if (retryResult.success) {
+                    console.log(`✅ Webhook enviado com sucesso após ${retryResult.attempts} tentativa(s) em ${retryResult.totalTime}ms`);
+                    if (retryResult.result) {
+                        console.log(`📊 Status HTTP: ${retryResult.result.status}`);
+                    }
+                }
+                else {
+                    console.error(`❌ Falha ao enviar webhook após ${retryResult.attempts} tentativa(s):`);
+                    console.error(`   Erro: ${(_a = retryResult.error) === null || _a === void 0 ? void 0 : _a.message}`);
+                    console.error(`   Tempo total: ${retryResult.totalTime}ms`);
+                    if (retryResult.circuitBreakerTriggered) {
+                        console.error('🚫 Circuit breaker ativado - endpoint pode estar instável');
+                    }
+                    if (retryResult.sentToDeadLetterQueue) {
+                        console.error('💀 Payload enviado para Dead Letter Queue para reprocessamento');
+                    }
+                    // Mostrar métricas do RetryManager
+                    const metrics = this.retryManager.getMetrics();
+                    console.log('📊 [RetryManager] Métricas:', {
+                        successRate: `${metrics.successRate}%`,
+                        circuitBreaker: metrics.circuitBreakerState,
+                        dlqSize: metrics.deadLetterQueueSize
+                    });
+                }
+            }
+            catch (error) {
+                console.error('❌ Erro crítico no sendToN8n:', error instanceof Error ? error.message : error);
             }
         });
     }
@@ -433,15 +667,41 @@ class MonitoringService {
             }
         });
     }
+    /**
+     * 🔍 Detecta se o erro é relacionado a falha de login
+     */
+    isLoginFailure(errorMessage) {
+        const loginIndicators = [
+            'login failed',
+            'authentication failed',
+            'credenciais inválidas',
+            'não foi possível fazer login',
+            'access denied',
+            'unauthorized',
+            'invalid credentials',
+            'session expired',
+            'please login',
+            'captcha',
+            'blocked'
+        ];
+        const message = errorMessage.toLowerCase();
+        return loginIndicators.some(indicator => message.includes(indicator));
+    }
     performScraping() {
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
             if (this.isRunning) {
                 console.log('⚠️ Scraping já em execução, pulando...');
                 return;
             }
             this.isRunning = true;
             console.log(`🕐 [${new Date().toLocaleString()}] Iniciando scraping (rides + drivers)...`);
+            // 📊 Notificar dashboard que scraping iniciou
+            const scraperId = this.getCurrentScraperId();
+            yield this.notifyDashboardActivity(scraperId, 'SCRAPING_START');
             try {
+                // 🚨 Atualizar atividade no sistema de alertas
+                this.alertSystem.updateActivity();
                 // ⭐ VERIFICAR SE O BANCO ESTÁ CONECTADO
                 if (!this.databaseManager.isConnectedToDatabase()) {
                     console.log('⚠️ Banco de dados não conectado, tentando reconectar...');
@@ -449,10 +709,46 @@ class MonitoringService {
                 }
                 // 1. EXECUTAR SCRAPING DE RIDES
                 console.log('🚗 Executando scraping de rides...');
+                console.log('🔍 [DEBUG] Chamando scrapeAllRidesDataPersistent()...');
                 const scrapingResult = yield (0, ridesPersistentScraper_1.scrapeAllRidesDataPersistent)();
-                if (!scrapingResult.success || !scrapingResult.data || scrapingResult.data.length === 0) {
-                    console.log('⚠️ Nenhum dado de rides extraído:', scrapingResult.message);
+                console.log('🔍 [DEBUG] Resultado do scraping recebido:', {
+                    success: scrapingResult.success,
+                    loginSuccess: scrapingResult.loginSuccess,
+                    dataLength: ((_a = scrapingResult.data) === null || _a === void 0 ? void 0 : _a.length) || 0,
+                    message: ((_b = scrapingResult.message) === null || _b === void 0 ? void 0 : _b.substring(0, 100)) || 'N/A'
+                });
+                // 🚨 VERIFICAR FALHAS DE LOGIN/SCRAPING
+                if (!scrapingResult.success) {
+                    console.error('❌ Falha no scraping de rides:', scrapingResult.message);
+                    // 📊 Notificar dashboard sobre erro
+                    yield this.notifyDashboardActivity(scraperId, 'SCRAPING_ERROR');
+                    // Detectar se é falha de login
+                    if (this.isLoginFailure(scrapingResult.message || '')) {
+                        yield this.alertSystem.alertLoginFailed(scrapingResult.message || 'Unknown login error');
+                        console.log('🚨 [AlertSystem] Alerta de falha de login enviado');
+                    }
+                    else {
+                        yield this.alertSystem.alertScraperDown(scrapingResult.message || 'Scraping failed');
+                        console.log('🚨 [AlertSystem] Alerta de scraper down enviado');
+                    }
                     return;
+                }
+                // ✅ SCRAPING BEM-SUCEDIDO - SEMPRE NOTIFICAR ATIVIDADE
+                if (scrapingResult.loginSuccess) {
+                    console.log('🎉 ATIVIDADE DE SCRAPING DETECTADA - Notificando dashboard!');
+                    yield this.notifyDashboardActivity(scraperId, 'LOGIN_SUCCESS');
+                }
+                else {
+                    console.log('✅ Scraping bem-sucedido - Heartbeat será atualizado no final com métricas completas');
+                    // ❌ REMOVIDO: await this.notifyDashboardActivity(scraperId, 'SCRAPING_SUCCESS');
+                    // ✅ Métricas serão enviadas no final do processamento com dados completos
+                }
+                if (!scrapingResult.data || scrapingResult.data.length === 0) {
+                    console.log('⚠️ Nenhum dado de rides extraído:', scrapingResult.message);
+                    console.log('📊 Mas login foi bem-sucedido - dashboard notificado!');
+                    // Login bem-sucedido mesmo sem dados - não é erro crítico
+                    // await this.alertSystem.alertScraperDown('No data extracted from rides scraping');
+                    // return;  // ❌ REMOVIDO: não retornar aqui, continuar processamento
                 }
                 // 🔧 ADAPTAÇÃO PARA ESTRUTURA ATUAL DO BANCO
                 // Processar dados para formato compatível: {tableName, newRecords}
@@ -523,12 +819,6 @@ class MonitoringService {
                             yield this.databaseManager.insertRideData([rideRecord]);
                         }
                         console.log(`✅ Dados adaptados salvos no banco de dados`);
-                        // ⭐ FORÇAR hasChanges se há dados para salvar na primeira execução
-                        if (changes.summary.newCount === 0 && changes.summary.updatedCount === 0) {
-                            console.log(`🔄 Primeira execução detectada - forçando mudanças para webhook`);
-                            changes.summary.newCount = rawData.length;
-                            changes.newRecords = this.normalizeRideData(rawData);
-                        }
                     }
                     catch (ridesError) {
                         console.error('❌ Erro ao salvar dados adaptados:', ridesError);
@@ -544,8 +834,10 @@ class MonitoringService {
                 console.log('👥 Executando scraping de drivers...');
                 const driversResult = yield (0, driversPersistentScraper_1.scrapeAllDriversDataPersistent)();
                 let driversTransformed = null;
+                let totalDriversProcessed = 0; // 📊 Variável para capturar drivers processados
                 if (driversResult.success && driversResult.data && driversResult.data.length > 0) {
-                    console.log(`📊 Dados de drivers extraídos: ${driversResult.data.reduce((sum, table) => sum + table.rows.length, 0)} registros`);
+                    totalDriversProcessed = driversResult.data.reduce((sum, table) => sum + table.rows.length, 0);
+                    console.log(`📊 Dados de drivers extraídos: ${totalDriversProcessed} registros`);
                     try {
                         // 🚨 CORREÇÃO CRÍTICA: TRANSAÇÃO UNIFICADA PARA TODOS OS DADOS DE DRIVERS
                         console.log('🔄 [TRANSAÇÃO UNIFICADA] Salvando TODOS os dados de drivers em transação única...');
@@ -579,9 +871,43 @@ class MonitoringService {
                 // Enviar para n8n (apenas quando há mudanças - evita spam)
                 yield this.sendToN8n(changes);
                 console.log(`✅ [${new Date().toLocaleString()}] Scraping concluído (rides + drivers)`);
+                // 📊 Calcular métricas reais para o dashboard
+                const totalRides = changes.summary.newCount + changes.summary.updatedCount + changes.summary.cancelledCount + changes.summary.completedCount;
+                // 🔧 CORREÇÃO: Usar contagem real de drivers processados em vez de adaptedData
+                const totalDrivers = totalDriversProcessed; // Usar valor capturado do scraping de drivers
+                const successfulOperations = changes.summary.newCount + changes.summary.updatedCount + changes.summary.completedCount;
+                const errorOperations = changes.summary.cancelledCount; // Cancelados podem ser considerados problemas
+                const successRate = totalRides > 0 ? (successfulOperations / totalRides) * 100 : 100;
+                const metrics = {
+                    ridesScraped: totalRides,
+                    driversScraped: totalDrivers,
+                    errorsCount: errorOperations,
+                    successRate: Math.round(successRate * 100) / 100 // 2 casas decimais
+                };
+                console.log(`📈 Métricas calculadas: ${totalRides} rides, ${totalDrivers} drivers, ${successRate.toFixed(1)}% sucesso`);
+                // 📊 Notificar dashboard que scraping foi bem-sucedido COM MÉTRICAS
+                yield this.notifyDashboardActivity(scraperId, 'SCRAPING_SUCCESS', metrics);
             }
             catch (error) {
                 console.error('❌ Erro durante scraping:', error);
+                // 📊 Notificar dashboard sobre erro COM contador de erros
+                const errorMetrics = {
+                    ridesScraped: 0,
+                    driversScraped: 0,
+                    errorsCount: 1, // Incrementar contador de erros
+                    successRate: 0
+                };
+                yield this.notifyDashboardActivity(scraperId, 'SCRAPING_ERROR', errorMetrics);
+                // �🚨 NOTIFICAR ERRO CRÍTICO DO SCRAPER
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                if (this.isLoginFailure(errorMessage)) {
+                    yield this.alertSystem.alertLoginFailed(errorMessage);
+                    console.log('🚨 [AlertSystem] Alerta de falha de login enviado (catch)');
+                }
+                else {
+                    yield this.alertSystem.alertScraperDown(`Critical error: ${errorMessage}`);
+                    console.log('🚨 [AlertSystem] Alerta de erro crítico enviado (catch)');
+                }
             }
             finally {
                 this.isRunning = false;
@@ -613,6 +939,9 @@ class MonitoringService {
             this.performScraping();
         });
         this.cronTasks = [task1];
+        // 🚨 INICIAR SISTEMA DE HEARTBEAT
+        console.log('💓 Iniciando sistema de heartbeat (monitoramento de atividade)...');
+        this.alertSystem.startHeartbeat();
         console.log('✅ Monitoramento iniciado!');
     }
     stopMonitoring() {
@@ -623,12 +952,180 @@ class MonitoringService {
             }
         });
         this.cronTasks = [];
+        // 🚨 PARAR SISTEMA DE HEARTBEAT
+        this.alertSystem.stopHeartbeat();
     }
     runOnce() {
         return __awaiter(this, void 0, void 0, function* () {
             console.log('🔄 Executando scraping único...');
             yield this.performScraping();
         });
+    }
+    // 🔄 MÉTODOS DE GESTÃO DO RETRYMANAGER
+    /**
+     * 📊 Obter métricas do RetryManager
+     */
+    getRetryMetrics() {
+        return this.retryManager.getMetrics();
+    }
+    /**
+     * 💀 Obter items da Dead Letter Queue
+     */
+    getDeadLetterQueue() {
+        return this.retryManager.getDeadLetterQueue();
+    }
+    /**
+     * 🔄 Processar items da Dead Letter Queue
+     */
+    processDLQ() {
+        return __awaiter(this, void 0, void 0, function* () {
+            console.log('🔄 [MonitoringService] Processando Dead Letter Queue...');
+            yield this.retryManager.processDLQ();
+        });
+    }
+    /**
+     * 🧹 Limpar Dead Letter Queue
+     */
+    clearDeadLetterQueue() {
+        return this.retryManager.clearDeadLetterQueue();
+    }
+    /**
+     * 🔄 Reset do Circuit Breaker
+     */
+    resetCircuitBreaker() {
+        this.retryManager.resetCircuitBreaker();
+        console.log('🔄 [MonitoringService] Circuit breaker resetado');
+    }
+    /**
+     * ⚙️ Atualizar configuração do RetryManager
+     */
+    updateRetryConfig(config) {
+        this.retryManager.updateConfig(config);
+        console.log('⚙️ [MonitoringService] Configuração do RetryManager atualizada');
+    }
+    /**
+     * 📈 Obter status completo do sistema de webhooks
+     */
+    getWebhookSystemStatus() {
+        const retryMetrics = this.retryManager.getMetrics();
+        const dlqItems = this.retryManager.getDeadLetterQueue();
+        const rateLimitMetrics = this.rateLimiter.getMetrics();
+        const rateLimitHealth = this.rateLimiter.getHealthStatus();
+        return {
+            retryManager: {
+                metrics: retryMetrics,
+                healthStatus: retryMetrics.successRate > 85 ? 'healthy' :
+                    retryMetrics.successRate > 60 ? 'degraded' : 'unhealthy',
+                circuitBreakerStatus: retryMetrics.circuitBreakerState,
+                deadLetterQueueSize: retryMetrics.deadLetterQueueSize,
+                recentFailures: dlqItems.slice(-5).map(item => ({
+                    id: item.id,
+                    error: item.originalError.message,
+                    timestamp: new Date(item.timestamp).toISOString(),
+                    attempts: item.attempts.length
+                }))
+            },
+            rateLimiter: {
+                metrics: rateLimitMetrics,
+                healthStatus: rateLimitHealth.status,
+                details: rateLimitHealth.details,
+                tokensAvailable: rateLimitHealth.tokensAvailable,
+                blockedPercentage: rateLimitHealth.blockedPercentage,
+                recommendations: rateLimitHealth.recommendations
+            },
+            webhookValidator: {
+                enabled: true,
+                strictMode: true,
+                sanitizationEnabled: true
+            },
+            recommendations: this.generateWebhookRecommendations(retryMetrics, rateLimitMetrics)
+        };
+    }
+    // 🎛️ MÉTODOS DE GESTÃO DO RATELIMITER
+    /**
+     * 📊 Obter métricas do RateLimiter
+     */
+    getRateLimitMetrics() {
+        return this.rateLimiter.getMetrics();
+    }
+    /**
+     * 🏥 Obter status de saúde do RateLimiter
+     */
+    getRateLimitHealth() {
+        return this.rateLimiter.getHealthStatus();
+    }
+    /**
+     * 📈 Obter estatísticas detalhadas do RateLimiter
+     */
+    getRateLimitStats() {
+        return this.rateLimiter.getDetailedStats();
+    }
+    /**
+     * ⚙️ Atualizar configuração do RateLimiter
+     */
+    updateRateLimitConfig(config) {
+        this.rateLimiter.updateConfig(config);
+        console.log('⚙️ [MonitoringService] Configuração do RateLimiter atualizada');
+    }
+    /**
+     * 🔄 Reset do RateLimiter
+     */
+    resetRateLimiter() {
+        this.rateLimiter.reset();
+        console.log('🔄 [MonitoringService] RateLimiter resetado');
+    }
+    /**
+     * 🎯 Testar rate limit para endpoint específico
+     */
+    testRateLimit() {
+        return __awaiter(this, arguments, void 0, function* (endpoint = 'webhook-n8n-delivery') {
+            console.log(`🧪 [MonitoringService] Testando rate limit para: ${endpoint}`);
+            const result = yield this.rateLimiter.checkLimit(endpoint);
+            console.log(`📊 Resultado: ${result.allowed ? 'PERMITIDO' : 'BLOQUEADO'}`);
+            return result;
+        });
+    }
+    /**
+     * ⏳ Aguardar token disponível
+     */
+    waitForRateLimit() {
+        return __awaiter(this, arguments, void 0, function* (endpoint = 'webhook-n8n-delivery') {
+            console.log(`⏳ [MonitoringService] Aguardando token para: ${endpoint}`);
+            return yield this.rateLimiter.waitForToken(endpoint);
+        });
+    }
+    /**
+     * 💡 Gerar recomendações baseadas nas métricas (atualizado com RateLimiter)
+     */
+    generateWebhookRecommendations(retryMetrics, rateLimitMetrics) {
+        const recommendations = [];
+        // Recomendações do RetryManager
+        if (retryMetrics.successRate < 60) {
+            recommendations.push('⚠️ Taxa de sucesso baixa - verificar conectividade com n8n');
+        }
+        if (retryMetrics.circuitBreakerTrips > 5) {
+            recommendations.push('🚫 Muitas ativações do circuit breaker - verificar estabilidade do endpoint');
+        }
+        if (retryMetrics.deadLetterQueueSize > 10) {
+            recommendations.push('💀 Dead Letter Queue crescendo - processar items pendentes');
+        }
+        if (retryMetrics.circuitBreakerState === 'OPEN') {
+            recommendations.push('🔴 Circuit breaker OPEN - sistema em modo de proteção');
+        }
+        // Recomendações do RateLimiter
+        if (rateLimitMetrics.blockedPercentage > 20) {
+            recommendations.push('🎛️ Alta taxa de bloqueios no rate limiter - revisar configuração');
+        }
+        if (rateLimitMetrics.currentTokens < 1) {
+            recommendations.push('⏳ Rate limiter sem tokens - aguardando reposição');
+        }
+        if (rateLimitMetrics.averageWaitTime > 5000) {
+            recommendations.push('⏰ Tempo de espera alto no rate limiter - considerar aumentar capacidade');
+        }
+        if (recommendations.length === 0) {
+            recommendations.push('✅ Sistema de webhooks funcionando corretamente');
+        }
+        return recommendations;
     }
 }
 exports.MonitoringService = MonitoringService;

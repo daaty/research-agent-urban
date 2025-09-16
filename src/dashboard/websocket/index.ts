@@ -22,9 +22,8 @@ let dashboardSocket: DashboardWebSocket;
 export function initWebSocket(io: SocketIOServer, monitoring: MonitoringService): DashboardWebSocket {
   const statusService = ScraperStatusService.getInstance();
   
-  // 🔗 INTEGRAR MonitoringService com ScraperStatusService
-  monitoring.setDashboardStatusService(statusService);
-  console.log('🔗 [WebSocket] MonitoringService integrado com Dashboard StatusService');
+  // � NOTA: Integração MonitoringService ↔ StatusService já feita no app-persistent.ts
+  console.log('� [WebSocket] Dashboard WebSocket initialized');
   
   dashboardSocket = {
     io,
@@ -39,7 +38,9 @@ export function initWebSocket(io: SocketIOServer, monitoring: MonitoringService)
     console.log(`📡 [WebSocket] Dashboard client connected: ${socket.id}`);
 
     // Enviar status inicial
-    handleInitialConnection(socket);
+    handleInitialConnection(socket).catch(err => {
+      console.error('🔥 [WebSocket] Erro ao enviar dados iniciais:', err);
+    });
 
     // Configurar event listeners
     setupSocketListeners(socket);
@@ -71,9 +72,9 @@ function setupSystemListeners(): void {
 /**
  * 🔄 Verificar mudanças de status periodicamente
  */
-function checkForStatusChanges(): void {
+async function checkForStatusChanges(): Promise<void> {
   try {
-    const scrapers = dashboardSocket.statusService.getAllScrapers();
+    const scrapers = await dashboardSocket.statusService.getAllScrapers();
     
     // Broadcast status geral
     dashboardSocket.io.of('/dashboard').emit('status-update', {
@@ -98,10 +99,10 @@ function checkForStatusChanges(): void {
 /**
  * 📤 Lidar com conexão inicial - enviar dados atuais
  */
-function handleInitialConnection(socket: Socket): void {
+async function handleInitialConnection(socket: Socket): Promise<void> {
   try {
     // Enviar status atual dos scrapers
-    const scrapers = dashboardSocket.statusService.getAllScrapers();
+    const scrapers = await dashboardSocket.statusService.getAllScrapers();
     socket.emit('initial-data', {
       type: 'INITIAL_SCRAPERS',
       data: scrapers,
@@ -139,9 +140,9 @@ function handleInitialConnection(socket: Socket): void {
  */
 function setupSocketListeners(socket: Socket): void {
   // Cliente solicita atualização de status
-  socket.on('request-status-update', () => {
+  socket.on('request-status-update', async () => {
     try {
-      const scrapers = dashboardSocket.statusService.getAllScrapers();
+      const scrapers = await dashboardSocket.statusService.getAllScrapers();
       socket.emit('status-update', {
         type: 'SCRAPERS_STATUS',
         data: scrapers,

@@ -33,24 +33,30 @@
     "test:drivers-performance": "ts-node test-drivers-performance.ts",
     "test:browser": "ts-node -e \"import { BrowserSessionManager } from './src/services/browserSessionManager'; const browser = new BrowserSessionManager(); browser.ensureBrowserIsActive().then(() => console.log('✅ Browser OK')).catch(console.error);\"",
     "test:environment": "ts-node -e \"import { EnvironmentDetector } from './src/config/environmentDetector'; EnvironmentDetector.getInstance().logEnvironmentInfo();\"",
-    "health-check": "curl -f http://localhost:3000/api/status || exit 1"
+    "health-check": "curl -f http://localhost:3040/api/status || exit 1"
   },
   "dependencies": {
     "@google/generative-ai": "^0.19.0",
+    "@types/cors": "^2.8.19",
     "axios": "^1.10.0",
     "cheerio": "^1.0.0-rc.12",
+    "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^4.18.2",
+    "helmet": "^8.1.0",
+    "morgan": "^1.10.1",
     "node-cron": "^4.2.1",
     "node-fetch": "^2.7.0",
     "pg": "^8.11.0",
     "pg-connection-string": "^2.9.1",
     "playwright": "^1.55.0",
     "puppeteer": "^19.11.1",
+    "socket.io": "^4.8.1",
     "winston": "^3.11.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.1",
+    "@types/morgan": "^1.9.9",
     "@types/node": "^22.15.2",
     "@types/node-cron": "^3.0.11",
     "@types/node-fetch": "^2.6.12",

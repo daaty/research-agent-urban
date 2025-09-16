@@ -7,10 +7,21 @@
  * Status Types:
  * - 🟢 ONLINE_ACTIVE: Heartbeat OK + Atividade recente
  * - 🟡 ONLINE_IDLE: Heartbeat OK + Sem atividade recente  
+/**
+ * 🎛️ SCRAPER STATUS SERVICE
+ * 
+ * Gerencia o status e métricas de todos os scrapers em tempo real
+ * Integrado com PostgreSQL para persistência multi-scraper
+ * 
+ * STATUS HIERARCHY (ordem de prioridade):
  * - 🔴 OFFLINE: Sem heartbeat há > 15 minutos
- * - ⚫ ERROR: Erros frequentes detectados
- * - 🔵 STARTING: Iniciando (primeiros 5 minutos)
+ * - ⚫ ERROR: Erros frequentes detectados  
+ * - 🟢 ONLINE_ACTIVE: Scraping ativo (heartbeat + activity recentes)
+ * - 🟡 ONLINE_IDLE: Online mas sem atividade de scraping
+ * - � STARTING: Iniciando (primeiros 5 minutos)
  */
+
+import { DatabaseManager } from '../../services/databaseManager';
 
 export enum ScraperStatus {
   ONLINE_ACTIVE = 'ONLINE_ACTIVE',
@@ -46,11 +57,13 @@ export interface StatusUpdate {
 }
 
 export class ScraperStatusService {
-  private static instance: ScraperStatusService;
+  private static instance: ScraperStatusService | null;
   private scraperData: Map<string, ScraperData> = new Map();
   private statusHistory: Map<string, StatusUpdate[]> = new Map();
+  private databaseManager: DatabaseManager;
 
   private constructor() {
+    this.databaseManager = DatabaseManager.getInstance();
     this.initializeDefaultScrapers();
   }
 
@@ -59,6 +72,14 @@ export class ScraperStatusService {
       ScraperStatusService.instance = new ScraperStatusService();
     }
     return ScraperStatusService.instance;
+  }
+
+  /**
+   * 🔄 Força reset do singleton (para aplicar mudanças)
+   */
+  public static resetInstance(): void {
+    console.log('🔄 Resetando ScraperStatusService singleton...');
+    ScraperStatusService.instance = null;
   }
 
   /**
@@ -217,17 +238,146 @@ export class ScraperStatusService {
 
   /**
    * 📋 Obter todos os scrapers com status atual
+   * Agora lê direto do banco de dados para suporte multi-scraper
    */
-  public getAllScrapers(): ScraperData[] {
+  public async getAllScrapers(): Promise<ScraperData[]> {
+    console.log('🔍 [getAllScrapers] INÍCIO - Tentando ler scrapers...');
+    try {
+      // ✅ GARANTIR que DatabaseManager está inicializado
+      console.log('🔍 [getAllScrapers] Verificando conexão com banco...');
+      if (!this.databaseManager.isConnectedToDatabase()) {
+        console.log('🔄 Inicializando DatabaseManager...');
+        await this.databaseManager.initialize();
+      }
+      
+      console.log('✅ [getAllScrapers] DatabaseManager conectado, executando query...');
+      const query = `
+        SELECT 
+          scraper_id,
+          scraper_name,
+          status,
+          last_heartbeat,
+          last_activity,
+          performance_metrics,
+          created_at,
+          updated_at
+        FROM scraper_status 
+        ORDER BY created_at ASC
+      `;
+      
+      console.log('📊 [getAllScrapers] Executando query no PostgreSQL...');
+      const result = await this.databaseManager.query(query);
+      console.log(`🎯 [getAllScrapers] Query retornou ${result.rows.length} linhas`);
+      
+      const scrapers: ScraperData[] = [];
+      
+      for (const row of result.rows) {
+        const scraperId = row.scraper_id;
+        const lastHeartbeat = row.last_heartbeat ? new Date(row.last_heartbeat).getTime() : 0;
+        const lastActivity = row.last_activity ? new Date(row.last_activity).getTime() : 0;
+        
+        // Determinar status atual baseado nos timestamps do banco
+        const status = this.determineScraperStatusFromDatabase(lastHeartbeat, lastActivity);
+        
+        // Extrair métricas do performance_metrics JSON
+        let metrics = {
+          successRate: 0,
+          ridesScraped: 0,
+          driversScraped: 0,
+          errorsCount: 0,
+          responseTimeMs: 0
+        };
+
+        if (row.performance_metrics) {
+          try {
+            const dbMetrics = typeof row.performance_metrics === 'string' 
+              ? JSON.parse(row.performance_metrics) 
+              : row.performance_metrics;
+            
+            metrics = {
+              successRate: dbMetrics.successRate || 0,
+              ridesScraped: dbMetrics.ridesScraped || 0,
+              driversScraped: dbMetrics.driversScraped || 0,
+              errorsCount: dbMetrics.errorsCount || 0,
+              responseTimeMs: 0 // Pode ser adicionado depois
+            };
+          } catch (error) {
+            console.warn(`⚠️ Erro ao parsear métricas para ${scraperId}:`, error);
+          }
+        }
+        
+        const scraperData: ScraperData = {
+          id: scraperId,
+          name: row.scraper_name || `Scraper ${scraperId}`,
+          status: status,
+          lastHeartbeat: lastHeartbeat,
+          lastActivity: lastActivity,
+          metrics: metrics
+        };
+        
+        scrapers.push(scraperData);
+      }
+
+      console.log(`✅ [getAllScrapers] SUCESSO - Processados ${scrapers.length} scrapers do banco`);
+      return scrapers;
+    } catch (error) {
+      console.error('❌ [getAllScrapers] ERRO ao buscar scrapers do banco:', error);
+      console.log('🔄 [getAllScrapers] FALLBACK - Usando memória local...');
+      // Fallback para dados locais em caso de erro
+      return this.getAllScrapersFromMemory();
+    }
+  }
+
+  /**
+   * 📋 Fallback: Obter scrapers da memória local
+   */
+  private getAllScrapersFromMemory(): ScraperData[] {
+    console.log('🧠 [getAllScrapersFromMemory] INÍCIO - Lendo da memória local...');
     const scrapers: ScraperData[] = [];
     
+    console.log(`🧠 [getAllScrapersFromMemory] Scrapers na memória: ${this.scraperData.size}`);
     for (const [scraperId, scraper] of this.scraperData) {
+      console.log(`🧠 [getAllScrapersFromMemory] Processando scraper: ${scraperId}`);
       // Atualizar status antes de retornar
       scraper.status = this.determineScraperStatus(scraperId);
       scrapers.push({ ...scraper });
     }
 
     return scrapers;
+  }
+
+  /**
+   * 🎯 Determinar status do scraper baseado nos dados do banco
+   */
+  private determineScraperStatusFromDatabase(lastHeartbeat: number, lastActivity: number): ScraperStatus {
+    const now = Date.now();
+
+    // 1. VERIFICAÇÃO CRÍTICA: Heartbeat (15 min timeout)
+    const heartbeatAge = lastHeartbeat > 0 ? now - lastHeartbeat : Infinity;
+    const isHeartbeatAlive = heartbeatAge < 15 * 60 * 1000; // 15 minutos
+
+    if (!isHeartbeatAlive) {
+      return ScraperStatus.OFFLINE;
+    }
+
+    // 2. VERIFICAÇÃO DE ATIVIDADE: Se há atividade recente, está ativo
+    const activityAge = lastActivity > 0 ? now - lastActivity : Infinity;
+    const isActive = activityAge < 30 * 60 * 1000; // 30 minutos
+
+    if (isActive) {
+      return ScraperStatus.ONLINE_ACTIVE;
+    }
+
+    // 3. VERIFICAÇÃO DE INÍCIO: Scrapers novos (< 5 min) começam como STARTING
+    const startupAge = lastHeartbeat > 0 ? now - lastHeartbeat : Infinity;
+    const isStarting = startupAge < 5 * 60 * 1000; // 5 minutos
+
+    if (isStarting && lastActivity === 0) {
+      return ScraperStatus.STARTING;
+    }
+
+    // 4. DEFAULT: Online mas idle
+    return ScraperStatus.ONLINE_IDLE;
   }
 
   /**
@@ -279,8 +429,8 @@ export class ScraperStatusService {
   /**
    * 📊 Obter estatísticas gerais
    */
-  public getOverallStats() {
-    const scrapers = this.getAllScrapers();
+  public async getOverallStats() {
+    const scrapers = await this.getAllScrapers();
     const totalScrapers = scrapers.length;
     const onlineScrapers = scrapers.filter(s => 
       s.status === ScraperStatus.ONLINE_ACTIVE || 

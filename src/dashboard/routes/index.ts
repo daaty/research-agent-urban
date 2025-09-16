@@ -63,4 +63,9 @@ router.get('/health', (req, res) =>
   dashboardController.healthCheck(req, res)
 );
 
+// 🔧 Debug Routes
+router.post('/debug/reset-singleton', (req, res) => 
+  dashboardController.resetSingleton(req, res)
+);
+
 export { router as dashboardRoutes };

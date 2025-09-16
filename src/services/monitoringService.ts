@@ -3,6 +3,10 @@ import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
 import { createHash } from 'crypto';
+import dotenv from 'dotenv';
+
+// 🔧 CARREGAR VARIÁVEIS DE AMBIENTE
+dotenv.config();
 import { scrapeAllRidesDataPersistent } from '../scraper/ridesPersistentScraper';
 import { scrapeAllDriversDataPersistent, DriversPersistentScraper } from '../scraper/driversPersistentScraper';
 import { DriversDataTransformer } from './driversDataTransformer';
@@ -21,7 +25,7 @@ interface RideData {
   date: string;
   time: string;
   route: string;
-  price?: string;
+  // price: REMOVIDO - não existe na tabela
   [key: string]: any;
 }
 
@@ -63,7 +67,7 @@ class MonitoringService {
     // 🔍 Inicializar WebhookValidator com configuração apropriada
     this.webhookValidator = new WebhookValidator({
       strictMode: true,
-      sanitizeData: true,
+      sanitizeData: false, // ✅ DESABILITADO - estava abreviando nomes
       maxPayloadSize: 1024 * 100, // 100KB
       allowEmptyArrays: false,
       validateDataTypes: true,
@@ -87,14 +91,14 @@ class MonitoringService {
 
     // 🎛️ Inicializar RateLimiter para controle inteligente de taxa
     this.rateLimiter = new RateLimiter({
-      tokensPerSecond: 0.1, // 1 webhook a cada 10 segundos (conservative)
-      burstCapacity: 3,     // Burst de até 3 webhooks
+      tokensPerSecond: 5,   // ✅ AUMENTADO: 0.1 → 5 (muito mais permissivo)
+      burstCapacity: 10,    // ✅ AUMENTADO: 3 → 10 (mais burst)
       windowSizeMs: 60000,  // Janela de 1 minuto
       enableBurstProtection: true,
       enablePerEndpointLimiting: true,
-      defaultEndpointLimit: 6, // 6 webhooks por minuto por endpoint
+      defaultEndpointLimit: 15, // ✅ AUMENTADO: 6 → 15 (mais permissivo)
       endpointLimits: new Map([
-        ['webhook-n8n-delivery', 4], // N8N: 4 por minuto (conservativo)
+        ['webhook-n8n-delivery', 15], // ✅ AUMENTADO: 4 → 15 (sem heartbeat competition)
         ['webhook-slack', 20],        // Slack: 20 por minuto
         ['webhook-discord', 30]       // Discord: 30 por minuto
       ])
@@ -107,7 +111,7 @@ class MonitoringService {
       alertTypes: ['SCRAPER_DOWN', 'LOGIN_FAILED', 'SCRAPER_STARTED', 'SCRAPER_STOPPED', 'HIGH_ERROR_RATE'],
       cooldownMs: 300000, // 5 minutos entre alertas do mesmo tipo
       maxRetries: 3,
-      enableHeartbeat: true,
+      enableHeartbeat: true, // ✅ REABILITADO - N8N processa todos os webhooks
       heartbeatIntervalMs: 600000, // 10 minutos de heartbeat
       scraperIdentifier: process.env.RIDES_USERNAME || 'unknown-scraper'
     });
@@ -140,16 +144,27 @@ class MonitoringService {
 
   /**
    * 📊 Notificar dashboard sobre atividade de scraping
+   * Salva tanto na memória local (se dashboard habilitado) quanto no banco (sempre)
    */
-  private notifyDashboardActivity(scraperId: string, activity: 'SCRAPING_START' | 'SCRAPING_SUCCESS' | 'LOGIN_SUCCESS' | 'SCRAPING_ERROR'): void {
+  private async notifyDashboardActivity(scraperId: string, activity: 'SCRAPING_START' | 'SCRAPING_SUCCESS' | 'LOGIN_SUCCESS' | 'SCRAPING_ERROR', metrics?: {
+    ridesScraped?: number;
+    driversScraped?: number;
+    errorsCount?: number;
+    successRate?: number;
+  }): Promise<void> {
+    const timestamp = Date.now();
+    
+    // 💾 SEMPRE salvar no banco PostgreSQL (workers e master)
+    await this.saveScraperStatusToDatabase(scraperId, activity, timestamp, metrics);
+    
+    // 🖥️ Se dashboard habilitado, também atualizar memória local
     if (this.dashboardStatusService) {
-      const timestamp = Date.now();
       switch (activity) {
         case 'SCRAPING_START':
           this.dashboardStatusService.updateHeartbeat(scraperId, timestamp);
           break;
         case 'SCRAPING_SUCCESS':
-          this.dashboardStatusService.updateActivity(scraperId, timestamp);
+          this.dashboardStatusService.updateActivity(scraperId, timestamp, metrics);
           this.dashboardStatusService.updateHeartbeat(scraperId, timestamp);
           break;
         case 'LOGIN_SUCCESS':
@@ -158,8 +173,88 @@ class MonitoringService {
           break;
         case 'SCRAPING_ERROR':
           this.dashboardStatusService.updateHeartbeat(scraperId, timestamp);
+          if (metrics?.errorsCount) {
+            this.dashboardStatusService.updateActivity(scraperId, timestamp, { errorsCount: metrics.errorsCount });
+          }
           break;
       }
+    }
+  }
+
+  /**
+   * 💾 Salvar status do scraper no banco PostgreSQL
+   */
+  private async saveScraperStatusToDatabase(scraperId: string, activity: string, timestamp: number, metrics?: {
+    ridesScraped?: number;
+    driversScraped?: number;
+    errorsCount?: number;
+    successRate?: number;
+  }): Promise<void> {
+    try {
+      const username = process.env.RIDES_USERNAME || 'unknown';
+      
+      if (!this.databaseManager.isConnectedToDatabase()) {
+        console.log('⚠️ [ScraperStatus] Banco não disponível - pulando salvamento');
+        return;
+      }
+
+      // Preparar métricas para o banco
+      const performanceMetrics = {
+        ridesScraped: metrics?.ridesScraped || 0,
+        driversScraped: metrics?.driversScraped || 0,
+        errorsCount: metrics?.errorsCount || 0,
+        successRate: metrics?.successRate || 0,
+        lastUpdate: new Date().toISOString()
+      };
+
+      // Inserir ou atualizar status
+      const query = `
+        INSERT INTO scraper_status (
+          scraper_id, scraper_name, status, last_heartbeat, last_activity, 
+          performance_metrics, created_at, updated_at
+        ) 
+        VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+        ON CONFLICT (scraper_id) 
+        DO UPDATE SET 
+          status = EXCLUDED.status,
+          last_heartbeat = EXCLUDED.last_heartbeat,
+          last_activity = CASE 
+            WHEN EXCLUDED.last_activity IS NOT NULL THEN EXCLUDED.last_activity
+            ELSE scraper_status.last_activity
+          END,
+          performance_metrics = EXCLUDED.performance_metrics,
+          updated_at = NOW()
+      `;
+
+      const status = this.mapActivityToStatus(activity);
+      const lastActivity = (activity === 'LOGIN_SUCCESS' || activity === 'SCRAPING_SUCCESS') ? new Date(timestamp) : null;
+
+      await this.databaseManager.query(query, [
+        scraperId,
+        username,
+        status,
+        new Date(timestamp), // ✅ Converter milissegundos para Date
+        lastActivity,
+        JSON.stringify(performanceMetrics) // Salvando métricas como JSON
+      ]);
+
+      console.log(`💾 [ScraperStatus] Salvou: ${scraperId} → ${status}`);
+      
+    } catch (error) {
+      console.error('❌ [ScraperStatus] Erro ao salvar no banco:', error);
+    }
+  }
+
+  /**
+   * 🔄 Mapear atividade para status do banco
+   */
+  private mapActivityToStatus(activity: string): string {
+    switch (activity) {
+      case 'SCRAPING_START': return 'STARTING';
+      case 'LOGIN_SUCCESS': return 'ONLINE_ACTIVE';
+      case 'SCRAPING_SUCCESS': return 'ONLINE_ACTIVE';
+      case 'SCRAPING_ERROR': return 'ERROR';
+      default: return 'OFFLINE';
     }
   }
 
@@ -322,34 +417,91 @@ class MonitoringService {
     };
   }
 
-  // ⭐ NOVO MÉTODO: Converter linha de tabela para RideData
+  // ⭐ MÉTODO CORRIGIDO: Converter linha de tabela para RideData com mapeamento direto
   private convertRowToRideData(row: string[], tableName: string): RideData {
-    // Mapear colunas baseado no nome da tabela ou assumir formato padrão
     const rideData: any = {
       table_name: tableName
     };
-    
-    // Assumir formato padrão das colunas (ajustar conforme necessário)
-    if (row.length >= 4) {
+
+    // 🎯 MAPEAMENTO ESPECÍFICO POR TIPO DE TABELA
+    if (tableName === 'Completed Rides' && row.length >= 16) {
+      // ✅ Completed Rides: [ID, ?, Driver, Passenger, Phone, Route1, Route2, Date, Date2, Type, Status, --, --, ?, -, -]
+      rideData.id = row[0] || '';
+      rideData.driver = row[2] || '';       // Driver name
+      rideData.passenger = row[3] || '';    // Passenger name
+      rideData.time = row[4] || '';         // Phone number
+      rideData.route = row[6] || '';        // Formatted route
+      rideData.date = row[7] || '';         // Date
+      rideData.status = row[10] || '';      // Status
+
+    } else if (tableName === 'Cancelled Rides' && row.length >= 18) {
+      // ✅ Cancelled Rides: [ID, --, DriverID, DriverName, PassengerID, Phone, PassengerName, ServiceType, Route1, Route2, --, --, Date, CancelReason, CancelStatus, --, --, BookType]
+      rideData.id = row[0] || '';
+      rideData.driver = row[3] || '';       // Driver name
+      rideData.passenger = row[6] || '';    // Passenger name
+      rideData.time = row[5] || '';         // Phone number
+      rideData.route = row[9] || '';        // Formatted route
+      rideData.date = row[12] || '';        // Date
+      rideData.status = row[14] || '';      // Cancel status
+
+    } else if (tableName === 'Ongoing Rides' && row.length >= 12) {
+      // ✅ Ongoing Rides: [ID, --, Driver, Passenger, Phone, Route1, Route2, Date, ServiceType, Status, ?, ?]
+      rideData.id = row[0] || '';
+      rideData.driver = row[2] || '';       // Driver name
+      rideData.passenger = row[3] || '';    // Passenger name
+      rideData.time = row[4] || '';         // Phone number
+      rideData.route = row[6] || '';        // Route 2
+      rideData.date = row[7] || '';         // Date
+      rideData.status = row[9] || '';       // Status
+
+    } else if (tableName === 'Missed Rides' && row.length >= 8) {
+      // ✅ Missed Rides: [ID, Passenger, Phone, Route, ServiceType, Status, Date, BookType]
+      rideData.id = row[0] || '';
+      rideData.driver = 'N/A';              // No driver for missed rides
+      rideData.passenger = row[1] || '';    // Passenger name
+      rideData.time = row[2] || '';         // Phone number
+      rideData.route = row[3] || '';        // Route
+      rideData.date = row[6] || '';         // Date
+      rideData.status = row[5] || '';       // Status
+
+    } else if (row.length >= 16) {
+      // 🔄 Fallback para tabelas de 16 colunas não identificadas
+      rideData.id = row[0] || '';
+      rideData.driver = row[2] || '';
+      rideData.passenger = row[3] || '';
+      rideData.time = row[4] || '';
+      rideData.route = row[6] || '';
+      rideData.date = row[7] || '';
+      rideData.status = row[10] || '';
+
+    } else if (row.length >= 7) {
+      // 🔄 Fallback para tabelas com 7+ colunas
+      rideData.driver = row[0] || '';
+      rideData.passenger = row[1] || '';
+      rideData.status = row[2] || '';
+      rideData.date = row[3] || '';
+      rideData.time = row[4] || '';
+      rideData.route = row[5] || '';
+
+    } else if (row.length >= 4) {
+      // 🔄 Fallback mínimo
       rideData.driver = row[0] || '';
       rideData.passenger = row[1] || '';
       rideData.route = row[2] || '';
       rideData.status = row[3] || '';
       rideData.date = row[4] || '';
       rideData.time = row[5] || '';
-      rideData.price = row[6] || '';
     }
-    
+
     return {
       id: this.generateRideId(rideData),
-      driver: rideData.driver || rideData.motorista || '',
-      passenger: rideData.passenger || rideData.passageiro || '',
-      status: rideData.status || rideData.situacao || '',
-      date: rideData.date || rideData.data || '',
-      time: rideData.time || rideData.hora || '',
-      route: rideData.route || rideData.rota || rideData.origem_destino || '',
-      price: rideData.price || rideData.preco || rideData.valor || '',
-      ...rideData
+      driver: rideData.driver,
+      passenger: rideData.passenger,
+      status: rideData.status,
+      date: rideData.date,
+      time: rideData.time,
+      route: rideData.route,
+      table_name: tableName
     };
   }
   private async sendToN8n(result: MonitoringResult): Promise<void> {
@@ -407,16 +559,10 @@ class MonitoringService {
         }
       };
 
-      // ⭐ LÓGICA CORRETA: Enviar sempre se há dados, ou se há mudanças detectadas
-      if (!payload.hasChanges && this.lastRawData.length === 0) {
+      // ⭐ LÓGICA CORRETA: Enviar APENAS se há mudanças reais detectadas pelo cache
+      if (!payload.hasChanges) {
         console.log('⏭️ Pulando envio para n8n (sem mudanças detectadas pelo sistema de cache)');
         return;
-      }
-      
-      // ⭐ FORÇAR ENVIO se há dados mas cache não detectou mudanças (primeira execução)
-      if (!payload.hasChanges && this.lastRawData.length > 0) {
-        console.log('🔄 Forçando envio para n8n (primeira execução com dados)');
-        payload.hasChanges = true;
       }
 
       console.log(`🚀 Enviando para n8n: ${JSON.stringify(result.summary)}`);
@@ -493,9 +639,78 @@ class MonitoringService {
   }
 
   /**
-   * 🚨 CORREÇÃO CRÍTICA: Salvamento unificado para evitar perda de dados de Performance
-   * Salva TODOS os dados de drivers em uma única transação atômica
+   * 🎯 Criar MonitoringResult diretamente do resultado da comparação do scraper
    */
+  private createMonitoringResultFromScraperComparison(scrapingResult: any): MonitoringResult {
+    const timestamp = new Date().toISOString();
+
+    // Calcular total de registros
+    const totalRecords = scrapingResult.data?.reduce((sum: number, table: any) => sum + table.rows.length, 0) || 0;
+
+    // Usar dados fornecidos pelo scraper
+    const newRecords: RideData[] = [];
+    const updatedRecords: RideData[] = [];
+    const cancelledRecords: RideData[] = [];
+    const completedRecords: RideData[] = [];
+
+    // 🔧 CORREÇÃO: Processar diferenças corretamente categorizando por tableName PRIMEIRO
+    if (scrapingResult.differences && scrapingResult.differences.length > 0) {
+      console.log(`🔍 [DEBUG] Processando ${scrapingResult.differences.length} differences do scraper...`);
+      
+      scrapingResult.differences.forEach((diff: any) => {
+        const tableName = diff.tableName.toLowerCase();
+        console.log(`🔍 [DEBUG] Processando tabela: ${diff.tableName} com ${diff.newRecords?.length || 0} novos registros`);
+
+        // 🎯 CATEGORIZAR POR TIPO DE TABELA PRIMEIRO
+        if (tableName.includes('completed') || tableName.includes('conclu')) {
+          // Tabela de corridas completadas
+          diff.newRecords?.forEach((row: string[]) => {
+            const ride = this.convertRowToRideData(row, diff.tableName);
+            completedRecords.push(ride);
+            newRecords.push(ride); // Também adiciona aos novos registros gerais
+          });
+        } else if (tableName.includes('cancelled') || tableName.includes('cancel')) {
+          // Tabela de corridas canceladas
+          diff.newRecords?.forEach((row: string[]) => {
+            const ride = this.convertRowToRideData(row, diff.tableName);
+            cancelledRecords.push(ride);
+            newRecords.push(ride); // Também adiciona aos novos registros gerais
+          });
+        } else {
+          // Outras tabelas (ongoing, scheduled, missed)
+          diff.newRecords?.forEach((row: string[]) => {
+            const ride = this.convertRowToRideData(row, diff.tableName);
+            newRecords.push(ride);
+          });
+        }
+
+        // Processar registros atualizados (se houver)
+        diff.updatedRecords?.forEach((row: string[]) => {
+          const ride = this.convertRowToRideData(row, diff.tableName);
+          updatedRecords.push(ride);
+        });
+      });
+    }
+
+    const summary = {
+      newCount: newRecords.length,
+      updatedCount: updatedRecords.length,
+      cancelledCount: cancelledRecords.length,
+      completedCount: completedRecords.length
+    };
+
+    console.log(`🔍 [DEBUG] Resultado da categorização: ${JSON.stringify(summary)}`);
+
+    return {
+      timestamp,
+      totalRecords,
+      newRecords,
+      updatedRecords,
+      cancelledRecords,
+      completedRecords,
+      summary
+    };
+  }
   private async saveDriversDataUnified(
     driversData: any[],
     sessionInfo: any,
@@ -710,7 +925,7 @@ class MonitoringService {
     
     // 📊 Notificar dashboard que scraping iniciou
     const scraperId = this.getCurrentScraperId();
-    this.notifyDashboardActivity(scraperId, 'SCRAPING_START');
+    await this.notifyDashboardActivity(scraperId, 'SCRAPING_START');
     
     try {
       // 🚨 Atualizar atividade no sistema de alertas
@@ -738,7 +953,7 @@ class MonitoringService {
         console.error('❌ Falha no scraping de rides:', scrapingResult.message);
         
         // 📊 Notificar dashboard sobre erro
-        this.notifyDashboardActivity(scraperId, 'SCRAPING_ERROR');
+        await this.notifyDashboardActivity(scraperId, 'SCRAPING_ERROR');
         
         // Detectar se é falha de login
         if (this.isLoginFailure(scrapingResult.message || '')) {
@@ -754,10 +969,11 @@ class MonitoringService {
       // ✅ SCRAPING BEM-SUCEDIDO - SEMPRE NOTIFICAR ATIVIDADE
       if (scrapingResult.loginSuccess) {
         console.log('🎉 ATIVIDADE DE SCRAPING DETECTADA - Notificando dashboard!');
-        this.notifyDashboardActivity(scraperId, 'LOGIN_SUCCESS');
+        await this.notifyDashboardActivity(scraperId, 'LOGIN_SUCCESS');
       } else {
-        console.log('✅ Scraping bem-sucedido - Atualizando heartbeat');
-        this.notifyDashboardActivity(scraperId, 'SCRAPING_SUCCESS');
+        console.log('✅ Scraping bem-sucedido - Heartbeat será atualizado no final com métricas completas');
+        // ❌ REMOVIDO: await this.notifyDashboardActivity(scraperId, 'SCRAPING_SUCCESS');
+        // ✅ Métricas serão enviadas no final do processamento com dados completos
       }
       
       if (!scrapingResult.data || scrapingResult.data.length === 0) {
@@ -815,12 +1031,22 @@ class MonitoringService {
       
       console.log(`📊 Total de registros convertidos: ${rawData.length}`);
       console.log(`📊 Total de tabelas adaptadas: ${adaptedData.length}`);
-      
+
       // ⭐ ARMAZENAR DADOS PARA WEBHOOK
       this.lastRawData = rawData;
 
-      // ⭐ USAR SISTEMA DE CACHE SOFISTICADO - detectar mudanças nos dados de tabela originais
-      const changes = this.detectChanges(scrapingResult.data);
+      // ⭐ CORREÇÃO CRÍTICA: Usar resultado da comparação DO SCRAPER (não fazer segunda comparação)
+      let changes: MonitoringResult;
+
+      if (scrapingResult.hasChanges !== undefined) {
+        // 🎯 USAR RESULTADO DIRETO DO SCRAPER (evita comparação dupla)
+        console.log('🎯 Usando resultado da comparação do scraper diretamente');
+        changes = this.createMonitoringResultFromScraperComparison(scrapingResult);
+      } else {
+        // 🔄 FALLBACK: Fazer comparação se o scraper não forneceu resultado
+        console.log('🔄 Fallback: Fazendo comparação no MonitoringService');
+        changes = this.detectChanges(rawData);
+      }
 
       // 🔧 SALVAR DADOS ADAPTADOS NO BANCO DE DADOS
       console.log(`🔍 Debug - adaptedData.length: ${adaptedData.length}, rawData.length: ${rawData.length}, changes: ${JSON.stringify(changes.summary)}`);
@@ -852,13 +1078,6 @@ class MonitoringService {
           
           console.log(`✅ Dados adaptados salvos no banco de dados`);
           
-          // ⭐ FORÇAR hasChanges se há dados para salvar na primeira execução
-          if (changes.summary.newCount === 0 && changes.summary.updatedCount === 0) {
-            console.log(`🔄 Primeira execução detectada - forçando mudanças para webhook`);
-            changes.summary.newCount = rawData.length;
-            changes.newRecords = this.normalizeRideData(rawData);
-          }
-          
         } catch (ridesError) {
           console.error('❌ Erro ao salvar dados adaptados:', ridesError);
           console.error('❌ Stack trace:', (ridesError as Error).stack);
@@ -874,8 +1093,10 @@ class MonitoringService {
       const driversResult = await scrapeAllDriversDataPersistent();
       
       let driversTransformed = null;
+      let totalDriversProcessed = 0; // 📊 Variável para capturar drivers processados
       if (driversResult.success && driversResult.data && driversResult.data.length > 0) {
-        console.log(`📊 Dados de drivers extraídos: ${driversResult.data.reduce((sum, table) => sum + table.rows.length, 0)} registros`);
+        totalDriversProcessed = driversResult.data.reduce((sum, table) => sum + table.rows.length, 0);
+        console.log(`📊 Dados de drivers extraídos: ${totalDriversProcessed} registros`);
         
         try {
           // 🚨 CORREÇÃO CRÍTICA: TRANSAÇÃO UNIFICADA PARA TODOS OS DADOS DE DRIVERS
@@ -920,14 +1141,40 @@ class MonitoringService {
 
       console.log(`✅ [${new Date().toLocaleString()}] Scraping concluído (rides + drivers)`);
       
-      // 📊 Notificar dashboard que scraping foi bem-sucedido
-      this.notifyDashboardActivity(scraperId, 'SCRAPING_SUCCESS');
+      // 📊 Calcular métricas reais para o dashboard
+      const totalRides = changes.summary.newCount + changes.summary.updatedCount + changes.summary.cancelledCount + changes.summary.completedCount;
+      
+      // 🔧 CORREÇÃO: Usar contagem real de drivers processados em vez de adaptedData
+      const totalDrivers = totalDriversProcessed; // Usar valor capturado do scraping de drivers
+      
+      const successfulOperations = changes.summary.newCount + changes.summary.updatedCount + changes.summary.completedCount;
+      const errorOperations = changes.summary.cancelledCount; // Cancelados podem ser considerados problemas
+      const successRate = totalRides > 0 ? (successfulOperations / totalRides) * 100 : 100;
+      
+      const metrics = {
+        ridesScraped: totalRides,
+        driversScraped: totalDrivers,
+        errorsCount: errorOperations,
+        successRate: Math.round(successRate * 100) / 100 // 2 casas decimais
+      };
+      
+      console.log(`📈 Métricas calculadas: ${totalRides} rides, ${totalDrivers} drivers, ${successRate.toFixed(1)}% sucesso`);
+      
+      // 📊 Notificar dashboard que scraping foi bem-sucedido COM MÉTRICAS
+      await this.notifyDashboardActivity(scraperId, 'SCRAPING_SUCCESS', metrics);
       
     } catch (error) {
       console.error('❌ Erro durante scraping:', error);
       
-      // � Notificar dashboard sobre erro
-      this.notifyDashboardActivity(scraperId, 'SCRAPING_ERROR');
+      // 📊 Notificar dashboard sobre erro COM contador de erros
+      const errorMetrics = {
+        ridesScraped: 0,
+        driversScraped: 0,
+        errorsCount: 1, // Incrementar contador de erros
+        successRate: 0
+      };
+      
+      await this.notifyDashboardActivity(scraperId, 'SCRAPING_ERROR', errorMetrics);
       
       // �🚨 NOTIFICAR ERRO CRÍTICO DO SCRAPER
       const errorMessage = error instanceof Error ? error.message : String(error);

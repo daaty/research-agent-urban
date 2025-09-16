@@ -20,7 +20,8 @@
     "src/services/**/*",
     "src/scraper/ridesPersistentScraper.ts",
     "src/config/**/*",
-    "src/types/**/*"
+    "src/types/**/*",
+    "src/dashboard/**/*"
   ],
   "exclude": [
     "node_modules",

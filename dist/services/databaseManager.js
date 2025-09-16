@@ -87,8 +87,7 @@ class DatabaseManager {
         CONSTRAINT unique_ride_hash UNIQUE (table_name, data_hash)
       );
     `;
-            // Recriar tabela de drivers com campos corrigidos
-            const dropDriversTable = `DROP TABLE IF EXISTS drivers_data CASCADE;`;
+            // 🛡️ CRIAR tabela de drivers SEM apagar dados existentes
             const createDriversDataTable = `
       CREATE TABLE IF NOT EXISTS drivers_data (
         id SERIAL PRIMARY KEY,
@@ -103,9 +102,22 @@ class DatabaseManager {
         scraped_at TIMESTAMP DEFAULT NOW(),
         session_info JSONB,
         source VARCHAR(50) DEFAULT 'drivers-persistent-scraper',
-        unique_id VARCHAR(255) NOT NULL,
-        CONSTRAINT unique_driver_hash UNIQUE (data_type, driver_id, data_hash)
+        unique_id VARCHAR(255) NOT NULL
       );
+    `;
+            // 🔧 Adicionar constraint APENAS se não existir (evita erro se já existe)
+            const addConstraintSafely = `
+      DO $$ 
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.table_constraints 
+          WHERE constraint_name = 'unique_driver_hash' 
+          AND table_name = 'drivers_data'
+        ) THEN
+          ALTER TABLE drivers_data 
+          ADD CONSTRAINT unique_driver_hash UNIQUE (data_type, driver_id, data_hash);
+        END IF;
+      END $$;
     `;
             const createScrapingSessionsTable = `
       CREATE TABLE IF NOT EXISTS scraping_sessions (
@@ -132,12 +144,12 @@ class DatabaseManager {
     `;
             try {
                 yield this.pool.query(createRidesDataTable);
-                // Recriar tabela de drivers para garantir campos corretos
-                yield this.pool.query(dropDriversTable);
+                // 🛡️ Criar tabela de drivers SEM apagar dados existentes
                 yield this.pool.query(createDriversDataTable);
+                yield this.pool.query(addConstraintSafely);
                 yield this.pool.query(createScrapingSessionsTable);
                 yield this.pool.query(createIndexes);
-                console.log('✅ Tabelas de rides, drivers (recriada) e índices criados/verificados');
+                console.log('✅ Tabelas de rides, drivers (preservadas) e índices criados/verificados');
             }
             catch (error) {
                 console.error('❌ Erro ao criar tabelas:', error.message);
@@ -516,6 +528,24 @@ class DatabaseManager {
      */
     isConnectedToDatabase() {
         return this.isConnected;
+    }
+    /**
+     * 🔧 Executa query SQL direta (para casos especiais como setup de schema)
+     */
+    query(text, params) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!this.pool) {
+                throw new Error('Database pool not initialized');
+            }
+            try {
+                const result = yield this.pool.query(text, params);
+                return result;
+            }
+            catch (error) {
+                console.error('❌ Error executing query:', error);
+                throw error;
+            }
+        });
     }
     /**
      * Fecha a conexão
